@@ -102,7 +102,7 @@ I also develop libraries that support RobotIK or explore future additions:
 Let us follow the **pick-and-place** demo from its files to the result. A robot with a camera on its wrist picks up a red cube and places it inside a box. All the files for a demo live in one folder: a **plugin** that RobotIK loads at run time:
 
 ```text
-📦 plugins/PickAndPlace/
+📦 demos/PickAndPlace/
 ┣ 📄 plugin.yaml     ⬅️ the name of the plugin and the list of its scenarios
 ┣ 📂 worlds/         ⬅️ what exists
 ┣ 📂 src/            ⬅️ the skills, in C++
@@ -324,7 +324,7 @@ git clone https://github.com/Lecrapouille/RobotIK --recurse-submodules
 cd RobotIK
 make
 
-./build/linux-gcc-debug/bin/RobotIK-Simulator          # Demos menu: every plugin and its scenarios
+./build/linux-gcc-debug/bin/RobotIK-Simulator          # Tutorials and Demos menus: every plugin and its scenarios
 ./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml
 ./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/Painter/experiments/painter.experiment.yaml --report painting.json
 ./build/linux-gcc-debug/bin/RobotIK-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32

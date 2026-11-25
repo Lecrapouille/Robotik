@@ -157,6 +157,6 @@ This is the correct behaviour: a skill that does not know where the object is mu
 
 ## 🔗 See also
 
-- `plugins/Painter/src/PainterSkills.cpp` (`DipSkill`, `MarkSkill`, `RinseSkill`): skills built on `MoveTCPSkill` and trajectories.
-- `plugins/PickAndPlace/src/PickPlaceSkills.cpp`: the skills `Approach`, `Reach`, `Grasp` and `Release`, with a real camera.
+- `demos/Painter/src/PainterSkills.cpp` (`DipSkill`, `MarkSkill`, `RinseSkill`): skills built on `MoveTCPSkill` and trajectories.
+- `demos/PickAndPlace/src/PickPlaceSkills.cpp`: the skills `Approach`, `Reach`, `Grasp` and `Release`, with a real camera.
 - [Truth, description and belief](../concepts/02-worlds-scenarios-experiments.md#-truth-description-and-belief): the three sources of a position, and the levels of `perception`.

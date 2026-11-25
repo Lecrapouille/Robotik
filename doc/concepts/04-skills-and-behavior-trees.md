@@ -57,7 +57,7 @@ There is **no simulator in there**. A skill cannot tell MuJoCo from a real robot
 | — | `MoveJointsSkill(posture)` | Several joints, `{ "joint1": 0.5, ... }` |
 | — | `MoveTCPSkill(frame)` + `goal(pose)` | A frame to a pose (IK once per goal). Useful **inside** your own skills |
 
-Pick-and-place skills (`DetectSkill`, `ApproachSkill`, `GraspSkill`, `ReleaseSkill`) are in `plugins/PickAndPlace/src`.
+Pick-and-place skills (`DetectSkill`, `ApproachSkill`, `GraspSkill`, `ReleaseSkill`) are in `demos/PickAndPlace/src`.
 
 ## 📝 Register a skill: `SkillDescription`
 
@@ -95,7 +95,7 @@ Do this in `ScenarioLogic::setup`. The simulation then makes every skill a behav
 
 ### 👥 Several robots
 
-In a world of several robots ([Several robots](../reference/world-file.md#-several-robots)), each skill drives the robot of its `robot` field: `p_context.robot` is that robot. Name the skills after the robot (`left.Hover(p3)`), so that a behavior tree or a planner binding (`"{0}.Hover({1})"`) picks the right one. From `plugins/DualArm/src/ConveyorLogic.cpp`:
+In a world of several robots ([Several robots](../reference/world-file.md#-several-robots)), each skill drives the robot of its `robot` field: `p_context.robot` is that robot. Name the skills after the robot (`left.Hover(p3)`), so that a behavior tree or a planner binding (`"{0}.Hover({1})"`) picks the right one. From `demos/DualArm/src/ConveyorLogic.cpp`:
 
 ```cpp
 std::string const& id = p_robot.id();

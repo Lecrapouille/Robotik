@@ -124,7 +124,7 @@ A cell can also receive a goal instead of a skill, with `cell.achieve(goal)`: a 
 
 ## 📦 3. Load a scenario: the Package layer
 
-In the first two programs, C++ code builds the world and tells what a success is. A scenario file tells the same in YAML: the world, the time limit, and the assertions that must hold. Here is [hello.scenario.yaml](../../plugins/HelloWorld/scenarios/hello.scenario.yaml):
+In the first two programs, C++ code builds the world and tells what a success is. A scenario file tells the same in YAML: the world, the time limit, and the assertions that must hold. Here is [hello.scenario.yaml](../../doc/tutorials/HelloWorld/scenarios/hello.scenario.yaml):
 
 ![Package layer: scenario files and scenario logic feed the simulation; assertions determine whether the run passes.](images/package-scenario-verdict.svg)
 
@@ -146,7 +146,7 @@ The test also has a small scenario logic, `HelloLogic`. It counts the steps, pub
 
 ```cpp
 auto scenario = robotik::loadScenario(
-    repoFile("plugins/HelloWorld/scenarios/hello.scenario.yaml"), testAssets());
+    repoFile("doc/tutorials/HelloWorld/scenarios/hello.scenario.yaml"), testAssets());
 ASSERT_TRUE(scenario) << scenario.error();
 
 HelloLogic logic;

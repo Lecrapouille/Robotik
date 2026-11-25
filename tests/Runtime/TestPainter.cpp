@@ -18,7 +18,7 @@
 static robotik::Scenario painterScenario()
 {
     return robotik::loadScenario(
-        repoFile("plugins/Painter/scenarios/painter.scenario.yaml"),
+        repoFile("demos/Painter/scenarios/painter.scenario.yaml"),
         testAssets()).take();
 }
 

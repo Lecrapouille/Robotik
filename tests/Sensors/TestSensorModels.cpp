@@ -148,7 +148,7 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
     auto build = [](char const* p_policy)
     {
         robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
-            "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
+            "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
         EXPECT_TRUE(robotik::overrideValue(source, "scenario.perception.blind",
                         robotik::ConfigNode(p_policy)));
         return robotik::readScenario(source, testAssets()).take();

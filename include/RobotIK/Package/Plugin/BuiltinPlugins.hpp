@@ -11,7 +11,7 @@
 /// The web page (Emscripten) cannot open a shared library: its plugins are
 /// compiled into the page. Each one adds its five C functions to this table
 /// when the program starts (@ref ROBOTIK_EXPORT_PLUGIN does it when
-/// @c ROBOTIK_PLUGIN_LIBRARY is defined, see @c plugins/plugin.mk), under
+/// @c ROBOTIK_PLUGIN_LIBRARY is defined, see @c demos/plugin.mk), under
 /// the file name of its library (@c library.entrypoint of @c plugin.yaml).
 /// @ref PluginManager::load looks in this table first, then calls @c dlopen.
 ///

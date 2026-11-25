@@ -91,7 +91,7 @@ Only a tool has `touches`, and each name must be another entity of the world; ot
 
 ## 👥 Several robots
 
-A world may have several entities of type `robot`: two arms of a cell, an arm and a mobile base. They share **one** physics (MuJoCo), **one** resource manager, **one** skill scheduler and **the beliefs**. From the DualArm tray cell (`plugins/DualArm/worlds/tray_cell.world.yaml`):
+A world may have several entities of type `robot`: two arms of a cell, an arm and a mobile base. They share **one** physics (MuJoCo), **one** resource manager, **one** skill scheduler and **the beliefs**. From the DualArm tray cell (`demos/DualArm/worlds/tray_cell.world.yaml`):
 
 ```yaml
     - id: left

@@ -16,10 +16,10 @@ The next tutorials use the same plugin, HelloWorld, and add one idea each:
 
 ## 🧩 What is a plugin?
 
-A plugin is a folder of `plugins/`. It has YAML files, and C++ code that `make` compiles into a shared library (a `.so` file). Here is HelloWorld:
+A plugin is a folder: the demos are in `demos/`, this tutorial plugin is in `doc/tutorials/HelloWorld/` (the root `Makefile` looks in each folder of `PLUGIN_DIRS`). It has YAML files, and C++ code that `make` compiles into a shared library (a `.so` file). Here is HelloWorld:
 
 ```text
-📦 plugins/HelloWorld/
+📦 doc/tutorials/HelloWorld/
 ┣ 📄 plugin.yaml       ⬅️ the manifest: the id of the plugin, its library, its scenarios
 ┣ 📄 HelloWorld.mk     ⬅️ how make builds librobotik_hello_world.so
 ┣ 📂 worlds/
@@ -63,7 +63,7 @@ The robot does not move in this scenario. The scenario logic only counts the ste
 
 ## 📄 2. Read the scenario file
 
-`plugins/HelloWorld/scenarios/hello.scenario.yaml`:
+`doc/tutorials/HelloWorld/scenarios/hello.scenario.yaml`:
 
 ```yaml
 scenario:
@@ -196,7 +196,7 @@ When you choose the scenario `hello`, the plugin creates a `HelloLogic`. `ROBOTI
 
 ## 🔧 5. Change the code and see the verdict change
 
-Open `plugins/HelloWorld/src/HelloLogic.cpp`. In `status`, change `robotik::Seconds(2.0)` to `robotik::Seconds(4.0)`. Then build the plugin and run the scenario again:
+Open `doc/tutorials/HelloWorld/src/HelloLogic.cpp`. In `status`, change `robotik::Seconds(2.0)` to `robotik::Seconds(4.0)`. Then build the plugin and run the scenario again:
 
 ```bash
 make robotik_hello_world
@@ -216,7 +216,7 @@ The scenario logic still ends with a success, but the run fails: the assertion `
 
 Put back `robotik::Seconds(2.0)` and run `make robotik_hello_world` again.
 
-To see the same run in the simulator, start it and choose **Demos → Hello world → 1. Hello**:
+To see the same run in the simulator, start it and choose **Tutorials → Hello world → 1. Hello**:
 
 ```bash
 ./build/linux-gcc-debug/bin/RobotIK-Simulator

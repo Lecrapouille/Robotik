@@ -5,7 +5,7 @@
 In tutorials 4 to 6 you read the HelloWorld plugin. Now you write a plugin from zero: `MyRobot`. Its arm nods three times (`joint2` goes down, then up), and the scenario checks it. The plugin has six files, and you write each one yourself, so you know what each file does.
 
 ```text
-📦 plugins/MyRobot/
+📦 demos/MyRobot/
 ┣ 📄 plugin.yaml           ⬅️ the manifest: id, library, scenarios
 ┣ 📄 MyRobot.mk            ⬅️ how make builds the library
 ┣ 📂 worlds/
@@ -18,7 +18,7 @@ In tutorials 4 to 6 you read the HelloWorld plugin. Now you write a plugin from 
 
 ## 📄 1. Write the manifest
 
-Create `plugins/MyRobot/plugin.yaml`:
+Create `demos/MyRobot/plugin.yaml`:
 
 ```yaml
 plugin:
@@ -46,7 +46,7 @@ The host reads this file before it loads any code. The `id` identifies the plugi
 
 ## 🔨 2. Write the build recipe
 
-Create `plugins/MyRobot/MyRobot.mk`:
+Create `demos/MyRobot/MyRobot.mk`:
 
 ```make
 # The plugin MyRobot. Paths are relative to this directory.
@@ -56,11 +56,11 @@ robotik_my_robot.SOURCES := src/*.cpp
 $(eval $(call ROBOTIK_PLUGIN,robotik_my_robot,MyRobot))
 ```
 
-The target `robotik_my_robot` builds `librobotik_my_robot.so`: `lib`, the name of the target, then `.so`. `ROBOTIK_PLUGIN` adds what all plugins share (see `plugins/plugin.mk`). It also copies `plugin.yaml` and the folders `worlds/` and `scenarios/` to `build/`, where the hosts read them.
+The target `robotik_my_robot` builds `librobotik_my_robot.so`: `lib`, the name of the target, then `.so`. `ROBOTIK_PLUGIN` adds what all plugins share (see `demos/plugin.mk`). It also copies `plugin.yaml` and the folders `worlds/` and `scenarios/` to `build/`, where the hosts read them.
 
 ## 🌍 3. Write the world and the scenario
 
-Create `plugins/MyRobot/worlds/arm.world.yaml`, with one arm:
+Create `demos/MyRobot/worlds/arm.world.yaml`, with one arm:
 
 ```yaml
 world:
@@ -75,7 +75,7 @@ world:
 
 The `model` is not a file path: it is `<pack>.<model>`. The actuator `arm` commands all the joints of the robot. It is also a resource that a skill can reserve ([tutorial 6](06-skills-and-a-behavior-tree.md)).
 
-Create `plugins/MyRobot/scenarios/nod.scenario.yaml`:
+Create `demos/MyRobot/scenarios/nod.scenario.yaml`:
 
 ```yaml
 scenario:
@@ -94,7 +94,7 @@ The metric `nod.count` does not exist yet: the scenario logic of the next step p
 
 ## 🧠 4. Write the C++ code
 
-Create `plugins/MyRobot/src/Plugin.cpp`. The first class is the scenario logic. It uses the methods of [tutorial 4](04-your-first-plugin.md) and the joint handle of [tutorial 5](05-move-the-arm.md):
+Create `demos/MyRobot/src/Plugin.cpp`. The first class is the scenario logic. It uses the methods of [tutorial 4](04-your-first-plugin.md) and the joint handle of [tutorial 5](05-move-the-arm.md):
 
 ```cpp
 #include "RobotIK/Package/Plugin/PluginAPI.hpp"

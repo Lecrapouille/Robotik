@@ -2,7 +2,7 @@
 
 [⏫ Case studies](README.md)
 
-**Two robots in one world, planned together.** Two 6-axis arms share one physics, one scheduler and their beliefs ([Several robots](../reference/world-file.md#-several-robots)). The PDDL planner plans for both, and the executor runs at the same time the steps that do not depend on each other ([Steps that run together](../concepts/05-pddl-planner.md#-steps-that-run-together)). No behavior tree is written. `conveyor_pabt` grows a tree from the goal (PA-BT) instead of planning: one goal condition after the other, so one arm at a time, like `conveyor_sequential`.
+**Two robots in one world, planned together.** Two 6-axis arms share one physics, one scheduler and their beliefs ([Several robots](../reference/world-file.md#-several-robots)). The PDDL planner plans for both, and the executor runs at the same time the steps that do not depend on each other ([Steps that run together](../concepts/05-pddl-planner.md#-steps-that-run-together)). No behavior tree is written.
 
 ![The conveyor cell at 6 s: the belt brings the parts, and each arm takes the parts of its lane to its bin.](images/dual-arm-conveyor.png) ![The tray cell at 15 s: the left arm carries the tray with four glasses from below, the right arm draws on it with the drill.](images/dual-arm-tray.png)
 
@@ -14,7 +14,6 @@ make robotik_dual_arm
 | Scenario | What happens |
 |----------|--------------|
 | `conveyor` | A conveyor of two lanes brings four parts from its infeed table (out of reach) to the end stop of each lane; each arm takes the parts of its lane and drops them in its bin, then waits over its pick zone for the next part. The belt brings the next part while an arm carries the last one |
-| `conveyor_sequential` | The same plan, step by step (`planner.parallel: false`), to compare |
 | `tray` | The left arm holds a tray with four glasses **from below**, its cup pointing up, carries it to another stand and puts it down; the right arm, on a pedestal, feels the tray with a drill and its force sensor, and draws a target between the glasses **while the tray moves**. A temporal domain (durative actions) |
 
 **Conveyor.** One plan of 12 steps; the times show the overlap:
@@ -79,7 +78,7 @@ How it works:
 - **Gentle moves.** The tray moves along straight lines with a smooth profile (`PathSkill`). The arms have stiffer joint gains than the default: the gravity compensation of the drives does not know the 0.7 kg of the tray.
 - **What is real, what is not.** Real (MuJoCo): the tray and the glasses (free bodies: gravity, contacts, friction), the arms (joints driven by their servos), the contact of the drill on the tray, the force it feels. Simplified: the cup holds by a weld that never slips (the `contact` fidelity does not exist yet), the drill removes no material and its spindle does not turn, and the beliefs are the true poses (`perception: { fidelity: truth }`, no camera detection).
 
-Files: `plugins/DualArm/`
+Files: `demos/DualArm/`
 - `worlds/conveyor_cell.world.yaml`, `worlds/tray_cell.world.yaml`;
 - `data/`: the pack `robotik.dual_arm` (conveyor, stand, pedestal);
 - `scenarios/trajectories/drill_target.trajectory.yaml` (the path of the drill);

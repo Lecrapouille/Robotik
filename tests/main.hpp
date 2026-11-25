@@ -36,17 +36,19 @@ inline std::filesystem::path repoFile(std::filesystem::path const& p_file)
     return p_file;
 }
 
-/// Asset packs of the repository: data/packs and the plugins' own.
+/// Asset packs of the repository: data/packs and the plugins' own (the
+/// demos and the tutorial plugin).
 inline robotik::AssetResolver const& testAssets()
 {
     static robotik::AssetResolver const assets = []()
     {
         robotik::AssetResolver resolver = robotik::AssetResolver::standard();
         for (auto const& entry :
-             std::filesystem::directory_iterator(repoFile("plugins")))
+             std::filesystem::directory_iterator(repoFile("demos")))
         {
             resolver.addRoot(entry.path() / "data");
         }
+        resolver.addRoot(repoFile("doc/tutorials/HelloWorld/data"));
         return resolver;
     }();
     return assets;

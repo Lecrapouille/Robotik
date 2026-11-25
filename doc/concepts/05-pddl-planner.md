@@ -51,7 +51,7 @@ RobotIK builds `problem.pddl` from the world, scenario, and observers before eac
 
 ### 📜 The domain
 
-`plugins/PickAndPlace/scenarios/pick_and_place.domain.pddl`:
+`demos/PickAndPlace/scenarios/pick_and_place.domain.pddl`:
 
 ```lisp
 (define (domain pick_and_place)
@@ -107,7 +107,7 @@ Only entities with a `kind` are objects of the problem. Their PDDL name is their
 
 ### 🎯 The goal: the scenario
 
-`plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml`:
+`demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml`:
 
 ```yaml
   controller:
@@ -121,7 +121,7 @@ Write one literal per line, or a flow list: `[ (in red_cube box), hand_empty ]`.
 
 ### 🔭 The scenario logic: observers and bindings
 
-`plugins/PickAndPlace/src/PickPlacePlanning.cpp` (shortened):
+`demos/PickAndPlace/src/PickPlacePlanning.cpp` (shortened):
 
 ```cpp
 // --- State, from the beliefs only --------------------------------------
@@ -192,10 +192,9 @@ conveyor (parallel: true)
   5.49 s  Convey(p2, feeder, zone_right)  SUCCEEDED  (2.91 s)
   ...
 [PASS] default                  seed=42     controller succeeded at 16.85 s (oracle perception)  time=16.85
-
-conveyor_sequential (parallel: false)
-[PASS] default                  seed=42     controller succeeded at 33.27 s (oracle perception)  time=33.27
 ```
+
+With `planner.parallel: false` (one step at a time) the same plan ends at 33.27 s. The test `PluginSession.TwoArmsSortFasterWithAParallelPlan` runs both.
 
 **Durative actions.** In a temporal domain (`:durative-action`), the planner gives a start time and a duration to each action. The start event reads the `at start` and `over all` conditions and changes the `at start` effects; the end event reads the `at end` and `over all` conditions and changes the `at end` effects. This gives **required concurrency**: in the DualArm tray scenario, `drill` needs `(over all (in_motion ?t))`, which `carry` adds at its start and removes at its end. So the drilling starts once the carry has started (`After start of 2: 3. (drill right tray)`), and the carry ends only once the drilling has ended (`Until 3: 2. (carry left tray pad_a pad_b)`, a node before its Check). The carry motion is done at 25.52 s, but the tray stays held until 30.09 s:
 
@@ -262,22 +261,17 @@ What changes from the search:
 - **An action is atomic, as in PDDL.** Its preconditions are read before it starts; the condition it makes true does not stop it (`holding` is true after `Grasp`, the arm still lifts the cube).
 - **Which action first.** A condition gets at most 16 actions, those with the fewest false preconditions first. An action that needs a false static atom (a `fact`, or a predicate no action changes) is left out, and so is one that needs a condition the tree is already making true above it (it would go round in a circle).
 - **A failed action** (a skill fails) does not grow the tree: the executor waits `replan.delay` and ticks the same tree again, `replan.max` times.
-- **One goal condition after the other.** The goal is a `ReactiveSequence`: `parallel` does not apply, two arms do not work together. `conveyor_pabt` takes 34.99 s, like the step-by-step plan (34.87 s); the parallel plan takes 17.44 s.
+- **One goal condition after the other.** The goal is a `ReactiveSequence`: `parallel` does not apply, two arms do not work together. On the DualArm conveyor, PA-BT took 34.99 s, like the step-by-step plan; the parallel plan takes about 17 s.
 - The **History** has one record per growth of the tree; **Execution graph** lists the actions of the tree, in the order they were added.
 
-| Demo | Search | PA-BT |
-|------|--------|-------|
-| PickAndPlace (`pick_and_place_pddl`, `_pabt`) | 4.99 s | 4.99 s |
-| PickAndPlace with camera faults (`_faults`) | 6.04 s | 6.07 s |
-| Painter (`painter_pddl`, `painter_pabt`) | 64.01 s | 64.13 s |
-| DualArm conveyor (`conveyor_sequential`, `conveyor_pabt`) | 34.87 s | 34.99 s |
+On PickAndPlace (`pick_and_place_pddl` and `pick_and_place_pabt`) both ways end at 4.99 s: on one arm, a search and a tree grown from the goal give the same actions.
 
 ## 🚧 Limits
 
 - The order between steps is read from the atoms each end of an action names. A quantified variable (`forall (?y - zone) ...`) matches any object, so a step with a `forall` waits for more steps than needed.
 - Two steps that overlap in a temporal plan and need the same exclusive resource are not ordered by the executor: the scheduler makes the second one wait for the resource.
 - Two steps running together share the blackboard of the tree: two `parameters` of the same name in parallel bindings would clash.
-- PA-BT reads only the plain preconditions (atoms and `not` atoms, `at start` and `over all`). A `forall`, an `or` or a number is not read: Painter paints its layers in the right order only because its goal lists them in that order. PA-BT does not move a subtree when an action undoes a condition reached before it (the "conflicts" of the paper): the tree reaches the condition again.
+- PA-BT reads only the plain preconditions (atoms and `not` atoms, `at start` and `over all`). A `forall`, an `or` or a number is not read: an order written with `forall` (as in the Painter domain) is lost, the goal conditions are made true in the order of the list. PA-BT does not move a subtree when an action undoes a condition reached before it (the "conflicts" of the paper): the tree reaches the condition again.
 - The PickAndPlace, Painter and DualArm demos have PDDL scenarios. LineFollower and HumanoidWalk do not.
 
 ## 🔗 Next

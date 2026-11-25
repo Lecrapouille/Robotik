@@ -322,7 +322,7 @@ include/RobotIK/          public headers (one umbrella: RobotIK.hpp)
 src/RobotIK/              implementation, same folders (one library, robotik-core)
 src/Simulator/            RobotIK-Simulator (ImGui window, panels)
 src/Headless/             RobotIK-Headless (CLI, reports)
-plugins/<Name>/           one plugin each; plugins/plugin.mk is the shared build recipe
+demos/<Name>/           one plugin each; demos/plugin.mk is the shared build recipe
 data/packs/<id>/          shared asset packs (robots, tools)
 tests/                    unit tests (GoogleTest)
 external/                 third-party sources (downloaded)

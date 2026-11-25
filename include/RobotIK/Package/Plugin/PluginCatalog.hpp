@@ -51,7 +51,7 @@
 /// The manifest describes the package; it does not build it. Its
 /// @c dependencies (see @ref robotik::ThirdParty) are read by the Makefile of
 ///     the
-/// plugin too (plugins/dependencies.awk): it clones and builds them.
+/// plugin too (demos/dependencies.awk): it clones and builds them.
 ///
 /// @par Contract
 /// - Promises: reading the catalog never loads a library; a wrong manifest is

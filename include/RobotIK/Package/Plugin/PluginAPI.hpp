@@ -935,7 +935,7 @@ void destroyPlugin(RobotIKPlugin* p_plugin)
 /// @endcode
 // ****************************************************************************
 #if defined(ROBOTIK_PLUGIN_LIBRARY)
-// The web build links the plugins into the page (plugins/plugin.mk defines
+// The web build links the plugins into the page (demos/plugin.mk defines
 // ROBOTIK_PLUGIN_LIBRARY="librobotik_x.so"): the five functions are local
 // to the plugin, and a static object adds them to the table of
 // BuiltinPlugins.hpp under the name of its library.

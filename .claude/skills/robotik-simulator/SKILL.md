@@ -28,7 +28,7 @@ scenario YAML, and the simulator only shows or triggers it.
 | GraphView.cpp | Execution graph: plan steps (or tree nodes) with their skills, as a folding list colored by state (priority, resources, why, Request/Cancel; default; replaces the old Skills panel) or as boxes and arrows (priority and resources after each skill) |
 | TimelinePanel.cpp | Timeline (time window, zoom, rows by robot, resource rows); `sampleTimeline` records faults and tree failures every frame |
 | AutonomyPanels.cpp / CameraPanel.cpp | World model (objects + symbolic beliefs), Perception, Cameras, the camera inset of the scene (`cameraInset`) |
-| PluginUi.cpp | Demos menu, plugin menus and panels (`RobotIKCanvas`) |
+| PluginUi.cpp | Tutorials and Demos menus, plugin menus and panels (`RobotIKCanvas`) |
 
 ## Rules
 

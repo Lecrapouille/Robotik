@@ -27,7 +27,7 @@ Run the scenario `wave`. The base joint of the arm swings left and right for six
 wave: 1/1 runs passed
 ```
 
-In the simulator, choose **Demos → Hello world → 2. Move a joint** to see the arm swing.
+In the simulator, choose **Tutorials → Hello world → 2. Move a joint** to see the arm swing.
 
 The scenario logic is in `src/WaveLogic.cpp`. `reset` finds the joint once, by its name in the robot model:
 

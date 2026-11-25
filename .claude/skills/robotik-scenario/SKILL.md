@@ -12,7 +12,7 @@ Unknown keys are refused at load (exit 1, "did you mean"): a new key needs
 its name in the `checkKeys` list of the reader (`ConfigNode::checkKeys`).
 Free values of the scenario logic go under `scenario.parameters` (not checked). Quote a
 text with a comma inside a flow map `{ name: "a, b" }`.
-Edit `plugins/...`, then `make <target>` (it overwrites `build/`).
+Edit `demos/...` (or `doc/tutorials/HelloWorld/...`), then `make <target>` (it overwrites `build/`).
 File names carry their role (doc/concepts/02-worlds-scenarios-experiments.md): `x.world.yaml`, `x.scenario.yaml`,
 `x.rl.yaml` (RL scenario), `x.bt.yaml`, `x.domain.pddl`,
 `x.trajectory.yaml`, `x.experiment.yaml`; `.yaml`, never `.yml`. id = name without `.yaml`
@@ -71,7 +71,7 @@ A free `body` settles at start (initial pose taken after settling) and may
 drift ~1 cm: prefer `prop` for exact tutorials/tests.
 
 
-Several robots (`plugins/DualArm/worlds/*.world.yaml`): one entity
+Several robots (`demos/DualArm/worlds/*.world.yaml`): one entity
 `type: robot` each, each with its tool (`attach: { parent: <robot>.flange,
 frame: tool_mount }`); sensor/actuator names unique in the world
 (`left_arm`, `right_arm`), refused otherwise. Queries take the robot id:
@@ -141,7 +141,7 @@ Belief vs truth (catch a wrong belief when it happens, not by its effect):
 `(base_error robot)` (estimated vs true base, see `localization:`). Beliefs
 are late: add `for: t` (`phase: always` only, false at most t s in a row)
 and `unknown: skip` (steps without answer not judged; never answered still
-fails). Example: plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml.
+fails). Example: demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml.
 Every condition is compiled at load (Task/Condition.hpp): unknown metric,
 query or entity, wrong arity → exit 1 with "did you mean". A metric must be
 published from the first step (`ScenarioLogic::measure`). A value missing during

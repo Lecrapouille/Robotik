@@ -82,7 +82,7 @@ TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
     robotik::Simulation simulation(
         world,
         scenario(
-            "plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
+            "demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
         nullptr,
         &logic);
     ASSERT_NE(simulation.cell().planner(), nullptr);
@@ -117,7 +117,7 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        scenario("plugins/PickAndPlace/scenarios/"
+        scenario("demos/PickAndPlace/scenarios/"
                  "pick_and_place_pddl_faults.scenario.yaml"),
         nullptr,
         &logic);
@@ -154,7 +154,7 @@ TEST(PlannerScenario, PainterLaysTheLayersInOrder)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        scenario("plugins/Painter/scenarios/painter_pddl.scenario.yaml"),
+        scenario("demos/Painter/scenarios/painter_pddl.scenario.yaml"),
         nullptr,
         &logic);
 
@@ -183,7 +183,7 @@ TEST(PlannerScenario, PickAndPlaceGrowsATreeFromTheGoal)
     robotik::Simulation simulation(
         world,
         scenario(
-            "plugins/PickAndPlace/scenarios/pick_and_place_pabt.scenario.yaml"),
+            "demos/PickAndPlace/scenarios/pick_and_place_pabt.scenario.yaml"),
         nullptr,
         &logic);
 
@@ -215,33 +215,11 @@ TEST(PlannerScenario, PickAndPlaceGrowsATreeFromTheGoal)
     EXPECT_DOUBLE_EQ(first.time, again.time);
 }
 
-TEST(PlannerScenario, PickAndPlaceTreeRetriesAFailedAction)
-{
-    PickPlaceLogic logic(true, true);
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
-        scenario("plugins/PickAndPlace/scenarios/"
-                 "pick_and_place_pabt_faults.scenario.yaml"),
-        nullptr,
-        &logic);
-
-    PlannedRun const result = run(simulation, robotik::Seed{ 7 }, 60.0);
-    EXPECT_EQ(result.outcome,
-              robotik::Simulation::Outcome::ControllerSucceeded);
-    EXPECT_TRUE(result.passed);
-    ASSERT_GE(result.causes.size(), 5U);
-    EXPECT_NE(result.causes[4].find("skill Detect(red_cube) FAILED"),
-              std::string::npos)
-        << result.causes[4];
-    EXPECT_GE(simulation.cell().planner()->replans(), 1U);
-}
-
 TEST(PlannerScenario, PlannerRefusesAnUnknownMethod)
 {
     robotik::ScenarioSource source =
         robotik::loadScenarioSource(
-            repoFile("plugins/PickAndPlace/scenarios/"
+            repoFile("demos/PickAndPlace/scenarios/"
                      "pick_and_place_pabt.scenario.yaml"))
             .take();
     EXPECT_TRUE(robotik::overrideValue(source,
@@ -253,7 +231,7 @@ TEST(PlannerScenario, PlannerRefusesAnUnknownMethod)
 TEST(PlannerScenario, ScenarioRefusesATreeAndAPlanner)
 {
     robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
-        "plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml")).take();
+        "demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml")).take();
     EXPECT_TRUE(robotik::overrideValue(source, "scenario.controller.behavior_tree",
                     robotik::ConfigNode("scenarios/pick_and_place.bt.yaml")));
     EXPECT_FALSE(robotik::readScenario(source, testAssets()));
@@ -266,7 +244,7 @@ TEST(PlannerScenario, BeliefAssertionsSeeAWrongLabelWhenItHappens)
     robotik::Simulation simulation(
         world,
         scenario(
-            "plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
+            "demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
         nullptr,
         &logic);
     robotik::RoboticCell& cell = simulation.cell();

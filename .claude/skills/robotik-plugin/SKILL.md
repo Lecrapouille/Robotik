@@ -1,17 +1,17 @@
 ---
 name: robotik-plugin
-description: Create, rename or extend a RobotIK plugin (plugins/<Name>/ with plugin.yaml, Makefile, src/Plugin.cpp, scenario logics). Use when adding a demo, a scenario to a plugin, a menu/panel/key binding, or debugging "scenario is not in a plugin package", id mismatch, library not found.
+description: Create, rename or extend a RobotIK plugin (demos/<Name>/ with plugin.yaml, Makefile, src/Plugin.cpp, scenario logics). Use when adding a demo, a scenario to a plugin, a menu/panel/key binding, or debugging "scenario is not in a plugin package", id mismatch, library not found.
 ---
 
 # RobotIK plugin
 
-Template to copy: `plugins/HelloWorld/` (4 lessons: ScenarioLogic only, joints/FK,
+Template to copy: `doc/tutorials/HelloWorld/` (4 lessons: ScenarioLogic only, joints/FK,
 IK, skill + behavior tree; panel, menu, key 'H'). Reference demo with
-perception + BT: `plugins/PickAndPlace/`.
+perception + BT: `demos/PickAndPlace/`.
 
 ## New plugin checklist
 
-1. `cp -r plugins/HelloWorld plugins/<Name>`; drop unused `src/` files,
+1. `cp -r doc/tutorials/HelloWorld demos/<Name>`; drop unused `src/` files,
    `experiments/`, scenarios.
 2. Keep these names consistent (otherwise the host refuses the package):
    - `<Name>.mk`: `TARGETS += robotik_<snake>` → builds `librobotik_<snake>.so`;
@@ -90,7 +90,7 @@ canvas (`text`, `textColored`, `button`, `checkbox`,
 - Must run headless (no view, no camera image → `perception: { blind: truth }`).
 - `host.clock: plugin` (or `clock: plugin` on one scenario entry) → `update(dt)` must advance the simulation itself.
 - Models are asset ids (`robotik.robots.robot_6axis`), never paths; a
-  plugin-local pack goes in `plugins/<Name>/data/pack.yaml` +
+  plugin-local pack goes in `demos/<Name>/data/pack.yaml` +
   `resources.directory: data`.
 
 ## Core stays agnostic of the demos

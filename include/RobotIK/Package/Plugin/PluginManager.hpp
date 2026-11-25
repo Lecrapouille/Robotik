@@ -53,7 +53,7 @@ enum class PluginState : std::uint8_t
 ///
 /// @code
 /// robotik::PluginManager plugin;
-/// if (plugin.load("build/plugins/HelloWorld/librobotik_hello_world.so") !=
+/// if (plugin.load("build/doc/tutorials/HelloWorld/librobotik_hello_world.so") !=
 /// ROBOTIK_PLUGIN_OK)
 ///     std::cerr << plugin.error() << '\n';
 /// plugin.create(&host_api);

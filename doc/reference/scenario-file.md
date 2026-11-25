@@ -50,7 +50,7 @@ scenario:
 **File names.** Every file named in a world, scenario or experiment file (`world`, `behavior_tree`, `trajectories`, `scenario`, a URDF path) is relative to the **package root**: the folder of `plugin.yaml`. It is the same in every file, whatever the folder of the file:
 
 ```text
-📦 plugins/HelloWorld/            ⬅️ package root
+📦 doc/tutorials/HelloWorld/            ⬅️ package root
 ┣ 📄 plugin.yaml
 ┣ 📂 worlds/
 ┃ ┗ 📄 arm.world.yaml             ⬅️ "worlds/arm.world.yaml"

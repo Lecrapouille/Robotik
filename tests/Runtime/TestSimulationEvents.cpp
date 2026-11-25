@@ -25,7 +25,7 @@ TEST(SimulationEvents, ToldWhenSkillsEndAndAssertionsChange)
         world,
         robotik::loadScenario(
             repoFile(
-                "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
+                "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
             testAssets())
             .take(),
         nullptr,

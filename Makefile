@@ -28,6 +28,13 @@ ifneq ($(EMSCRIPTEN)$(EXAEQUOS)$(filter em++%,$(notdir $(CXX)))$(filter emscript
     override FLYBRAIN_CONNECTOME := 0
 endif
 override PLUGINS := $(sort $(PLUGINS) $(EXTRA_PLUGINS))
+#? The folders where the sources of the plugins are: a plugin <Name> is the
+#? first <dir>/<Name>/<Name>.mk found. Add your own folder with
+#? PLUGIN_DIRS="demos doc/tutorials ~/my_plugins".
+PLUGIN_DIRS ?= demos doc/tutorials
+# The source folder of the plugin $(1), with a trailing slash.
+plugin-dir = $(dir $(firstword $(foreach d,$(PLUGIN_DIRS),$(wildcard $d/$(1)/$(1).mk))))
+$(foreach p,$(PLUGINS),$(if $(call plugin-dir,$p),,$(error plugin $p is not in PLUGIN_DIRS ($(PLUGIN_DIRS)))))
 
 ###############################################################################
 # The core library, its applications, the plugins and the tests, each
@@ -35,8 +42,8 @@ override PLUGINS := $(sort $(PLUGINS) $(EXTRA_PLUGINS))
 # compiled from their sources (external/external.mk).
 #
 SUBMAKEFILES := external/external.mk src/RobotIK/robotik.mk src/Simulator/simulator.mk \
-    src/Headless/headless.mk plugins/plugin.mk \
-    $(foreach p,$(PLUGINS),plugins/$p/$p.mk $(wildcard plugins/$p/app/app.mk)) \
+    src/Headless/headless.mk demos/plugin.mk \
+    $(foreach p,$(PLUGINS),$(call plugin-dir,$p)$p.mk $(wildcard $(call plugin-dir,$p)app/app.mk)) \
     tests/tests.mk
 
 M ?= .makefile

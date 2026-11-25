@@ -14,7 +14,7 @@
 /// the file that names them:
 ///
 /// @code
-/// # plugins/HelloWorld/experiments/hello.experiment.yaml
+/// # doc/tutorials/HelloWorld/experiments/hello.experiment.yaml
 /// cases:
 ///   - { id: wave, scenario: scenarios/wave.scenario.yaml }
 /// @endcode
@@ -40,8 +40,8 @@ namespace robotik
 /// Finds the package that holds a file.
 ///
 /// @code
-/// packageRoot("plugins/HelloWorld/scenarios/wave.scenario.yaml");
-/// // -> plugins/HelloWorld
+/// packageRoot("doc/tutorials/HelloWorld/scenarios/wave.scenario.yaml");
+/// // -> doc/tutorials/HelloWorld
 /// @endcode
 ///
 /// @param p_file Any file of the package.

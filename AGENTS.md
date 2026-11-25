@@ -47,9 +47,10 @@ include/RobotIK/<Layer>/...  public headers; src/RobotIK/<Layer>/... implementat
             Trajectory, PackagePath, FileRole), Plugin/ (PluginABI.h,
             PluginAPI.hpp, catalog, session)
 src/Simulator/  RobotIK-Simulator (ImGui host)  src/Headless/  RobotIK-Headless (CLI host)
-plugins/<Name>/  plugin.yaml, Makefile, src/, worlds/, scenarios/, experiments/, data/
-plugins/plugin.mk  shared plugin build recipe        data/packs/<id>/  asset packs (URDF)
-tests/       GoogleTest; tests/Plugin uses plugins/HelloWorld as fixture
+demos/<Name>/  a demo plugin: plugin.yaml, <Name>.mk, src/, worlds/, scenarios/, experiments/, data/
+doc/tutorials/HelloWorld/  the tutorial plugin (read by tutorials 3-6)
+demos/plugin.mk  shared plugin build recipe        data/packs/<id>/  asset packs (URDF)
+tests/       GoogleTest; tests/Plugin uses doc/tutorials/HelloWorld as fixture
 external/    third-party sources (do not edit)      build/  outputs (generated)
 external/web/  CMake superbuild of MuJoCo + Pinocchio (+Boost, urdfdom) for Emscripten
 ```
@@ -79,7 +80,9 @@ sources, not `build/`. Third parties are MyMakefile 3 targets: the core
 ones in `external/external.mk` (Compages, BlackThorn
 read by their `.mk` files), a plugin's own in its `<Name>.mk`; their commits
 are in `external/versions.lock`. `PLUGINS` (root `Makefile`) lists the plugins
-built.
+built; `PLUGIN_DIRS` (default `demos doc/tutorials`) the folders of their
+sources. At run time the hosts find the built packages with
+`ROBOTIK_PLUGINS` (folders separated by `:`), then `lib/robotik/plugins`.
 
 ## Rules that are easy to break
 
@@ -115,7 +118,7 @@ built.
   (`system:` pkg-config names, `thirdparties:` `{ repo, license, description }`;
   the license is required for the credits) and is built by a rule of its
   Makefile (`PLUGIN_REQUIRES`, `PLUGIN_DEPENDS`, see
-  `plugins/plugin.mk`), not in the core manifest nor in `plugin.yaml`.
+  `demos/plugin.mk`), not in the core manifest nor in `plugin.yaml`.
 - Plugins publish metrics (`ScenarioLogic::measure`); verdicts live in scenario
   YAML assertions. No pass/fail logic in C++.
 - Conditions and planner literals use the PDDL notation: `(< time 30)`,

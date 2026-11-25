@@ -53,7 +53,7 @@ The line `plan 0` gives the plan: three actions, `detect`, `pick` and `place`. T
 
 ## 📄 2. Read the domain
 
-`plugins/PickAndPlace/scenarios/pick_and_place.domain.pddl`:
+`demos/PickAndPlace/scenarios/pick_and_place.domain.pddl`:
 
 ```lisp
 (define (domain pick_and_place)
@@ -106,7 +106,7 @@ An entity without a `kind` is not an object of the plan.
 
 ## 📝 3. Read the scenario
 
-`plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml` (shortened):
+`demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml` (shortened):
 
 ```yaml
 scenario:
@@ -143,7 +143,7 @@ The assertions read the truth. `(in red_cube box)` is what the robot believes. `
 
 ## 🔭 4. Read the observers and the bindings
 
-`plugins/PickAndPlace/src/PickPlacePlanning.cpp` gives an observer to each predicate and a binding to each action. Here is the observer of `seen`, and the three bindings:
+`demos/PickAndPlace/src/PickPlacePlanning.cpp` gives an observer to each predicate and a binding to each action. Here is the observer of `seen`, and the three bindings:
 
 ```cpp
 p_domain.observe("seen",

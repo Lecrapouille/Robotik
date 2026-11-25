@@ -47,7 +47,7 @@ static Outcome run(robotik::Simulation& p_simulation, robotik::Seed p_seed)
 TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
 {
     robotik::Scenario const scenario =
-        robotik::loadScenario(repoFile("plugins/PickAndPlace/scenarios/"
+        robotik::loadScenario(repoFile("demos/PickAndPlace/scenarios/"
                                          "pick_and_place_faults.scenario.yaml"),
                                 testAssets()).take();
     EXPECT_EQ(scenario.id, "pick_and_place_faults");
@@ -93,7 +93,7 @@ TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
 TEST(Scenario, OverridesChangeTheWorldBeforeItIsRead)
 {
     robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
-        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
+        "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
     EXPECT_TRUE(robotik::overrideValue(source, "world.entities.red_cube.pose.position",
                     robotik::ConfigNode::parse("[0.30, 0.10, 0.02]").take()));
     EXPECT_TRUE(robotik::overrideValue(source, "world.entities.robot.sensors.wrist_camera.noise",
@@ -111,7 +111,7 @@ TEST(Scenario, OverridesChangeTheWorldBeforeItIsRead)
 TEST(Scenario, WorldErrorsNameTheEntity)
 {
     robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
-        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
+        "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
     EXPECT_TRUE(robotik::overrideValue(source, "world.entities.box.type", robotik::ConfigNode("robot")));
     robotik::Result<robotik::Scenario> const read = robotik::readScenario(source, testAssets());
     ASSERT_FALSE(read) << "a second robot must be refused";
@@ -121,7 +121,7 @@ TEST(Scenario, WorldErrorsNameTheEntity)
 TEST(Simulation, AnotherToolBringsItsOwnActuators)
 {
     robotik::Scenario scenario = robotik::loadScenario(
-        repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
+        repoFile("demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
         testAssets()).take();
     ASSERT_TRUE(robotik::mountTool(scenario.world, "fingers"));
     // The assertions name the vacuum gripper, which is gone with its tool:
@@ -149,7 +149,7 @@ TEST(Simulation, PickAndPlaceSucceedsAndReplays)
         world,
         robotik::loadScenario(
             repoFile(
-                "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
+                "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
             testAssets())
             .take(),
         nullptr,
@@ -170,7 +170,7 @@ TEST(Simulation, DetectWaitsUntilCameraIsRestored)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::loadScenario(repoFile("plugins/PickAndPlace/scenarios/"
+        robotik::loadScenario(repoFile("demos/PickAndPlace/scenarios/"
                                        "pick_and_place_faults.scenario.yaml"),
                               testAssets())
             .take(),
@@ -200,7 +200,7 @@ TEST(Simulation, SurvivesACameraFailure)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::loadScenario(repoFile("plugins/PickAndPlace/scenarios/"
+        robotik::loadScenario(repoFile("demos/PickAndPlace/scenarios/"
                                        "pick_and_place_faults.scenario.yaml"),
                               testAssets())
             .take(),
@@ -219,7 +219,7 @@ TEST(Simulation, FailedAssertionDoesNotStopTheRun)
         world,
         robotik::loadScenario(
             repoFile(
-                "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
+                "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
             testAssets())
             .take(),
         nullptr,
@@ -245,7 +245,7 @@ TEST(Simulation, EmergencyStopPreemptsTheArm)
         world,
         robotik::loadScenario(
             repoFile(
-                "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
+                "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
             testAssets())
             .take(),
         nullptr,

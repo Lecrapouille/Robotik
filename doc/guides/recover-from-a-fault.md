@@ -6,7 +6,7 @@ A real robot loses a camera, a gripper or an arm during a job. This guide breaks
 
 ## 💥 Inject a fault
 
-In `plugins/HelloWorld/scenarios/skills.scenario.yaml`, add a fault on the arm, just before `timeout`:
+In `doc/tutorials/HelloWorld/scenarios/skills.scenario.yaml`, add a fault on the arm, just before `timeout`:
 
 ```yaml
   faults:
@@ -28,7 +28,7 @@ The skill `Wave` was running; at 1 s it lost the arm and failed. No code was wri
 
 ## 🩹 Recover from a fault
 
-Start from HelloWorld lesson 4. In `plugins/HelloWorld/scenarios/skills.scenario.yaml`, add a fault that takes the arm away between 1 s and 2 s:
+Start from HelloWorld lesson 4. In `doc/tutorials/HelloWorld/scenarios/skills.scenario.yaml`, add a fault that takes the arm away between 1 s and 2 s:
 
 ```yaml
   faults:

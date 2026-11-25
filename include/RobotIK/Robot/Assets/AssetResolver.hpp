@@ -57,7 +57,7 @@ namespace robotik
 ///
 /// @code
 /// robotik::AssetResolver assets = robotik::AssetResolver::standard();
-/// assets.addRoot("plugins/PickAndPlace/data");
+/// assets.addRoot("demos/PickAndPlace/data");
 /// for (std::string const& error : assets.errors())
 ///     std::cerr << error << '\n';
 /// auto urdf = assets.resolve("robotik.robots.abb.irb2400", scenario_folder);

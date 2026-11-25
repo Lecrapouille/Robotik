@@ -19,7 +19,7 @@
 static robotik::Scenario rigidPickAndPlace()
 {
     robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
-        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
+        "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
     EXPECT_TRUE(robotik::overrideValue(source, "scenario.physics.fidelity", robotik::ConfigNode("rigid")));
     return robotik::readScenario(source, testAssets()).take();
 }
@@ -63,7 +63,7 @@ TEST(RigidGrasp, PickAndPlaceDropsTheCubeIntoTheBox)
 TEST(RigidGrasp, ContactLevelIsRefusedUntilItExists)
 {
     robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
-        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
+        "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
     EXPECT_TRUE(robotik::overrideValue(source, "scenario.physics.fidelity",
                     robotik::ConfigNode("contact")));
     EXPECT_FALSE(robotik::readScenario(source, testAssets()));
@@ -72,7 +72,7 @@ TEST(RigidGrasp, ContactLevelIsRefusedUntilItExists)
 TEST(RigidGrasp, OverrideOfAnUnknownEntityIsRefused)
 {
     robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
-        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
+        "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
     EXPECT_TRUE(robotik::overrideValue(source, "scenario.physics.overrides.blue_cube",
                     robotik::ConfigNode("rigid")));
     EXPECT_FALSE(robotik::readScenario(source, testAssets()));

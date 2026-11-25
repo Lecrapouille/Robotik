@@ -38,4 +38,4 @@ How it works:
 - **Real contacts.** The box is a prop made rigid by the scenario (`physics.overrides: { toy: rigid }`): `(pose_error toy)` measures how far the duck pushed it.
 - **Slower than asked.** With PD actuators instead of the motor model of the training, 0.4 m/s gives about 0.14 m/s. `duck.displacement` measures the real progress; `duck.distance` also counts the sway of the trunk.
 
-More details in [plugins/MicroDuck/README.md](../../plugins/MicroDuck/README.md).
+More details in [demos/MicroDuck/README.md](../../demos/MicroDuck/README.md).

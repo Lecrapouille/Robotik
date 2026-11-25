@@ -38,7 +38,7 @@ resource is writable; a ScenarioLogic that must keep joints takes a lease
 (`resources.acquire`, owner ANONYMOUS).
 Resumable: a preempted skill (wait = true) starts again from `reset()`:
 reset clears all run state, tick reads joints/beliefs now.
-Example: `plugins/HelloWorld/src/WaveSkill.cpp`; bigger: `plugins/Painter/src/PainterSkills.cpp`.
+Example: `doc/tutorials/HelloWorld/src/WaveSkill.cpp`; bigger: `demos/Painter/src/PainterSkills.cpp`.
 Vacuum cup: `holding()` is measured (the vacuum), not what is held. The
 grasp skill writes what it went to take with `cup->label("red_cube")` once
 `holding()` is true; losing the vacuum clears it. Observers read
@@ -114,7 +114,7 @@ call `clock()`.
 
 Faults: declare in scenario `faults:` or experiment `setup: inject_fault`.
 No fault code in skills; the tree reacts (retry, fallback, abort).
-Verified pattern: `plugins/HelloWorld/scenarios/skills_retry.bt.yaml`.
+Verified pattern: `doc/tutorials/HelloWorld/scenarios/skills_retry.bt.yaml`.
 
 ## PDDL planner instead of a tree
 
@@ -125,7 +125,7 @@ Scenario `controller.planner` (goal) + `scenarios/<x>.domain.pddl` + world
 `bind("pick", {"Approach({0})", "Grasp({0})"}, {{"color", "{0}"}})` per
 action (BT node names; parameters go to the step blackboard). Missing
 observer/binding/kind → scenario refused with the list. Examples:
-`plugins/PickAndPlace/src/PickPlacePlanning.cpp`, Painter `registerPlanning`.
+`demos/PickAndPlace/src/PickPlacePlanning.cpp`, Painter `registerPlanning`.
 Metrics `planner.plans|replans|steps|done`. Details: doc/concepts/05-pddl-planner.md.
 `method: pabt` (PA-BT): no search, a reactive tree grows from the goal with
 the same observers and bindings (`Task/Planning/Backchaining.hpp`); reads
@@ -138,4 +138,4 @@ Several robots: `SkillDescription::robot = "left"`, name skills `left.X(...)`,
 bind `"{0}.X({1})"` with the arm as first PDDL argument; observers see the
 other robots in `context.team`; beliefs are in the world frame (bring them
 into the base: `context.robot.base().pose.inverse() * p`). Example:
-`plugins/DualArm/src/ConveyorLogic.cpp`, `TrayLogic.cpp`.
+`demos/DualArm/src/ConveyorLogic.cpp`, `TrayLogic.cpp`.

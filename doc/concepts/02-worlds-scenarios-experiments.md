@@ -25,7 +25,7 @@ None of these files says **how** the robot solves the task. The scenario gives a
 The files live in a plugin folder:
 
 ```text
-📦 plugins/HelloWorld/
+📦 doc/tutorials/HelloWorld/
 ┣ 📄 plugin.yaml                 ⬅️ lists the scenarios and experiments
 ┣ 📂 worlds/
 ┃ ┗ 📄 arm.world.yaml

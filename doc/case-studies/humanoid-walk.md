@@ -33,4 +33,4 @@ How it works:
 - The plugin owns the clock (`clock: plugin` in `plugin.yaml`): it steps the physics every 1 ms, and `Walk` runs the policy every 10 steps (100 Hz) on the **IMU and the joint encoders only**. Ground truth only feeds the metrics (`humanoid.height_min`, `humanoid.turns`, `humanoid.radius`, …).
 - When the IMU is lost (fault) or the robot lies down, `Walk` fails and puts the joints in damping mode, as the real robot does: it falls.
 
-More details in [plugins/HumanoidWalk/README.md](../../plugins/HumanoidWalk/README.md).
+More details in [demos/HumanoidWalk/README.md](../../demos/HumanoidWalk/README.md).

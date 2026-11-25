@@ -85,7 +85,7 @@ TEST(PluginCatalog, ReadsTheLibrariesAndTheirLicense)
 {
     robotik::PluginCatalog catalog;
     std::vector<std::filesystem::path> const roots{
-        repo("plugins/LineFollower"), repo("plugins/HumanoidWalk")
+        repo("demos/LineFollower"), repo("demos/HumanoidWalk")
     };
     catalog.scan(roots);
     robotik::PluginPackage const* follower =
@@ -117,7 +117,7 @@ TEST(PluginCatalog, OnePluginListsSeveralScenarios)
 {
     robotik::PluginCatalog catalog;
     std::vector<std::filesystem::path> const roots{ repo(
-        "plugins/HelloWorld") };
+        "doc/tutorials/HelloWorld") };
     catalog.scan(roots);
     ASSERT_EQ(catalog.packages().size(), 1U);
     robotik::PluginPackage const& package = catalog.packages().front();
@@ -147,7 +147,7 @@ TEST(PluginCatalog, RejectsPathsThatLeaveThePackage)
 TEST(Scenario, ModelIdResolvesThroughTheAssetPacks)
 {
     robotik::Scenario const scenario = robotik::loadScenario(
-        repo("plugins/HelloWorld/scenarios/hello.scenario.yaml"), testAssets()).take();
+        repo("doc/tutorials/HelloWorld/scenarios/hello.scenario.yaml"), testAssets()).take();
     EXPECT_EQ(scenario.id, "hello");
     EXPECT_EQ(robotik::firstRobot(scenario.world).model.filename(), "robot_6axis.urdf");
     EXPECT_TRUE(std::filesystem::exists(robotik::firstRobot(scenario.world).model));
@@ -157,7 +157,7 @@ TEST(PluginCatalog, ReadsTheResourcesAndHostSections)
 {
     robotik::PluginCatalog catalog;
     std::vector<std::filesystem::path> const roots{
-        repo("plugins/Painter"), repo("plugins/PickAndPlace")
+        repo("demos/Painter"), repo("demos/PickAndPlace")
     };
     catalog.scan(roots);
     ASSERT_EQ(catalog.packages().size(), 2U)
@@ -345,8 +345,13 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
 }
 
 /// Runs a scenario of the DualArm plugin to its end; false when not built.
-static bool
-runDualArm(std::string const& p_scenario, double& p_time, double& p_overlap)
+/// With @p p_parallel false the plan runs step by step: its assertions
+/// (time, overlap) are written for the parallel plan, so only the success of
+/// the controller is checked.
+static bool runDualArm(std::string const& p_scenario,
+                       double& p_time,
+                       double& p_overlap,
+                       bool p_parallel = true)
 {
     std::filesystem::path const scenario = pluginsRoot() / "DualArm" /
                                            "scenarios" /
@@ -361,10 +366,18 @@ runDualArm(std::string const& p_scenario, double& p_time, double& p_overlap)
     session.scan(pluginsRoot());
     EXPECT_EQ(session.prepare(scenario), robotik::PluginPrepare::Ready)
         << session.error();
+    robotik::ScenarioSource source =
+        robotik::loadScenarioSource(scenario).take();
+    if (!p_parallel)
+    {
+        EXPECT_TRUE(robotik::overrideValue(source,
+                                           "scenario.controller.planner.parallel",
+                                           robotik::ConfigNode("false")));
+    }
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::loadScenario(scenario, session.assets()).take(),
+        robotik::readScenario(source, session.assets()).take(),
         nullptr,
         session.logic());
     session.attach(&simulation);
@@ -374,7 +387,16 @@ runDualArm(std::string const& p_scenario, double& p_time, double& p_overlap)
         simulation.step(robotik::Seconds(0.01));
         session.afterStep(0.01);
     }
-    EXPECT_TRUE(simulation.passed()) << p_scenario;
+    if (p_parallel)
+    {
+        EXPECT_TRUE(simulation.passed()) << p_scenario;
+    }
+    else
+    {
+        EXPECT_EQ(simulation.outcome(),
+                  robotik::Simulation::Outcome::ControllerSucceeded)
+            << p_scenario;
+    }
     p_time = simulation.time().value();
     p_overlap =
         simulation.cell().requireQuery("dual_arm.overlap").value_or(-1.0);
@@ -389,7 +411,7 @@ TEST(PluginSession, TwoArmsSortFasterWithAParallelPlan)
     double overlap = 0.0;
     double none = 0.0;
     if (!runDualArm("conveyor", parallel, overlap) ||
-        !runDualArm("conveyor_sequential", sequential, none))
+        !runDualArm("conveyor", sequential, none, false))
     {
         GTEST_SKIP() << "dual arm plugin is not built";
     }

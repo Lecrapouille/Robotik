@@ -10,14 +10,14 @@ You work on HelloWorld, the tutorial plugin. Its scenario `hello` is the one tha
 
 | File | It says |
 |------|---------|
-| `plugins/HelloWorld/worlds/arm.world.yaml` | what exists at the start: one robot arm |
-| `plugins/HelloWorld/scenarios/hello.scenario.yaml` | which world to load, and what must be true for the run to pass |
+| `doc/tutorials/HelloWorld/worlds/arm.world.yaml` | what exists at the start: one robot arm |
+| `doc/tutorials/HelloWorld/scenarios/hello.scenario.yaml` | which world to load, and what must be true for the run to pass |
 
-> [!NOTE] The programs read a copy of these files in `build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/`. Change the files in `plugins/HelloWorld/`, then run `make robotik_hello_world` to update the copy. Step 6 restores the two files at the end.
+> [!NOTE] The programs read a copy of these files in `build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/`. Change the files in `doc/tutorials/HelloWorld/`, then run `make robotik_hello_world` to update the copy. Step 6 restores the two files at the end.
 
 ## 🧱 1. Add a cube and a box to the world
 
-Open `plugins/HelloWorld/worlds/arm.world.yaml`. The world has one entity: the robot. Add a red cube and a box at the end of the `entities` list:
+Open `doc/tutorials/HelloWorld/worlds/arm.world.yaml`. The world has one entity: the robot. Add a red cube and a box at the end of the `entities` list:
 
 ```yaml
     - id: red_cube
@@ -38,7 +38,7 @@ Positions are in metres, and z points up. A position gives the centre of the obj
 
 ## ✅ 2. Write what must be true
 
-Open `plugins/HelloWorld/scenarios/hello.scenario.yaml`. Add the last two lines to its list of assertions:
+Open `doc/tutorials/HelloWorld/scenarios/hello.scenario.yaml`. Add the last two lines to its list of assertions:
 
 ```yaml
   assertions:
@@ -134,7 +134,7 @@ Now the file and the world are different. The assertions read the true position,
 When you are done, put the two files back as they were, then build again:
 
 ```bash
-git checkout plugins/HelloWorld/worlds/arm.world.yaml plugins/HelloWorld/scenarios/hello.scenario.yaml
+git checkout doc/tutorials/HelloWorld/worlds/arm.world.yaml doc/tutorials/HelloWorld/scenarios/hello.scenario.yaml
 make robotik_hello_world
 ```
 

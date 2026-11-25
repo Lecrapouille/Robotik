@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 // A plugin compiled into the test program, as the web page does with its
-// plugins (plugins/plugin.mk defines ROBOTIK_PLUGIN_LIBRARY there).
+// plugins (demos/plugin.mk defines ROBOTIK_PLUGIN_LIBRARY there).
 #define ROBOTIK_PLUGIN_LIBRARY "librobotik_builtin_test.so"
 
 #include "main.hpp"

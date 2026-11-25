@@ -30,7 +30,7 @@ ifeq ($(TARGET_OS),Emscripten)
         RobotIK-Simulator.DEFINES = ROBOTIK_FONTS_DIR="/fonts"
         RobotIK-Simulator.LDFLAGS = -sUSE_GLFW=3 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3 \
             --shell-file $(abspath $(SIMULATOR_DIR)shell.html) \
-            $(foreach p,$(PLUGINS),--preload-file $(abspath $(SIMULATOR_DIR)../../plugins/$p)@/plugins/$p) \
+            $(foreach p,$(PLUGINS),--preload-file $(abspath $(call plugin-dir,$p))@/plugins/$p) \
             --preload-file $(abspath $(SIMULATOR_DIR)../../data/packs)@/data/packs \
             --preload-file $(imgui.DIR)misc/fonts/Roboto-Medium.ttf@/fonts/Roboto-Medium.ttf \
             --preload-file $(imgui.DIR)misc/fonts/Cousine-Regular.ttf@/fonts/Cousine-Regular.ttf \

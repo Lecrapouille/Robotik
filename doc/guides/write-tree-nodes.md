@@ -14,7 +14,7 @@ You need to know how a tree runs skills ([A skill and a behavior tree](../tutori
 
 ## 🌳 1. Give the value in the tree
 
-`plugins/Painter/scenarios/painter.bt.yaml` writes the steps of one colour once, in the subtree `Layer`. Each `SubTree` node runs `Layer` with its own `color` parameter:
+`demos/Painter/scenarios/painter.bt.yaml` writes the steps of one colour once, in the subtree `Layer`. Each `SubTree` node runs `Layer` with its own `color` parameter:
 
 ```yaml
 SubTrees:
@@ -58,7 +58,7 @@ BehaviorTree:
 
 ## 🧩 2. Write the node
 
-The node of Painter is a BlackThorn leaf. At its first tick, it reads `color` on the blackboard, gives it to the skill, and requests the skill. At the next ticks, it answers the state of the skill (`plugins/Painter/src/PainterSkills.cpp`, shortened):
+The node of Painter is a BlackThorn leaf. At its first tick, it reads `color` on the blackboard, gives it to the skill, and requests the skill. At the next ticks, it answers the state of the skill (`demos/Painter/src/PainterSkills.cpp`, shortened):
 
 ```cpp
 bt::Status onTick()

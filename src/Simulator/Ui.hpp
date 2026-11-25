@@ -291,7 +291,8 @@ void perceptionPanel(App& p_app);
 /// of one: menus and panels may still be reading the catalog and the old run.
 void requestScenario(App& p_app, std::filesystem::path const& p_file);
 
-/// The Demos menu: every package and its scenarios.
+/// The Tutorials menu (packages of category Tutorial) and the Demos menu
+/// (the other packages), each with its packages and their scenarios.
 void drawDemosMenu(App& p_app);
 /// Menus added by the loaded plugin.
 void drawPluginMenus(App& p_app);

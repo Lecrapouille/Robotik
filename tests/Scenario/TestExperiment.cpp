@@ -45,10 +45,10 @@ static std::filesystem::path write(std::string const& p_name,
 TEST(Experiment, ReadsCasesSeedsAndEvaluation)
 {
     std::filesystem::path const file =
-        repoFile("plugins/Painter/experiments/painter.experiment.yaml");
+        repoFile("demos/Painter/experiments/painter.experiment.yaml");
     EXPECT_TRUE(robotik::isExperiment(file));
     EXPECT_FALSE(robotik::isExperiment(
-        repoFile("plugins/Painter/scenarios/painter.scenario.yaml")));
+        repoFile("demos/Painter/scenarios/painter.scenario.yaml")));
     robotik::Experiment const experiment = robotik::loadExperiment(file).take();
     EXPECT_EQ(experiment.id, "painter_experiment");
     EXPECT_EQ(experiment.seeds, (std::vector<std::uint64_t>{ 7U, 8U }));
@@ -60,7 +60,7 @@ TEST(Experiment, ReadsCasesSeedsAndEvaluation)
 TEST(Experiment, CaseAppliesOverridesFaultsAndAssertions)
 {
     robotik::Experiment const painting = robotik::loadExperiment(
-        repoFile("plugins/Painter/experiments/painter.experiment.yaml")).take();
+        repoFile("demos/Painter/experiments/painter.experiment.yaml")).take();
     robotik::Scenario const slippery =
         robotik::scenarioOf(painting, find(painting, "slippery_floor"), testAssets()).take();
     EXPECT_DOUBLE_EQ(slippery.world.floor_friction, 0.1);
@@ -71,7 +71,7 @@ TEST(Experiment, CaseAppliesOverridesFaultsAndAssertions)
     EXPECT_DOUBLE_EQ(nominal.world.floor_friction, 0.8);
 
     robotik::Experiment const picking = robotik::loadExperiment(repoFile(
-        "plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml")).take();
+        "demos/PickAndPlace/experiments/pick_and_place.experiment.yaml")).take();
     robotik::Scenario const camera =
         robotik::scenarioOf(picking, find(picking, "camera_down_at_start"), testAssets()).take();
     ASSERT_EQ(camera.faults.size(), 2U);
@@ -165,7 +165,7 @@ TEST(RunReport, JsonEscapesAndCountsRuns)
 TEST(Trajectory, ReadsCartesianAndJointPaths)
 {
     robotik::Trajectory const stroke = robotik::loadTrajectory(repoFile(
-        "plugins/Painter/scenarios/trajectories/red_stroke.trajectory.yaml")).take();
+        "demos/Painter/scenarios/trajectories/red_stroke.trajectory.yaml")).take();
     EXPECT_EQ(stroke.type, robotik::Trajectory::Type::Cartesian);
     EXPECT_EQ(stroke.frame, "easel.canvas_mount");
     ASSERT_EQ(stroke.poses.size(), 5U);

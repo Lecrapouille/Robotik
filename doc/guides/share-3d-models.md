@@ -15,13 +15,13 @@ A robot, a tool or an object is described by a model file (a URDF file). Several
 | Where | When | Example |
 |-------|------|---------|
 | `data/packs/<id>/` | several plugins use the models | `robotik.robots`, `robotik.tools`, `robotik.robots.abb` |
-| `plugins/<Name>/data/` | only this plugin uses them | `robotik.painter` (the easel of the Painter) |
+| `demos/<Name>/data/` | only this plugin uses them | `robotik.painter` (the easel of the Painter) |
 
 This guide makes a pack in the folder of a plugin `MyRobot`. The steps are the same for a shared pack, without step 3.
 
 ## 📄 2. Write the pack
 
-Put the URDF file in `plugins/MyRobot/data/`, then write `plugins/MyRobot/data/pack.yaml`:
+Put the URDF file in `demos/MyRobot/data/`, then write `demos/MyRobot/data/pack.yaml`:
 
 ```yaml
 id: my.robots
@@ -37,7 +37,7 @@ The keys are `id`, `version`, `license`, `source`, `description` and `models`. E
 
 ## 🔌 3. Declare the pack in the plugin
 
-In `plugins/MyRobot/plugin.yaml`, `resources.directory` gives the folder of the pack of the plugin. `resources.packs` lists the shared packs that the plugin needs, with a version:
+In `demos/MyRobot/plugin.yaml`, `resources.directory` gives the folder of the pack of the plugin. `resources.packs` lists the shared packs that the plugin needs, with a version:
 
 ```yaml
 resources:

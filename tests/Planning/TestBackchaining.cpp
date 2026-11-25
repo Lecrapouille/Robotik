@@ -76,7 +76,7 @@ TEST(Backchaining, FindsTheActionsThatMakeALiteralTrue)
 {
     robotik::DomainSchema const schema =
         robotik::parseDomain(
-            text("plugins/DualArm/scenarios/conveyor.domain.pddl"))
+            text("demos/DualArm/scenarios/conveyor.domain.pddl"))
             .take();
     auto const objects = conveyorObjects();
 

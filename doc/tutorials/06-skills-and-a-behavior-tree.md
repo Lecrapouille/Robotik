@@ -36,7 +36,7 @@ skills: 1/1 runs passed
 
 Each trace line gives the time when the skill started, its name, its result and its duration. The first `Home` takes 0 s, because the arm is already at its home position.
 
-In the simulator, choose **Demos → Hello world → 4. Skill and behavior tree**, then press **Play**. The **Mission** workspace shows the tree: the node that runs is lit. It also shows a timeline of the skills, with the resources that each skill holds.
+In the simulator, choose **Tutorials → Hello world → 4. Skill and behavior tree**, then press **Play**. The **Mission** workspace shows the tree: the node that runs is lit. It also shows a timeline of the skills, with the resources that each skill holds.
 
 ## 🔧 2. Read the skill
 
@@ -172,7 +172,7 @@ scenario:
 
 ## 🧪 5. Change the order of the tree
 
-Open `plugins/HelloWorld/scenarios/skills.bt.yaml` and remove the first `Action` (the first `Home`). Run `make robotik_hello_world`, then run the scenario again with `--trace`:
+Open `doc/tutorials/HelloWorld/scenarios/skills.bt.yaml` and remove the first `Action` (the first `Home`). Run `make robotik_hello_world`, then run the scenario again with `--trace`:
 
 ```text
   0 s  Wave  SUCCEEDED  (4 s)
@@ -186,7 +186,7 @@ Open `plugins/HelloWorld/scenarios/skills.bt.yaml` and remove the first `Action`
 skills: 0/1 runs passed
 ```
 
-You changed the order without a C++ build, and the scenario saw it. Put back the file with `git checkout plugins/HelloWorld/scenarios/skills.bt.yaml`, then run `make robotik_hello_world`.
+You changed the order without a C++ build, and the scenario saw it. Put back the file with `git checkout doc/tutorials/HelloWorld/scenarios/skills.bt.yaml`, then run `make robotik_hello_world`.
 
 ## 🔗 Next
 

@@ -38,7 +38,7 @@ Note `(perception truth)` on the last lines. Without a window, the camera makes 
 
 ## 📷 2. The camera and the cup in the world file
 
-`plugins/PickAndPlace/worlds/pick_place_cell.world.yaml` gives the robot a camera on its wrist, and mounts a vacuum cup:
+`demos/PickAndPlace/worlds/pick_place_cell.world.yaml` gives the robot a camera on its wrist, and mounts a vacuum cup:
 
 ```yaml
     - id: robot
@@ -85,7 +85,7 @@ for (robotik::EntitySpec const* prop : props)
 }
 ```
 
-`ColorDetector` (`plugins/PickAndPlace/src/ColorDetector.hpp`) looks for the largest region of each colour in the image. Its result is a detection: a label (`red_cube`) and a place in the image. At each step, the cell turns the detections into beliefs in the `WorldModel`: a position, a size, the time when the object was seen.
+`ColorDetector` (`demos/PickAndPlace/src/ColorDetector.hpp`) looks for the largest region of each colour in the image. Its result is a detection: a label (`red_cube`) and a place in the image. At each step, the cell turns the detections into beliefs in the `WorldModel`: a position, a size, the time when the object was seen.
 
 ![Camera, CameraFrame, PerceptionPipeline with its detectors, Detections, WorldModel.](../concepts/images/perception-pipeline.svg)
 
@@ -122,7 +122,7 @@ The key `perception` of the scenario chooses where the beliefs come from:
 
 `blind` gives the level to use when no camera has an image. The scenario of the demo has `perception: { blind: truth }`: in the simulator the robot uses its camera (`sensed`), and without a window it uses the truth.
 
-Now find how much error the grasp accepts. In `plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml`, replace the `perception` line, and add an assertion that measures the error of the belief:
+Now find how much error the grasp accepts. In `demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml`, replace the `perception` line, and add an assertion that measures the error of the belief:
 
 ```yaml
   perception: { fidelity: noisy_truth, noise: { sigma: 0.005 } }

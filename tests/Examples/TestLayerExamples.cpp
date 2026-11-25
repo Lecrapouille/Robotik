@@ -54,7 +54,7 @@ static robotik::Result<robotik::OpenedRoboticCell>
 pickAndPlace(PickPlaceLogic& p_logic)
 {
     auto scenario = robotik::loadScenario(
-        repoFile("plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
+        repoFile("demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
         testAssets());
     if (!scenario)
     {
@@ -69,7 +69,7 @@ pickAndPlace(PickPlaceLogic& p_logic)
 static robotik::PlannerSpec cubeInBox(std::string const& p_goal)
 {
     robotik::PlannerSpec spec;
-    spec.domain = repoFile("plugins/PickAndPlace/scenarios/pick_and_place.domain.pddl");
+    spec.domain = repoFile("demos/PickAndPlace/scenarios/pick_and_place.domain.pddl");
     spec.goal = { robotik::parseLiteral(p_goal).take() };
     return spec;
 }
@@ -137,7 +137,7 @@ private:
 TEST(LayerExamples, PackageScenarioFile)
 {
     auto scenario = robotik::loadScenario(
-        repoFile("plugins/HelloWorld/scenarios/hello.scenario.yaml"), testAssets());
+        repoFile("doc/tutorials/HelloWorld/scenarios/hello.scenario.yaml"), testAssets());
     ASSERT_TRUE(scenario) << scenario.error();
 
     HelloLogic logic;

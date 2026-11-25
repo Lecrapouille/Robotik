@@ -10,15 +10,15 @@ TARGETS += RobotIK-tests
 RobotIK-tests.TYPE := test
 RobotIK-tests.DESCRIPTION := Unit tests for RobotIK
 RobotIK-tests.SOURCES := **/*.cpp \
-    ../plugins/PickAndPlace/src/ColorDetector.cpp ../plugins/PickAndPlace/src/PickPlaceLogic.cpp \
-    ../plugins/PickAndPlace/src/PickPlaceSkills.cpp ../plugins/PickAndPlace/src/PickPlaceControl.cpp \
-    ../plugins/PickAndPlace/src/PickPlacePlanning.cpp \
-    ../plugins/Painter/src/PainterLogic.cpp ../plugins/Painter/src/PainterSkills.cpp \
-    ../plugins/FlyBrain/src/FlyScenario.cpp ../plugins/FlyBrain/src/FlyVision.cpp \
-    ../plugins/FlyBrain/src/FlyController.cpp ../plugins/FlyBrain/src/ShiuNetwork.cpp \
-    ../plugins/FlyBrain/src/FlyBrain.cpp ../plugins/FlyBrain/src/FlyEnvironment.cpp \
-    ../plugins/FlyBrain/src/FlyTrace.cpp ../plugins/FlyBrain/src/FlyLogic.cpp
-RobotIK-tests.INCLUDES := . ../plugins/PickAndPlace/src ../plugins/FlyBrain/src ../plugins/Painter/src
+    ../demos/PickAndPlace/src/ColorDetector.cpp ../demos/PickAndPlace/src/PickPlaceLogic.cpp \
+    ../demos/PickAndPlace/src/PickPlaceSkills.cpp ../demos/PickAndPlace/src/PickPlaceControl.cpp \
+    ../demos/PickAndPlace/src/PickPlacePlanning.cpp \
+    ../demos/Painter/src/PainterLogic.cpp ../demos/Painter/src/PainterSkills.cpp \
+    ../demos/FlyBrain/src/FlyScenario.cpp ../demos/FlyBrain/src/FlyVision.cpp \
+    ../demos/FlyBrain/src/FlyController.cpp ../demos/FlyBrain/src/ShiuNetwork.cpp \
+    ../demos/FlyBrain/src/FlyBrain.cpp ../demos/FlyBrain/src/FlyEnvironment.cpp \
+    ../demos/FlyBrain/src/FlyTrace.cpp ../demos/FlyBrain/src/FlyLogic.cpp
+RobotIK-tests.INCLUDES := . ../demos/PickAndPlace/src ../demos/FlyBrain/src ../demos/Painter/src
 RobotIK-tests.DEPENDS := robotik-core Compages
 RobotIK-tests.PKG_CONFIG := gtest gmock glfw3 glew gl
 RobotIK-tests.CXXFLAGS := -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branches \

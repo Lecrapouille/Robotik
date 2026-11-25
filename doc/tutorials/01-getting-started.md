@@ -61,7 +61,7 @@ make tests
 ./build/linux-gcc-debug/bin/RobotIK-Simulator
 ```
 
-Open the **Demos** menu. Each entry is a plugin; each sub-entry is one of its scenarios. Choose **Hello world → 2. Move a joint**: the arm turns left and right for six seconds.
+Open the **Tutorials** menu (the **Demos** menu next to it has the demos). Each entry is a plugin; each sub-entry is one of its scenarios. Choose **Hello world → 2. Move a joint**: the arm turns left and right for six seconds.
 
 The **Mission** workspace is the one to watch a mission. Here is the Pick and place demo at 3 s, while the skill `Grasp(red_cube)` runs:
 
@@ -214,7 +214,7 @@ Options:
 
 The goal: see that a scenario *is* a test.
 
-1. Open `build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml` in an editor (this is a copy made by `make`; the source is in `plugins/HelloWorld/scenarios/`). Do not create a new file there yet: a scenario must be listed in `plugin.yaml`, otherwise Headless says `scenario is not in a plugin package`.
+1. Open `build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml` in an editor (this is a copy made by `make`; the source is in `doc/tutorials/HelloWorld/scenarios/`). Do not create a new file there yet: a scenario must be listed in `plugin.yaml`, otherwise Headless says `scenario is not in a plugin package`.
 2. Change the assertion `(> wave.swing 0.4)` into `(> wave.swing 0.9)`.
 3. Run it again:
 

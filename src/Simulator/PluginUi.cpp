@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <vector>
 
 /// Canvas callback: one line of text.
@@ -109,19 +110,25 @@ void requestScenario(App& p_app, std::filesystem::path const& p_file)
     p_app.ui.pending_scenario = p_file;
 }
 
-void drawDemosMenu(App& p_app)
+/// Category of the packages shown in the Tutorials menu.
+static constexpr std::string_view TUTORIAL = "Tutorial";
+
+/// One menu of packages: the tutorials, or every other package (the demos).
+static void drawPackagesMenu(App& p_app, char const* p_title, bool p_tutorials)
 {
-    if (!ImGui::BeginMenu("Demos"))
+    if (!ImGui::BeginMenu(p_title))
     {
         return;
     }
-    if (p_app.plugins.catalog().packages().empty())
-    {
-        ImGui::TextDisabled("No plugin package found in lib/robotik/plugins");
-    }
+    bool empty = true;
     for (robotik::PluginPackage const& package :
          p_app.plugins.catalog().packages())
     {
+        if ((package.category == TUTORIAL) != p_tutorials)
+        {
+            continue;
+        }
+        empty = false;
         if (!ImGui::BeginMenu(package.name.c_str()))
         {
             continue;
@@ -159,7 +166,18 @@ void drawDemosMenu(App& p_app)
         items({});
         ImGui::EndMenu();
     }
+    if (empty)
+    {
+        ImGui::TextDisabled("No plugin package found (ROBOTIK_PLUGINS, "
+                            "lib/robotik/plugins)");
+    }
     ImGui::EndMenu();
+}
+
+void drawDemosMenu(App& p_app)
+{
+    drawPackagesMenu(p_app, "Tutorials", true);
+    drawPackagesMenu(p_app, "Demos", false);
 }
 
 void drawPluginMenus(App& p_app)

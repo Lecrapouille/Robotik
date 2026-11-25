@@ -1,0 +1,32 @@
+plugin:
+  id: robotik.pick_and_place
+  name: Pick and place
+  version: 1.0.0
+  api_version: 1
+  category: Manipulation
+  description: A robot arm picks a cube and puts it in a box, driven by a behavior tree or by the PDDL planner (with faults to recover from), or by a reinforcement learning policy.
+
+library:
+  entrypoint: librobotik_pick_and_place.so
+
+resources:
+  packs:
+    - { id: robotik.robots, version: "1.0" }
+    - { id: robotik.tools, version: "1.0" }
+
+# menu: submenu of the Demos menu. clock: plugin when the plugin update
+# advances the simulation itself (the RL policy acts at its own period).
+scenarios:
+  directory: scenarios
+  entries:
+    - { id: pick_and_place, name: Pick and place, file: pick_and_place.scenario.yaml, menu: Behavior tree }
+    - { id: pick_and_place_faults, name: Pick and place (faults), file: pick_and_place_faults.scenario.yaml, menu: Behavior tree }
+    - { id: pick_and_place_pddl, name: Pick and place, file: pick_and_place_pddl.scenario.yaml, menu: PDDL planner }
+    - { id: pick_and_place_pddl_faults, name: Pick and place (faults), file: pick_and_place_pddl_faults.scenario.yaml, menu: PDDL planner }
+    - { id: pick_and_place_pabt, name: Pick and place (PA-BT), file: pick_and_place_pabt.scenario.yaml, menu: PDDL planner }
+    - { id: pick_and_place_rl, name: Pick and place RL, file: pick_and_place.rl.yaml, menu: Reinforcement learning, clock: plugin }
+
+experiments:
+  directory: experiments
+  entries:
+    - { id: pick_and_place_experiment, name: Pick and place benchmark, file: pick_and_place.experiment.yaml }

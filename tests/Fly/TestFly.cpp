@@ -26,7 +26,7 @@ static FlyScenario flyScenario()
 {
     return FlyScenario::from(robotik::loadScenario(
         repoFile(
-            "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"),
+            "demos/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"),
         testAssets()).take());
 }
 
@@ -150,7 +150,7 @@ TEST(FlyLogic, ReachesTheFoodAsARegularPlugin)
 {
     robotik::Scenario const scenario = robotik::loadScenario(
         repoFile(
-            "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"),
+            "demos/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"),
         testAssets()).take();
     compages::world::World world;
     FlyLogic logic;

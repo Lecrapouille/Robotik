@@ -77,7 +77,7 @@ The scenario keeps its world, its faults and its perception policy. Its controll
 
 `reset(seed)` rebuilds the full initial state: joints, base, sensors (random streams included), resources, faults, object layout.
 
-The three pick-and-place parts live in `plugins/PickAndPlace/src/RlLogic.*` and are shared by the command-line pool and the simulator plugin.
+The three pick-and-place parts live in `demos/PickAndPlace/src/RlLogic.*` and are shared by the command-line pool and the simulator plugin.
 
 ## 👯 Many environments
 

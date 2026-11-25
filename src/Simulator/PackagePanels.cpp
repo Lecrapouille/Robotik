@@ -482,7 +482,7 @@ static void packageFiles(App& p_app, robotik::PluginPackage const& p_package)
     ImGui::SetItemTooltip(
         "%s\n\nThe package as the simulator reads it, read only. In the "
         "build tree this is a copy made by make: change the files in "
-        "plugins/<Name>/, not here.\nGreen: the files of the loaded scenario "
+        "demos/<Name>/, not here.\nGreen: the files of the loaded scenario "
         "and of the chosen experiment.\nRight click: copy the path, read "
         "the folder again.",
         p_package.root.string().c_str());

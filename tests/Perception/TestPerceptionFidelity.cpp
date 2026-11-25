@@ -44,11 +44,11 @@ TEST(PerceptionFidelity, LegacyOracleKeyStillWorks)
 {
     // A scenario without a perception section: only the old key is set.
     robotik::Scenario const always = pickAndPlace(
-        "plugins/HelloWorld/scenarios/hello.scenario.yaml",
+        "doc/tutorials/HelloWorld/scenarios/hello.scenario.yaml",
         { { "scenario.perception.oracle", "always" } });
     EXPECT_EQ(always.perception.fidelity, robotik::PerceptionFidelity::Truth);
     robotik::Scenario const blind = pickAndPlace(
-        "plugins/HelloWorld/scenarios/hello.scenario.yaml",
+        "doc/tutorials/HelloWorld/scenarios/hello.scenario.yaml",
         { { "scenario.perception.oracle", "when_blind" } });
     EXPECT_EQ(blind.perception.fidelity, robotik::PerceptionFidelity::Sensed);
     EXPECT_EQ(blind.perception.blind, robotik::PerceptionFidelity::Truth);
@@ -62,7 +62,7 @@ TEST(PerceptionFidelity, EachObjectSaysWhereItsBeliefComesFrom)
     robotik::Simulation simulation(
         world,
         pickAndPlace(
-            "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml",
+            "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml",
             { { "scenario.perception.blind", "sensed" },
               { "scenario.perception.fidelity", "truth" },
               { "scenario.perception.overrides.box", "sensed" } }),
@@ -92,7 +92,7 @@ TEST(PerceptionFidelity, NoisyTruthCanMissAnObject)
     robotik::Simulation simulation(
         world,
         pickAndPlace(
-            "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml",
+            "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml",
             { { "scenario.perception.blind", "sensed" },
               { "scenario.perception.fidelity", "noisy_truth" },
               { "scenario.perception.noise.dropout", "1.0" } }),
@@ -115,7 +115,7 @@ TEST(PerceptionFidelity, ObservedEffectsNeedAFreshObservation)
         robotik::Simulation simulation(
             world,
             pickAndPlace(
-                "plugins/PickAndPlace/scenarios/"
+                "demos/PickAndPlace/scenarios/"
                 "pick_and_place_pddl.scenario.yaml",
                 { { "scenario.controller.planner.verify", "observed" } }),
             nullptr,
@@ -131,7 +131,7 @@ TEST(PerceptionFidelity, ObservedEffectsNeedAFreshObservation)
         compages::world::World world;
         robotik::Simulation simulation(
             world,
-            pickAndPlace("plugins/PickAndPlace/scenarios/"
+            pickAndPlace("demos/PickAndPlace/scenarios/"
                          "pick_and_place_pddl.scenario.yaml",
                          { { "scenario.controller.planner.verify", "observed" },
                            { "scenario.perception.blind", "sensed" } }),

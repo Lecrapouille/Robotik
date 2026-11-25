@@ -20,8 +20,7 @@ public:
     // Scenario id (as in plugin.yaml) -> the scenario logic it runs.
     PainterPlugin()
         : ScenarioPlugin({ { "painter", robotik::logic<PainterLogic>(false) },
-                          { "painter_pddl", robotik::logic<PainterLogic>(true) },
-                          { "painter_pabt", robotik::logic<PainterLogic>(true) } })
+                          { "painter_pddl", robotik::logic<PainterLogic>(true) } })
     {
     }
 };
@@ -29,7 +28,7 @@ public:
 ROBOTIK_EXPORT_PLUGIN(PainterPlugin)     // exports the C functions the host looks for
 ```
 
-`robotik::logic<T>(args...)` builds a `T` with these arguments when the scenario starts. `ScenarioPlugin` creates the scenario logic, gives it to the simulation, and frees it at the end. An id that is not in the table stops the setup with `unknown scenario 'x' (this plugin runs: painter, painter_pddl, painter_pabt)`. One plugin, one library, many scenarios.
+`robotik::logic<T>(args...)` builds a `T` with these arguments when the scenario starts. `ScenarioPlugin` creates the scenario logic, gives it to the simulation, and frees it at the end. An id that is not in the table stops the setup with `unknown scenario 'x' (this plugin runs: painter, painter_pddl)`. One plugin, one library, many scenarios.
 
 HelloWorld adds a key binding, a menu item and a panel. It calls `ScenarioPlugin::setup` first, then uses the host:
 
@@ -125,7 +124,7 @@ plugin:
   name: Robotic painter            # shown in the Demos menu
   version: 1.0.0                   # major.minor.patch
   api_version: 1                   # C ABI version the library was built for
-  category: Manipulation
+  category: Manipulation         # Tutorial puts the package in the Tutorials menu
   description: A robot arm paints colored strokes on an easel.   # optional
 
 library:
@@ -165,7 +164,7 @@ experiments:
 | `library.entrypoint` | A file name ending in `.so`, with no folder and no `..` |
 | `resources.packs` | A missing pack, or one with an incompatible version: the scenario is refused with the reason. Version `"1.2"` accepts 1.2.0 and any newer 1.x, not 2.0 |
 | `host.clock: plugin` | The host does not call `Simulation::step`: `update(dt)` advances the simulation. Default for every scenario; an entry can change it with its own `clock:` (the RL scenario of PickAndPlace) |
-| `entries[].menu` | Groups the scenario in a submenu of the **Demos** menu (PickAndPlace: Behavior tree, Reinforcement learning) |
+| `entries[].menu` | Groups the scenario in a submenu of the package in the **Demos** (or **Tutorials**) menu (PickAndPlace: Behavior tree, PDDL planner, Reinforcement learning) |
 | `scenarios.entries` | Without `entries`, every runnable file of the folder is taken: `*.scenario.yaml`, `*.rl.yaml`, `*.experiment.yaml`, and an older YAML file without a role. Trees, domains and trajectories are skipped. The id is the name without the double extension |
 
 ### 📚 Third-party libraries of a plugin
@@ -188,7 +187,7 @@ dependencies:
 | `license` | SPDX name. Required: without it the library shows "not checked" |
 | `description` | Optional. Put a value with a comma between quotes |
 
-`plugins/LineFollower/LineFollower.mk` builds AprilTag with its CMake, and is not built when OpenCV is not installed:
+`demos/LineFollower/LineFollower.mk` builds AprilTag with its CMake, and is not built when OpenCV is not installed:
 
 ```make
 ifeq ($(call robotik-missing,opencv4),)
@@ -207,7 +206,7 @@ else
 endif
 ```
 
-A release of binaries is a target with a `URL` (ONNX Runtime: `$(eval $(ROBOTIK_ONNXRUNTIME))` of `plugins/plugin.mk`); data made by a script is a Make rule the plugin target depends on (`MicroDuck.mk`).
+A release of binaries is a target with a `URL` (ONNX Runtime: `$(eval $(ROBOTIK_ONNXRUNTIME))` of `demos/plugin.mk`); data made by a script is a Make rule the plugin target depends on (`MicroDuck.mk`).
 
 ## 🔎 Where the hosts look for plugins
 
@@ -218,7 +217,7 @@ Nothing depends on the current folder. Both hosts search, in this order:
 3. `plugins/` next to the executable;
 4. `../lib/robotik/plugins` from the executable: `build/linux-gcc-debug/lib/robotik/plugins` in the build tree, `lib/robotik/plugins` of the install prefix.
 
-A scenario given by its path brings its package with it: `RobotIK-Headless plugins/Painter/scenarios/painter.scenario.yaml` works from the sources; the library is searched next to the manifest, then next to the executable.
+A scenario given by its path brings its package with it: `RobotIK-Headless demos/Painter/scenarios/painter.scenario.yaml` works from the sources; the library is searched next to the manifest, then next to the executable.
 
 ## ✅ Good rules for a plugin
 

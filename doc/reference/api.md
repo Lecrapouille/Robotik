@@ -248,7 +248,7 @@ auto* group = p_simulation.robot().actuators().first<robotik::JointGroup>();
 |-------|-------------|--------------|
 | `JointGroup` | `joint_group` | `joints()`, `contains(id)`, `moveTo(span<double>)`, `hold()`, `reached(tol)` |
 | `Motor` | `motor` | `moveTo(Radians)`, `spin(AngularVelocity)`, `push(Torque)`, `stop()`, `position()` |
-| `VacuumGripper` | `vacuum` | grasp / release what touches the suction face (see `plugins/PickAndPlace`) |
+| `VacuumGripper` | `vacuum` | grasp / release what touches the suction face (see `demos/PickAndPlace`) |
 
 ## 🔧 Skills
 
