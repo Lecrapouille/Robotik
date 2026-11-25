@@ -83,9 +83,10 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **Binding**: links a PDDL action to the skills that do it.
 - **Domain**: the PDDL file that lists types, predicates and actions.
 - **Effect**: what an action makes true or false. RobotIK checks it on the beliefs after the step; with `verify: observed`, only a belief seen again after the start of the step counts.
+- **GOAP** (Goal-Oriented Action Planning): a planner of video games. From the goal it builds a graph of states linked by actions, and an A* search finds the cheapest plan. RobotIK has no GOAP; `planner.method: search` does the same job with Kairos ([Without search: a tree grown from the goal (PA-BT)](../concepts/05-pddl-planner.md#-without-search-a-tree-grown-from-the-goal-pa-bt)).
 - **Kairos**: the PDDL planner RobotIK uses.
 - **Observer**: a function that tells whether a predicate holds, from the beliefs, never from the ground truth.
-- **PA-BT** (Planning and Acting with Behavior Trees): `planner.method: pabt`. No search: a reactive behavior tree grows backwards from the goal, each false condition getting the actions that make it true ([Without search: a tree grown from the goal (PA-BT)](../concepts/05-pddl-planner.md#-without-search-a-tree-grown-from-the-goal-pa-bt)).
+- **PA-BT** (Planning and Acting with Behavior Trees): `planner.method: pabt`. No search, unlike GOAP: a reactive behavior tree grows backwards from the goal during the run, each false condition getting the actions that make it true ([Without search: a tree grown from the goal (PA-BT)](../concepts/05-pddl-planner.md#-without-search-a-tree-grown-from-the-goal-pa-bt)).
 - **PDDL**: a language to describe a planning problem: what can be done and what is wanted.
 - **Plan**: the list of actions the planner found. Steps that do not depend on each other run together.
 - **Predicate**: the name of a kind of fact (`holding`, `in`).

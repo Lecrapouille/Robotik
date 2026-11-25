@@ -185,23 +185,23 @@ The DualArm conveyor ([Dual arm](../case-studies/dual-arm.md)) plans 12 steps fo
 ```text
 conveyor (parallel: true)
   0 s  Convey(p4, feeder, zone_right)  SUCCEEDED  (2.56 s)
-  2.57 s  right.Hover(p4)  SUCCEEDED  (0.95 s)
+  2.57 s  right.Hover(p4)  SUCCEEDED  (1.22 s)
   2.57 s  Convey(p3, feeder, zone_left)  SUCCEEDED  (2.91 s)
   ...
-  5.49 s  left.Hover(p3)  SUCCEEDED  (0.95 s)
+  5.49 s  left.Hover(p3)  SUCCEEDED  (1.22 s)
   5.49 s  Convey(p2, feeder, zone_right)  SUCCEEDED  (2.91 s)
   ...
-[PASS] default                  seed=42     controller succeeded at 16.85 s (oracle perception)  time=16.85
+[PASS] default                  seed=42     controller succeeded at 19.82 s (perception truth)  time=19.82
 ```
 
-With `planner.parallel: false` (one step at a time) the same plan ends at 33.27 s. The test `PluginSession.TwoArmsSortFasterWithAParallelPlan` runs both.
+With `planner.parallel: false` (one step at a time) the same plan ends at 39.61 s. The test `PluginSession.TwoArmsSortFasterWithAParallelPlan` runs both.
 
-**Durative actions.** In a temporal domain (`:durative-action`), the planner gives a start time and a duration to each action. The start event reads the `at start` and `over all` conditions and changes the `at start` effects; the end event reads the `at end` and `over all` conditions and changes the `at end` effects. This gives **required concurrency**: in the DualArm tray scenario, `drill` needs `(over all (in_motion ?t))`, which `carry` adds at its start and removes at its end. So the drilling starts once the carry has started (`After start of 2: 3. (drill right tray)`), and the carry ends only once the drilling has ended (`Until 3: 2. (carry left tray pad_a pad_b)`, a node before its Check). The carry motion is done at 25.52 s, but the tray stays held until 30.09 s:
+**Durative actions.** In a temporal domain (`:durative-action`), the planner gives a start time and a duration to each action. The start event reads the `at start` and `over all` conditions and changes the `at start` effects; the end event reads the `at end` and `over all` conditions and changes the `at end` effects. This gives **required concurrency**: in the DualArm tray scenario, `drill` needs `(over all (in_motion ?t))`, which `carry` adds at its start and removes at its end. So the drilling starts once the carry has started (`After start of 2: 3. (drill right tray)`), and the carry ends only once the drilling has ended (`Until 3: 2. (carry left tray pad_a pad_b)`, a node before its Check). The carry motion is done at 25.53 s, but the tray stays held until 30.11 s:
 
 ```text
-  5.53 s  left.Carry(pad_b)  SUCCEEDED  (19.99 s)
-  5.53 s  right.Trace(tray)  SUCCEEDED  (24.56 s)
-  30.11 s  left.Lower  SUCCEEDED  (1.99 s)
+  5.54 s  left.Carry(pad_b)  SUCCEEDED  (19.99 s)
+  5.54 s  right.Trace(tray)  SUCCEEDED  (24.57 s)
+  30.13 s  left.Lower  SUCCEEDED  (1.99 s)
 ```
 
 The durations of the domain only order the plan: the executor waits for the skills, not for the clock. A skill that ends early does not wait for its planned duration.
@@ -210,7 +210,20 @@ The durations of the domain only order the plan: the executor waits for the skil
 
 ### 🌱 Without search: a tree grown from the goal (PA-BT)
 
-`method: pabt` makes no search. The behavior tree grows backwards from the goal, as in PA-BT (*Planning and Acting with Behavior Trees*, Colledanchise, Marzinotto and Ögren): the same domain, observers and bindings, another way to use them.
+A planner with a search builds the whole plan before the robot moves. GOAP (*Goal-Oriented Action Planning*, Jeff Orkin, for the game F.E.A.R. in 2005) is the best known example. It starts from the goal and looks for the actions whose effects give it, then for the actions that give their preconditions. These links make a graph of states, and an A* search finds in it the cheapest path from the current state to the goal. The default `method: search` of RobotIK does the same job with a PDDL planner: Kairos goes forward from the current state, guided by an estimate of the distance to the goal. In both cases the result is one complete plan, the best that the search found. The robot runs it, and the executor plans again when a step fails.
+
+PA-BT (*Planning and Acting with Behavior Trees*, Colledanchise, Marzinotto and Ögren, 2018) also starts from the goal and goes backwards, but it does not search. It never builds a graph of states and never compares two plans. It takes one false condition, chooses an action that makes it true, puts this action in the behavior tree, and lets the robot act. The tree grows during the run, only where the world does not match the goal. `method: pabt` does this with the same domain, observers and bindings as the search.
+
+| | Search (`method: search`, and GOAP) | PA-BT (`method: pabt`) |
+|---|---|---|
+| When it decides | Before the robot moves: a whole plan | During the run: one false condition at a time |
+| How it chooses | Compares many plans and keeps the best one | Takes the action with the fewest false preconditions; no cost |
+| What runs | A tree made from the plan | The tree itself, which grows |
+| A condition reached before becomes false (the cube falls) | The step fails, the executor plans again | The tree reads the condition at the next tick and goes back to the action that makes it true |
+| Two arms | Steps that do not depend on each other run together | One goal condition after the other |
+| Domain | Full PDDL of Kairos (`forall`, numbers, durative actions) | Plain preconditions only (see the limits below) |
+
+Choose the search for a long job where the order matters, or for several robots. Choose PA-BT for a short job in a world that changes during the run, when going back to an earlier step must not cost a new plan.
 
 ```yaml
 controller:
@@ -261,10 +274,10 @@ What changes from the search:
 - **An action is atomic, as in PDDL.** Its preconditions are read before it starts; the condition it makes true does not stop it (`holding` is true after `Grasp`, the arm still lifts the cube).
 - **Which action first.** A condition gets at most 16 actions, those with the fewest false preconditions first. An action that needs a false static atom (a `fact`, or a predicate no action changes) is left out, and so is one that needs a condition the tree is already making true above it (it would go round in a circle).
 - **A failed action** (a skill fails) does not grow the tree: the executor waits `replan.delay` and ticks the same tree again, `replan.max` times.
-- **One goal condition after the other.** The goal is a `ReactiveSequence`: `parallel` does not apply, two arms do not work together. On the DualArm conveyor, PA-BT took 34.99 s, like the step-by-step plan; the parallel plan takes about 17 s.
+- **One goal condition after the other.** The goal is a `ReactiveSequence`: `parallel` does not apply, two arms do not work together. On the DualArm conveyor, PA-BT ends at 39.73 s, like the plan run step by step (39.61 s); the parallel plan ends at 19.82 s.
 - The **History** has one record per growth of the tree; **Execution graph** lists the actions of the tree, in the order they were added.
 
-On PickAndPlace (`pick_and_place_pddl` and `pick_and_place_pabt`) both ways end at 4.99 s: on one arm, a search and a tree grown from the goal give the same actions.
+On PickAndPlace (`pick_and_place_pddl` and `pick_and_place_pabt`) both ways end at 6.89 s: on one arm with one cube, the search and the tree grown from the goal choose the same actions.
 
 ## 🚧 Limits
 
