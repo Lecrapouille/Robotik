@@ -82,9 +82,11 @@ private:
     {
         if (bt::Blackboard::Ptr const board = blackboard())
         {
-            std::string const& name = m_scheduler.name(m_id);
-            board->set(name + ".state", std::string(robotik::toString(p_state)));
-            board->set(name + ".reason", std::string(robotik::toString(p_reason)));
+            std::string const& skill = m_scheduler.name(m_id);
+            board->set(skill + ".state",
+                       std::string(robotik::toString(p_state)));
+            board->set(skill + ".reason",
+                       std::string(robotik::toString(p_reason)));
         }
     }
 
