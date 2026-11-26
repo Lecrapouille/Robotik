@@ -3,7 +3,8 @@
     "The people of the Reception demo, made by make_people.py with MPFB.",
     "macro: the sliders of MakeHuman in [0, 1]. gender 0 is female, 1 male.",
     "age 0 is 1 year, 0.1875 is 11, 0.5 is 25, 1 is 90 (linear between).",
-    "Assets are named by their folder in the MakeHuman asset packs."
+    "Assets are named by their folder in the MakeHuman asset packs; these",
+    "ones are all in the system assets (Reception.mk downloads only it)."
   ],
   "people": {
     "woman": {
@@ -13,7 +14,7 @@
       "skin": "young_caucasian_female",
       "eyes": "high-poly", "eyebrows": "eyebrow010", "eyelashes": "eyelashes02",
       "teeth": "teeth_base", "tongue": "tongue01", "hair": "ponytail01",
-      "clothes": [ "female_casualsuit01", "toigo_ballet_flats" ]
+      "clothes": [ "female_elegantsuit01", "shoes03" ]
     },
     "man": {
       "macro": { "gender": 1.0, "age": 0.6, "muscle": 0.55, "weight": 0.55, "height": 0.65,
@@ -22,16 +23,16 @@
       "skin": "middleage_african_male",
       "eyes": "high-poly", "eyebrows": "eyebrow001", "eyelashes": "eyelashes01",
       "teeth": "teeth_base", "tongue": "tongue01", "hair": "short02",
-      "clothes": [ "male_casualsuit04", "shoes02" ]
+      "clothes": [ "male_casualsuit05", "shoes02" ]
     },
     "child": {
-      "macro": { "gender": 0.3, "age": 0.15, "muscle": 0.5, "weight": 0.45, "height": 1.0,
+      "macro": { "gender": 0.3, "age": 0.15, "muscle": 0.5, "weight": 0.45, "height": 0.4,
                  "proportions": 0.5, "cupsize": 0.0, "firmness": 0.5,
                  "race": { "asian": 0.8, "caucasian": 0.1, "african": 0.1 } },
       "skin": "young_asian_female",
       "eyes": "high-poly", "eyebrows": "eyebrow004", "eyelashes": "eyelashes01",
       "teeth": "teeth_base", "tongue": "tongue01", "hair": "braid01",
-      "clothes": [ "joepal_crude_t-shirt_female", "cortu_jeans_shorts", "shoes05" ]
+      "clothes": [ "male_casualsuit06", "shoes05" ]
     }
   }
 }

@@ -20,7 +20,7 @@ To make them, install Blender and MPFB (Edit > Preferences > Get Extensions, sea
 make reception-people
 ```
 
-The first run downloads the asset packs of MakeHuman (about 640 MB) into `~/.cache/robotik/mpfb-packs` and installs them in MPFB. It then writes `data/people/woman.glb`, `man.glb` and `child.glb`, in about 10 seconds each.
+The first run downloads three asset packs of MakeHuman into `~/.cache/robotik/mpfb-packs`: the system assets (280 MB), the face units and the visemes (0.5 MB). It installs them in MPFB. It then writes `data/people/woman.glb`, `man.glb` and `child.glb`, in about 10 seconds each.
 
 [people/people.json](people/people.json) describes each person: the sliders of MakeHuman (gender, age, height, weight, origin), the skin, the eyes, the eyebrows, the hair and the clothes, by the name of their folder in the packs. Each GLB has:
 

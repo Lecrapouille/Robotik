@@ -57,7 +57,7 @@ world:
       model: robotik.reception.child
       pose: { position: [8.6, 1.0, 0.0], rpy: [0.0, 0.0, 3.14159] }
       actor:
-        height: 1.2
+        height: 1.1
         radius: 0.18
         walk_speed: 1.0
         run_speed: 2.5

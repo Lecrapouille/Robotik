@@ -343,7 +343,10 @@ def main():
         path = os.path.join(options.out, name + ".glb")
         export(path)
         keys = basemesh.data.shape_keys.key_blocks if basemesh.data.shape_keys else []
-        print("make_people: wrote", path, "height %.2f m," % basemesh.dimensions.z,
+        # The top of the head: the parts hidden by clothes are cut from the body.
+        height = max((obj.matrix_world @ Vector(corner)).z
+                     for obj in bpy.data.objects if obj.type == "MESH" for corner in obj.bound_box)
+        print("make_people: wrote", path, "height %.2f m," % height,
               len(rig.data.bones), "joints,", max(0, len(keys) - 1), "morph targets, clips:",
               ", ".join(clips) or "none")
 

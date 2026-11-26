@@ -24,17 +24,16 @@ RECEPTION_SOLDIER_LOCAL := $(firstword $(wildcard $(COMPAGES_DATA_PATH)/Soldier.
 
 # The people (woman, man, child) are made with MakeHuman, by Blender and MPFB:
 #   make reception-people
-# It downloads the CC0 asset packs of MakeHuman (about 640 MB) once into
-# RECEPTION_PACKS, installs them in MPFB, and writes data/people/<name>.glb
-# with the clips of Soldier.glb. Without them, Soldier.glb stands in.
+# It downloads three CC0 asset packs of MakeHuman once into RECEPTION_PACKS
+# (the system assets, 280 MB, and the face units and visemes, 0.5 MB),
+# installs them in MPFB, and writes data/people/<name>.glb with the clips of
+# Soldier.glb. Without them, Soldier.glb stands in. Other packs (clothes,
+# skins) dropped into RECEPTION_PACKS are installed too.
 RECEPTION_PEOPLE := $(addprefix $(RECEPTION_DIR)/data/people/,woman.glb man.glb child.glb)
 RECEPTION_PACKS ?= $(HOME)/.cache/robotik/mpfb-packs
 RECEPTION_PACK_URLS := \
     functional/faceunits01.zip functional/visemes01.zip \
-    asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip \
-    asset_packs/shirts01/shirts01_cc0.zip asset_packs/pants01/pants01_cc0.zip \
-    asset_packs/shoes01/shoes01_cc0.zip asset_packs/dress01/dress01_cc0.zip \
-    asset_packs/skins01/skins01_cc0.zip asset_packs/skins02/skins02_cc0.zip
+    asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip
 
 $(robotik_reception._PACKAGE_STAMP): $(RECEPTION_SOLDIER) $(RECEPTION_PEOPLE)
 
