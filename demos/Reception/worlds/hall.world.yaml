@@ -1,0 +1,77 @@
+# The hall of a reception robot. The humanoid stands behind the desk and
+# faces +x, the door is 8 m in front of it. Z-up, metres, radians.
+# The three people are actors: the story of a scenario moves them; no physics
+# does. They are the same Mixamo soldier for now, at three sizes.
+world:
+  id: hall
+  floor: { friction: 0.8 }
+  entities:
+    # A LimX HU_D04_01 humanoid (1.6 m) stands behind the desk. Its pelvis is
+    # fixed at its pose (no walking policy here): it holds its home posture.
+    - id: robot
+      type: robot
+      model: robotik.limx.hu_d04_01
+      pose: { position: [0.0, 0.0, 0.905] }
+      home:
+        left_hip_pitch_joint: -0.15
+        left_knee_joint: 0.3
+        left_ankle_pitch_joint: -0.16
+        right_hip_pitch_joint: -0.15
+        right_knee_joint: 0.3
+        right_ankle_pitch_joint: -0.16
+        left_shoulder_pitch_joint: 0.1
+        left_shoulder_roll_joint: 0.1
+        left_shoulder_yaw_joint: -0.2
+        left_elbow_joint: -0.2
+        right_shoulder_pitch_joint: 0.1
+        right_shoulder_roll_joint: -0.1
+        right_shoulder_yaw_joint: 0.2
+        right_elbow_joint: -0.2
+      sensors:
+        # The eyes: faces must be large enough for a face detector.
+        head_camera:
+          type: camera
+          parent: head_pitch_link
+          position: [0.1, 0.0, 0.05]
+          fov: 70
+          resolution: [1280, 720]
+          frequency: 10
+      actuators:
+        body: { type: joint_group }
+    - id: desk
+      type: prop
+      shape: { type: box, size: [0.6, 1.6, 0.9] }
+      color: [0.55, 0.40, 0.25]
+      pose: { position: [0.8, 0.0, 0.45] }
+    - id: woman
+      type: actor
+      model: robotik.reception.soldier
+      pose: { position: [8.0, 0.4, 0.0], rpy: [0.0, 0.0, 3.14159] }
+      actor:
+        height: 1.7
+        walk_speed: 1.2
+        model_yaw: 3.14159          # the soldier faces -z of its file
+        model_scale: 0.95
+        clips: { idle: Idle, walk: Walk, run: Run, talk: Idle }
+    - id: child
+      type: actor
+      model: robotik.reception.soldier
+      pose: { position: [8.6, 1.0, 0.0], rpy: [0.0, 0.0, 3.14159] }
+      actor:
+        height: 1.15
+        radius: 0.18
+        walk_speed: 1.0
+        run_speed: 2.5
+        model_yaw: 3.14159
+        model_scale: 0.65
+        clips: { idle: Idle, walk: Walk, run: Run, talk: Idle }
+    - id: man
+      type: actor
+      model: robotik.reception.soldier
+      pose: { position: [9.0, -2.0, 0.0], rpy: [0.0, 0.0, 3.14159] }
+      randomize: { y: [-0.5, 0.5] }
+      actor:
+        height: 1.82
+        walk_speed: 1.4
+        model_yaw: 3.14159
+        clips: { idle: Idle, walk: Walk, run: Run, talk: Idle }

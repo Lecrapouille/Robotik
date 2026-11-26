@@ -9,6 +9,7 @@
 
 #include "RobotIK/Task/Planning/PlanExecutor.hpp"
 #include "RobotIK/Package/Simulation.hpp"
+#include "RobotIK/Task/Story/Story.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -110,6 +111,10 @@ RunRecord captureRun(Simulation const& p_simulation,
             entry.milliseconds = plan.result.milliseconds;
             summary.plans.push_back(std::move(entry));
         }
+    }
+    if (Story const* story = p_simulation.cell().story())
+    {
+        record.story = story->log();
     }
     for (std::string const& name : p_metrics)
     {
@@ -241,6 +246,15 @@ void writeJson(RunReport const& p_report, std::ostream& p_out)
             }
             p_out << (planner.plans.empty() ? "]\n" : "\n        ]\n")
                   << "      },\n";
+        }
+        if (!run.story.empty())
+        {
+            p_out << "      \"story\": [";
+            for (std::size_t k = 0; k < run.story.size(); ++k)
+            {
+                p_out << (k == 0U ? "\n        " : ",\n        ") << quoted(run.story[k]);
+            }
+            p_out << "\n      ],\n";
         }
         p_out << "      \"metrics\": {";
         for (std::size_t m = 0; m < run.metrics.size(); ++m)

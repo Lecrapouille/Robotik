@@ -94,15 +94,20 @@ A layer only uses the layers under it; `make check-layers` checks it.
 
 ## 🎬 Scenarios and runs
 
+- **Actor**: an entity of the world that moves by itself, a person or a vehicle. The story moves it; no skill commands it and no physics acts on it ([actors](world-file.md#-actors)).
 - **Assertion**: a condition checked during or at the end of a run (`(inside red_cube box)`), with a verdict: passed, failed or pending.
 - **Case**: one variant of an experiment (a scenario plus overrides).
 - **Condition**: a question about the run, in the notation of PDDL: `(< time 30)`, `(inside red_cube box)`, `(and ... )`. The operator comes first, inside parentheses. RobotIK reads it once when the scenario loads and refuses an unknown name ([conditions](scenario-file.md#-conditions)).
+- **Event (of a story)**: a list of actions that one actor plays when a condition becomes true ([events](story-file.md#-events)). Not a host event of a plugin.
 - **Experiment**: several cases, each run with several seeds, compared.
 - **Metric**: a named number a run publishes (`time`, `laps`).
 - **Outcome**: why a run ended: success, failure, timeout, stop condition.
+- **Place**: a named point of the floor in a story (`counter: [1.6, 0.0]`), a target of the moves.
 - **Run report**: what a run leaves: outcome, verdicts, metrics, seed, and how real it was (physics and perception fidelity).
 - **Scenario**: a world plus what happens in it (controller, faults) and how it is judged (timeout, assertions).
 - **Seed**: the number that fixes all random draws. Same seed, same run.
+- **Story**: what the actors of the world do during a scenario: places, variables and events, in the `story:` section of the scenario file ([the story](story-file.md)).
+- **Utterance**: a sentence an actor said, with its id, its text, whom it was said to and when: `(said woman hello)`.
 - **World**: the file that lists what exists at the start: robots, tools, objects and their poses.
 
 ## 🎲 Learning

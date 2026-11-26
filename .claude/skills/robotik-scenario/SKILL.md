@@ -113,6 +113,48 @@ scenario:
 Run ends on: controller success/failure, `stop_when`, `timeout`, failed
 assertion with `stop: true`.
 
+## Actors and story (doc/reference/story-file.md)
+
+People/vehicles moved by data, not C++. World entity:
+
+```yaml
+- id: woman
+  type: actor                          # no physics, no attach
+  model: robotik.reception.soldier     # glTF/GLB with clips; optional (or shape: box, or none)
+  pose: { position: [8, 0.4, 0], rpy: [0, 0, 3.14159] }   # faces +X of its frame
+  randomize: { y: [-0.5, 0.5] }
+  actor: { height: 1.7, radius: 0.25, walk_speed: 1.2, run_speed: 3.0, turn_rate: 3.0,
+           turn_radius: 0.4, model_yaw: 3.14159, model_scale: 0.95, fade: 0.3,
+           clips: { idle: Idle, walk: Walk, run: Run, talk: Idle }, frames: { head: [0, 0, 1.6] } }
+```
+
+Scenario section:
+
+```yaml
+  story:
+    places: { counter: [1.6, 0.0] }
+    variables: { registered: 0 }
+    events:
+      - id: arrive                     # (event_started|running|done|failed|count arrive)
+        actor: woman                   # one event per actor at a time
+        start: (> time 1)              # rising edge; none = at once
+        after: [other]                 # events done first
+        delay: 0.5
+        repeat: 1                      # or forever
+        interrupt: false               # true cancels the actor's running event
+        stop_when: (> time 60)
+        actions:                       # one keyword each; short or long form
+          - walk_to: counter           # run_to, follow_path, follow, turn_to, teleport
+          - turn_to: robot             # target = place | entity | entity.frame | [x, y]
+          - say: { id: hello, text: "Hello", to: robot }   # (said woman hello)
+          - wait: [1, 3]               # wait_until, play, expression, show/hide, set/add, start/stop, choose
+```
+
+Queries: `(story_var v)`, `(said who id)`, `(speaking a)`, `(shown a)`,
+`(actor_speed a)`, `(expression a name)`, `(at a target [tol])`,
+`(heading_error a target)`. Moves fail on `timeout`; failure does not end the
+run (assert `(not (event_failed e))`). `--trace` prints the story log.
+
 ## Assertions
 
 ```yaml

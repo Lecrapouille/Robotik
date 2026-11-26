@@ -1,0 +1,88 @@
+# Three visitors in the hall of a reception robot. A woman comes to the
+# desk with her child, says why she is here, is registered and goes to the
+# meeting room; the child follows her. A man queues behind her, asks the
+# way, then goes back out. The robot does nothing yet: the story is the
+# world around it (doc/reference/story-file.md).
+scenario:
+  id: welcome
+  description: Three visitors come in, queue at the desk, talk and leave.
+  world: worlds/hall.world.yaml
+  seed: 1
+  perception: { blind: truth }
+  timeout: 90
+  stop_when: (and (event_done to_meeting) (event_done man_leaves))
+
+  story:
+    places:
+      door: [8.0, 0.0]
+      counter: [1.6, 0.0]            # in front of the desk
+      queue: [2.8, 0.2]              # the next one waits here
+      meeting_room: [2.0, 6.0]
+    variables:
+      registered: 0                  # visitors the robot registered
+
+    events:
+      - id: arrive
+        actor: woman
+        start: (> time 1)
+        actions:
+          - walk_to: counter
+          - turn_to: robot
+          - say: { id: hello, text: "Hello, I have a meeting with Ms Martin at ten.", to: robot }
+
+      # The robot cannot register anyone yet: the story waits in its place.
+      - id: check_in
+        actor: woman
+        after: arrive
+        actions:
+          - wait: [2.0, 4.0]
+          - add: { registered: 1 }
+          - expression: { name: smile, weight: 0.8, duration: 2.0 }
+          - say: { id: thanks, text: "Thank you!", to: robot }
+
+      - id: to_meeting
+        actor: woman
+        after: check_in
+        actions:
+          - walk_to: meeting_room
+          - hide: true
+
+      - id: child_follows
+        actor: child
+        start: (event_started arrive)
+        delay: 0.5
+        actions:
+          - follow: { target: woman, distance: 0.9, until: (event_done to_meeting) }
+          - hide: true
+
+      - id: man_queues
+        actor: man
+        start: (> time 3)
+        actions:
+          - walk_to: queue
+          - turn_to: robot
+          - wait_until: { condition: (event_started to_meeting), timeout: 30 }
+          - walk_to: counter
+          - turn_to: robot
+          - say: { id: question, text: "Where are the toilets, please?", to: robot }
+          - add: { registered: 1 }
+          - wait: 1.5
+
+      - id: man_leaves
+        actor: man
+        after: man_queues
+        actions:
+          - choose:
+              - { weight: 3, actions: [ { walk_to: door } ] }
+              - { weight: 1, actions: [ { run_to: door } ] }
+          - hide: true
+
+  assertions:
+    - { condition: (said woman hello), eventually: true }
+    - { condition: (= (story_var registered) 2), eventually: true }
+    - name: queue order
+      sequence: [ (said woman hello), (event_started to_meeting), (said man question) ]
+    # Nobody walks into the desk nor into the robot.
+    - { condition: (> (distance woman robot) 1.2), phase: always }
+    - { condition: (> (distance man robot) 1.2), phase: always }
+    - { condition: (not (event_failed man_queues)), phase: always }

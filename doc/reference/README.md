@@ -9,6 +9,7 @@ Files:
 - [The world file](world-file.md): entities, models, tools, several robots, sensors and actuators.
 - [The scenario file](scenario-file.md): controller, perception, physics, the end of a run, assertions and conditions, trajectories, the same from C++.
 - [The experiment file](experiment-file.md): cases, overrides, seeds.
+- [The story of a scenario](story-file.md): what the actors (people, vehicles) do: events, actions, the queries of the story.
 - [Plugins](plugin.md): the plugin class, its lifecycle, `plugin.yaml`, where the hosts look for plugins, the rules of a good plugin.
 - [The PDDL planner: reference](pddl-planner.md): the `controller.planner` keys, the planner metrics, the C++ calls, debugging.
 

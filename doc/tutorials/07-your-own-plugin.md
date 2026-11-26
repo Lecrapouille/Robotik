@@ -177,10 +177,10 @@ The host finds each part of the plugin by its name. The names in the different f
 
 ## ▶ 6. Build and run
 
-The root `Makefile` builds only the plugins of its `PLUGINS` list. Add yours with `EXTRA_PLUGINS`, then run the scenario:
+The root `Makefile` builds only the plugins of its `PLUGINS` list. Add `MyRobot` to this list, then build your plugin and run the scenario:
 
 ```bash
-make EXTRA_PLUGINS=MyRobot robotik_my_robot
+make robotik_my_robot
 ./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/MyRobot/scenarios/nod.scenario.yaml
 ```
 

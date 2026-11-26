@@ -9,6 +9,8 @@
 
 #include "RobotIK/Package/Scenario/PackagePath.hpp"
 
+#include "StoryReader.hpp"
+
 namespace robotik
 {
 
@@ -347,6 +349,7 @@ static Result<void> readScenarioSection(Scenario& p_scenario,
                                  "physics",
                                  "timeout",
                                  "stop_when",
+                                 "story",
                                  "parameters",
                                  "assertions" },
                                "scenario"));
@@ -403,6 +406,7 @@ static Result<void> readScenarioSection(Scenario& p_scenario,
     ROBOTIK_TRY_ASSIGN(timeout, node.number("timeout", 0.0));
     scenario.timeout = Seconds(timeout);
     scenario.stop_when = node.text("stop_when");
+    ROBOTIK_TRY_ASSIGN(scenario.story, readStory(node.at("story")));
     scenario.parameters = node.at("parameters");
     for (ConfigNode const& item : node.at("assertions").items())
     {

@@ -201,6 +201,28 @@ static Result<void> validateEntity(EntitySpec const& p_spec,
                 return fail(p_where, "a prop is a shape without physics");
             }
             break;
+        case EntitySpec::Type::Actor:
+        {
+            if (p_spec.physics != EntitySpec::Physics::None || p_spec.attach)
+            {
+                return fail(p_where,
+                            "an actor has no physics and no attach: the story moves it");
+            }
+            if (p_spec.shape && p_spec.shape->type != ShapeSpec::Type::Box)
+            {
+                return fail(p_where, "an actor shape must be a box");
+            }
+            ActorSpec const& actor = p_spec.actor;
+            if (!(actor.height > 0.0) || !(actor.radius >= 0.0) || !(actor.walk_speed > 0.0) ||
+                !(actor.run_speed > 0.0) || !(actor.turn_rate > 0.0) ||
+                !(actor.turn_radius >= 0.0) || !(actor.model_scale > 0.0) || !(actor.fade >= 0.0))
+            {
+                return fail(p_where,
+                            "actor: height, speeds, turn_rate and model_scale must be "
+                            "positive; radius, turn_radius and fade not negative");
+            }
+            break;
+        }
     }
     if (p_spec.type != EntitySpec::Type::Robot &&
         p_spec.type != EntitySpec::Type::Tool &&
@@ -351,9 +373,102 @@ Result<void> validate(WorldDescription const& p_world)
 }
 
 // ----------------------------------------------------------------------------
+/// The story names events, actors and targets that exist.
+static Result<void> validateStory(RoboticCellDescription const& p_description)
+{
+    StorySpec const& story = p_description.story;
+    WorldDescription const& world = p_description.world;
+    std::map<std::string, int, std::less<>> ids;
+    for (StoryEvent const& event : story.events)
+    {
+        if (event.id.empty() || ++ids[event.id] > 1)
+        {
+            return failure("story: every event needs an id, unique: '" + event.id + "'");
+        }
+    }
+    auto known_event = [&](std::string const& p_id) { return ids.contains(p_id); };
+    for (StoryEvent const& event : story.events)
+    {
+        std::string const where = "story, event '" + event.id + "'";
+        if (!event.actor.empty())
+        {
+            EntitySpec const* actor = findEntity(world, event.actor);
+            if (actor == nullptr || actor->type != EntitySpec::Type::Actor)
+            {
+                return fail(where, "actor '" + event.actor + "' is no entity of type actor");
+            }
+        }
+        for (std::string const& id : event.after)
+        {
+            if (!known_event(id) || id == event.id)
+            {
+                return fail(where, "after '" + id + "': no other event of that id");
+            }
+        }
+        // Actions, and the actions of their branches.
+        std::vector<StoryAction const*> actions;
+        for (StoryAction const& action : event.actions)
+        {
+            actions.push_back(&action);
+        }
+        for (std::size_t i = 0; i < actions.size(); ++i)
+        {
+            StoryAction const& action = *actions[i];
+            for (StoryBranch const& branch : action.branches)
+            {
+                for (StoryAction const& inner : branch.actions)
+                {
+                    actions.push_back(&inner);
+                }
+            }
+            std::string const at = where + ", " + action.where;
+            bool const body = action.type == StoryAction::Type::WalkTo ||
+                              action.type == StoryAction::Type::FollowPath ||
+                              action.type == StoryAction::Type::Follow ||
+                              action.type == StoryAction::Type::TurnTo ||
+                              action.type == StoryAction::Type::Say ||
+                              action.type == StoryAction::Type::Play ||
+                              action.type == StoryAction::Type::Expression ||
+                              action.type == StoryAction::Type::Teleport ||
+                              action.type == StoryAction::Type::Show;
+            if (body && event.actor.empty())
+            {
+                return fail(at, "this action needs the 'actor:' of the event");
+            }
+            for (StoryTarget const& target : action.targets)
+            {
+                if (target.point)
+                {
+                    continue;
+                }
+                std::string const id = target.reference.substr(0, target.reference.find('.'));
+                if (!story.places.contains(target.reference) && findEntity(world, id) == nullptr)
+                {
+                    return fail(at, "'" + target.reference + "' is no place nor entity");
+                }
+            }
+            for (std::string const& id : action.events)
+            {
+                if (!known_event(id))
+                {
+                    return fail(at, "no event '" + id + "'");
+                }
+            }
+            if ((action.type == StoryAction::Type::Set || action.type == StoryAction::Type::Add) &&
+                !story.variables.contains(action.name))
+            {
+                return fail(at, "variable '" + action.name +
+                                    "' is not declared in story.variables");
+            }
+        }
+    }
+    return success();
+}
+
 Result<void> validate(RoboticCellDescription const& p_description)
 {
     ROBOTIK_TRY(validate(p_description.world));
+    ROBOTIK_TRY(validateStory(p_description));
     for (auto const& [id, level] : p_description.physics.overrides)
     {
         bool known = findEntity(p_description.world, id) != nullptr;

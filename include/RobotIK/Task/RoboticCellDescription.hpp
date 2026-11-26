@@ -38,6 +38,7 @@
 #include "RobotIK/Robot/Sensors/RangeScanner.hpp"
 #include "RobotIK/Task/Faults.hpp"
 #include "RobotIK/Task/Planning/Pddl.hpp"
+#include "RobotIK/Task/Story/StoryDescription.hpp"
 
 #include <algorithm>
 #include <array>
@@ -199,6 +200,7 @@ struct EntitySpec
         Tool,  ///< Hangs from the robot flange by its tool_mount link.
         Body,  ///< Rigid body simulated by the physics backend.
         Prop,  ///< Kinematic object: still unless the grasp system moves it.
+        Actor, ///< A person or a vehicle moved by the story (no physics).
     };
 
     // ------------------------------------------------------------------------
@@ -248,6 +250,11 @@ struct EntitySpec
     /// Entities a tool works on (a drill on its workpiece): its contacts
     /// with them are not collisions.
     std::vector<std::string> touches;
+
+    // --- Actor
+    // ---------------------------------------------------------------
+    /// How an actor looks and moves (type actor only).
+    ActorSpec actor;
 };
 
 // ****************************************************************************
@@ -637,6 +644,8 @@ struct RoboticCellDescription
     LocalizationFidelity localization = LocalizationFidelity::Truth;
     /// Fidelity of the physics, per entity.
     PhysicsSpec physics;
+    /// What the actors of the world do (see StoryDescription.hpp).
+    StorySpec story;
     /// Values the scenario logic reads (gains, model choices...).
     ConfigNode parameters;
     /// Packs the models were resolved with; scenario logics resolve their own

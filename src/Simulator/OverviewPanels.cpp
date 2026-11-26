@@ -32,6 +32,8 @@ static char const* typeOf(robotik::EntitySpec::Type p_type)
             return "body";
         case robotik::EntitySpec::Type::Prop:
             return "prop";
+        case robotik::EntitySpec::Type::Actor:
+            return "actor";
     }
     return "";
 }
@@ -140,6 +142,8 @@ static char const* engineOf(App const& p_app,
             return p_entity.physics == robotik::EntitySpec::Physics::Free
                        ? "free body"
                        : "fixed";
+        case robotik::EntitySpec::Type::Actor:
+            return "moved by the story";
         case robotik::EntitySpec::Type::Prop:
             if (!p_app.simulation->cell().rigidProp(p_entity))
             {

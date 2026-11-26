@@ -7,7 +7,7 @@ A LimX HU_D04_01 humanoid (31 joints) walks in a circle with the walking policy 
 ![The humanoid walks on its circle, at 8 s.](images/humanoid-walk.png)
 
 ```bash
-make EXTRA_PLUGINS=HumanoidWalk        # fetches its repositories and ONNX Runtime, prepares its data once
+make robotik_humanoid_walk  # fetches its repositories and ONNX Runtime, prepares its data once
 ./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/HumanoidWalk/scenarios/walk_circle.scenario.yaml --trace
 ```
 

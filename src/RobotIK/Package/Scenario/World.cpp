@@ -286,8 +286,59 @@ static Result<EntitySpec::Type> entityType(std::string const& p_where,
         return EntitySpec::Type::Body;
     if (p_text == "prop")
         return EntitySpec::Type::Prop;
+    if (p_text == "actor")
+        return EntitySpec::Type::Actor;
     return fail(p_where,
-                "type must be robot, tool, body or prop, not '" + p_text + "'");
+                "type must be robot, tool, body, prop or actor, not '" + p_text + "'");
+}
+
+/// Reads the @c actor: block of an entity of type actor.
+static Result<ActorSpec> actorOf(std::string const& p_where, ConfigNode const& p_entity)
+{
+    ConfigNode const& node = p_entity.at("actor");
+    std::string const where = p_where + ", actor";
+    ROBOTIK_TRY(node.checkKeys({ "height",
+                                 "radius",
+                                 "walk_speed",
+                                 "run_speed",
+                                 "turn_rate",
+                                 "turn_radius",
+                                 "model_yaw",
+                                 "model_scale",
+                                 "fade",
+                                 "clips",
+                                 "frames" },
+                               where));
+    ActorSpec spec;
+    ROBOTIK_TRY_ASSIGN(spec.height, node.number("height", spec.height));
+    ROBOTIK_TRY_ASSIGN(spec.radius, node.number("radius", spec.radius));
+    ROBOTIK_TRY_ASSIGN(spec.walk_speed, node.number("walk_speed", spec.walk_speed));
+    ROBOTIK_TRY_ASSIGN(spec.run_speed, node.number("run_speed", spec.run_speed));
+    ROBOTIK_TRY_ASSIGN(spec.turn_rate, node.number("turn_rate", spec.turn_rate));
+    ROBOTIK_TRY_ASSIGN(spec.turn_radius, node.number("turn_radius", spec.turn_radius));
+    ROBOTIK_TRY_ASSIGN(spec.model_yaw, node.number("model_yaw", spec.model_yaw));
+    ROBOTIK_TRY_ASSIGN(spec.model_scale, node.number("model_scale", spec.model_scale));
+    ROBOTIK_TRY_ASSIGN(spec.fade, node.number("fade", spec.fade));
+    for (auto const& [role, clip] : node.at("clips").entries())
+    {
+        if (!clip.isScalar())
+        {
+            return fail(where, "clips." + role + " must be the name of a clip of the model");
+        }
+        spec.clips[role] = clip.scalar();
+    }
+    ConfigNode const& frames = node.at("frames");
+    for (auto const& [name, value] : frames.entries())
+    {
+        Vector3 point;
+        ROBOTIK_TRY_ASSIGN(point, frames.vector3(name, Vector3::ZERO));
+        spec.frames[name] = point;
+    }
+    if (!spec.frames.contains("head"))
+    {
+        spec.frames["head"] = Vector3(0.0, 0.0, 0.93 * spec.height);
+    }
+    return spec;
 }
 
 /// Reads the shape block of an entity.
@@ -356,7 +407,8 @@ static Result<void> readEntity(EntitySpec& p_spec,
                                    "home",
                                    "sensors",
                                    "actuators",
-                                   "touches" },
+                                   "touches",
+                                   "actor" },
                                  where));
     ROBOTIK_TRY_ASSIGN(spec.type, entityType(where, p_node.text("type")));
     spec.kind = lowerCase(p_node.text("kind"));
@@ -365,7 +417,9 @@ static Result<void> readEntity(EntitySpec& p_spec,
     {
         // A file name (not a model id) stays in the package.
         bool const file = spec.model_ref.find('/') != std::string::npos ||
-                          spec.model_ref.ends_with(".urdf");
+                          spec.model_ref.ends_with(".urdf") ||
+                          spec.model_ref.ends_with(".glb") ||
+                          spec.model_ref.ends_with(".gltf");
         if (file)
         {
             ROBOTIK_TRY_ASSIGN(spec.model,
@@ -380,7 +434,17 @@ static Result<void> readEntity(EntitySpec& p_spec,
     {
         ROBOTIK_TRY_ASSIGN(spec.shape, shape(where, p_node));
     }
-    if (spec.model.empty() == !spec.shape.has_value())
+    if (spec.type == EntitySpec::Type::Actor)
+    {
+        // A glTF model, a box, both (the box stands in when no view draws
+        // it), or neither: a point that only the story moves.
+        ROBOTIK_TRY_ASSIGN(spec.actor, actorOf(where, p_node));
+    }
+    else if (p_node.has("actor"))
+    {
+        return fail(where, "only an entity of type actor has an 'actor:' block");
+    }
+    else if (spec.model.empty() == !spec.shape.has_value())
     {
         return fail(where, "give either a model or a shape");
     }

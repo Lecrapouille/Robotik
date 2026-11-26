@@ -16,6 +16,8 @@
 #include "Compages/Renderer/Procedural/CanvasTexture.hpp"
 #include "Compages/Renderer/Components/MeshRenderer.hpp"
 #include "Compages/World/Components/Camera.hpp"
+#include "Compages/Renderer/Animation/Animator.hpp"
+#include "Compages/Renderer/Components/Text.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -374,4 +376,122 @@ bool SimulatorView::showFrame(std::size_t p_index,
                     stride);
     }
     return static_cast<bool>(target.color.write(pixels));
+}
+
+// --- Actors -----------------------------------------------------------------
+
+SimulatorView::ActorModel* SimulatorView::actorModel(compages::world::Entity p_entity)
+{
+    auto const found = m_actors.find(p_entity.id());
+    return found == m_actors.end() ? nullptr : &found->second;
+}
+
+void SimulatorView::actor(compages::world::Entity p_entity,
+                          std::filesystem::path const& p_model,
+                          double p_yaw,
+                          double p_scale)
+{
+    auto loaded = m_scene.loadFile(p_model);
+    if (!loaded)
+    {
+        throw std::runtime_error(loaded.error());
+    }
+    ActorModel& actor = m_actors[p_entity.id()];
+    actor.model = loaded.value();
+    // glTF is Y up and faces +Z; an actor is Z up and faces +X. The turn of
+    // 120 degrees about (1, 1, 1) sends glTF x, y, z to y, z, x.
+    compages::Quatf const axes = compages::Quatf::fromAngleAxis(
+        robotik::Radians(2.0 * std::numbers::pi / 3.0),
+        compages::vector::normalize(compages::Vector3f(1.0F, 1.0F, 1.0F)));
+    compages::Quatf const turn = compages::Quatf::fromAngleAxis(
+        robotik::Radians(p_yaw), compages::Vector3f(0.0F, 0.0F, 1.0F));
+    auto const scale = static_cast<float>(p_scale);
+    actor.scale = compages::Vector3f(scale, scale, scale);
+    actor.model.parent(p_entity).position(0.0F, 0.0F, 0.0F).rotation(turn * axes).scale(scale);
+    actor.bubble = m_scene.world().entity(p_entity.name() + "_says");
+    actor.bubble.parent(p_entity);
+    if (!m_font)
+    {
+#ifdef ROBOTIK_FONTS_DIR
+        m_scene.font(std::filesystem::path(ROBOTIK_FONTS_DIR) / "Roboto-Medium.ttf");
+        m_font = true;
+#endif
+    }
+}
+
+void SimulatorView::animate(compages::world::Entity p_entity,
+                            std::string const& p_clip,
+                            robotik::Seconds p_fade,
+                            bool p_loop,
+                            double p_ground_speed)
+{
+    ActorModel* actor = actorModel(p_entity);
+    if (actor == nullptr || p_clip.empty() || actor->missing.contains(p_clip))
+    {
+        return;
+    }
+    if (!m_scene.play(actor->model, p_clip, compages::si::Seconds(p_fade.value())))
+    {
+        actor->missing.insert(p_clip);
+        std::cerr << "RobotIK: actor '" << p_entity.name() << "' has no clip '" << p_clip
+                  << "'\n";
+        return;
+    }
+    auto* animator = actor->model.find<compages::renderer::Animator>();
+    if (animator == nullptr)
+    {
+        return;
+    }
+    animator->loop = p_loop;
+    float speed = 1.0F;
+    if (p_ground_speed > 0.0)
+    {
+        // The feet stay on the floor: the clip goes as fast as the body.
+        auto stride = actor->strides.find(p_clip);
+        if (stride == actor->strides.end())
+        {
+            double const measured = m_scene.groundSpeed(actor->model, p_clip).value();
+            stride = actor->strides.emplace(p_clip, measured).first;
+        }
+        if (stride->second > 1e-3)
+        {
+            speed = static_cast<float>(p_ground_speed / stride->second);
+        }
+    }
+    animator->speed = speed;
+}
+
+void SimulatorView::say(compages::world::Entity p_entity,
+                        std::string const& p_text,
+                        double p_height)
+{
+    ActorModel* actor = actorModel(p_entity);
+    if (actor == nullptr || !m_font)
+    {
+        return;
+    }
+    if (p_text.empty())
+    {
+        actor->bubble.remove<compages::renderer::Tooltip>();
+        return;
+    }
+    actor->bubble.position(0.0F, 0.0F, static_cast<float>(p_height));
+    actor->bubble.set(compages::renderer::Tooltip{ .title = p_entity.name(),
+                                                   .text = p_text,
+                                                   .color = { 0.10F, 0.10F, 0.12F },
+                                                   .accent = { 0.15F, 0.35F, 0.75F },
+                                                   .background = { 0.97F, 0.97F, 0.94F },
+                                                   .opacity = 0.9F,
+                                                   .pixels = 14.0F });
+}
+
+void SimulatorView::shown(compages::world::Entity p_entity, bool p_shown)
+{
+    ActorModel* actor = actorModel(p_entity);
+    if (actor == nullptr)
+    {
+        return;
+    }
+    // No visibility switch in the renderer yet: a scale of zero hides it.
+    actor->model.scale(p_shown ? actor->scale : compages::Vector3f(0.0F, 0.0F, 0.0F));
 }

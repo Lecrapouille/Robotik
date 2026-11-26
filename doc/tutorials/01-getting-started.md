@@ -16,10 +16,10 @@ make
 
 The first `make` fetches the third parties with [MyMakefile](https://github.com/Lecrapouille/MyMakefile): Compages, BlackThorn, Dear ImGui, Kairos and the libraries of the plugins. It takes them at the commits written in `external/versions.lock`.
 
-The `PLUGINS` variable of the root `Makefile` lists the plugins that `make` builds. MicroDuck and HumanoidWalk are not in the list, because they download large models. To build them too, add them to the list:
+The `PLUGINS` variable of the root `Makefile` lists the plugins that `make` builds. MicroDuck and HumanoidWalk download their models and ONNX Runtime on the first build, so this build takes longer. To build fewer plugins, give the list:
 
 ```bash
-make EXTRA_PLUGINS="MicroDuck HumanoidWalk"
+make PLUGINS="HelloWorld PickAndPlace"
 ```
 
 After the build, the `build/linux-gcc-debug/` folder contains:

@@ -14,6 +14,7 @@
 #include "RobotIK/Package/Plugin/PluginSession.hpp"
 #include "RobotIK/Package/RunReport.hpp"
 #include "RobotIK/Package/Simulation.hpp"
+#include "RobotIK/Task/Story/Story.hpp"
 #include "RobotIK/Package/Scenario/Experiment.hpp"
 
 #include "Compages/Core/Units.hpp"
@@ -84,6 +85,13 @@ static std::optional<Options> parse(int argc, char** argv)
 /// Prints each skill run of the finished simulation.
 static void printTrace(robotik::Simulation const& p_simulation)
 {
+    if (robotik::Story const* story = p_simulation.cell().story())
+    {
+        for (std::string const& line : story->log())
+        {
+            std::cout << "  story  " << line << '\n';
+        }
+    }
     robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     robotik::ResourceManager const& resources =
         p_simulation.cell().robot().resources();

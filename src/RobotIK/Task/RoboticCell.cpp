@@ -19,6 +19,7 @@
 #include "RobotIK/Task/Skills/MotionSkills.hpp"
 #include "RobotIK/Task/Skills/SkillNodes.hpp"
 #include "RobotIK/Task/Grasp/GraspModel.hpp"
+#include "RobotIK/Task/Story/Story.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -245,6 +246,16 @@ RoboticCell::RoboticCell(compages::world::World& p_world,
     if (m_description.controller.planner)
     {
         achieve(*m_description.controller.planner);
+    }
+    // After the scenario logic: the story may name its metrics and queries.
+    bool const actors = std::ranges::any_of(m_description.world.entities,
+                                            [](EntitySpec const& p_entity)
+                                            { return p_entity.type == EntitySpec::Type::Actor; });
+    if (actors || !m_description.story.events.empty())
+    {
+        m_story = std::make_unique<Story>(m_description.story,
+                                          m_description.world,
+                                          [this](std::string_view p_text) { return compile(p_text); });
     }
     reset();
 }
@@ -512,6 +523,29 @@ void RoboticCell::buildRecord(Record& p_record, SceneView* p_view)
                 p_view->object(p_record.entity, object);
             }
             p_record.nominal = resolveNominal(spec);
+            return;
+        }
+        case EntitySpec::Type::Actor:
+        {
+            // Kinematic: the story moves it. A box stands in when the view
+            // has no model to draw, or headless.
+            p_record.entity = m_world.entity(spec.id);
+            p_record.entity.parent(m_frame);
+            if (spec.shape)
+            {
+                ecs::Shape const object = shapeOf(spec);
+                p_record.entity.set(object);
+                if (p_view != nullptr && spec.model.empty())
+                {
+                    p_view->object(p_record.entity, object);
+                }
+            }
+            if (p_view != nullptr && !spec.model.empty())
+            {
+                p_view->actor(p_record.entity, spec.model, spec.actor.model_yaw,
+                              spec.actor.model_scale);
+            }
+            p_record.nominal = spec.pose;
             return;
         }
         case EntitySpec::Type::Body:
@@ -1030,11 +1064,29 @@ void RoboticCell::reset(Seed p_seed)
         m_world_model.add(
             spec.id, to_base * record.nominal.position, spec.shape->size);
     }
+    // Actors: where the world file puts them, shifted per seed like props.
+    for (Record& record : m_records)
+    {
+        EntitySpec const& spec = *record.spec;
+        if (spec.type != EntitySpec::Type::Actor)
+        {
+            continue;
+        }
+        Vector3 at = record.nominal.position;
+        at.x += random.uniform(spec.randomize[0][0], spec.randomize[0][1]);
+        at.y += random.uniform(spec.randomize[1][0], spec.randomize[1][1]);
+        at.z += random.uniform(spec.randomize[2][0], spec.randomize[2][1]);
+        record.entity.position(toFloat(at)).rotation(toFloat(record.nominal.rotation));
+    }
     syncBodies();
     m_world.update();
     for (Record& record : m_records)
     {
         record.initial = requirePose(record.spec->id);
+    }
+    if (m_story)
+    {
+        m_story->reset(*this, m_view, p_seed);
     }
 
     loadTree();
@@ -1315,6 +1367,11 @@ void RoboticCell::step(Seconds p_dt)
     if (m_suspended)
     {
         return;
+    }
+    // The actors are part of what the world does by itself.
+    if (m_story)
+    {
+        m_story->step(*this, m_view, p_dt);
     }
     if (m_logic != nullptr)
     {

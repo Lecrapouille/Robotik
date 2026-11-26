@@ -17,6 +17,7 @@
 #include "RobotIK/Robot/Components/Objects.hpp"
 #include "RobotIK/Robot/Actuators.hpp"
 #include "RobotIK/Task/Grasp/ContainerBounds.hpp"
+#include "RobotIK/Task/Story/Story.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -127,22 +128,29 @@ Pose RoboticCell::framePose(Record const& p_record,
             return ownerOf(spec).requireTrueWorldPose(
                 frame.empty() ? p_record.spec->attach->parent_frame : frame);
         case EntitySpec::Type::Prop:
+        case EntitySpec::Type::Actor:
         {
-            if (!frame.empty())
-            {
-                throw std::invalid_argument("prop '" + spec.id +
-                                            "' has no frame '" + frame + "'");
-            }
-            // Where the prop is now: a carried or pushed prop turns too.
+            // Where it is now: a carried or pushed prop turns too, the story
+            // moves an actor.
             auto const at = p_record.entity.position();
             auto const turn = p_record.entity.rotation();
-            return { Vector3(static_cast<double>(at.x),
-                             static_cast<double>(at.y),
-                             static_cast<double>(at.z)),
-                     Quaternion(static_cast<double>(turn.w),
-                                static_cast<double>(turn.x),
-                                static_cast<double>(turn.y),
-                                static_cast<double>(turn.z)) };
+            Pose const base{ Vector3(static_cast<double>(at.x),
+                                     static_cast<double>(at.y),
+                                     static_cast<double>(at.z)),
+                             Quaternion(static_cast<double>(turn.w),
+                                        static_cast<double>(turn.x),
+                                        static_cast<double>(turn.y),
+                                        static_cast<double>(turn.z)) };
+            if (frame.empty())
+            {
+                return base;
+            }
+            auto const point = spec.actor.frames.find(frame);
+            if (spec.type == EntitySpec::Type::Prop || point == spec.actor.frames.end())
+            {
+                throw std::invalid_argument("'" + spec.id + "' has no frame '" + frame + "'");
+            }
+            return base * Pose{ point->second, Quaternion{} };
         }
         case EntitySpec::Type::Body:
             break;
@@ -192,6 +200,20 @@ Pose RoboticCell::requireDescribedPose(std::string_view p_reference) const
                                             std::string(frame) + "'");
             }
             return record.nominal;
+        case EntitySpec::Type::Actor:
+        {
+            if (frame.empty())
+            {
+                return record.nominal;
+            }
+            auto const point = record.spec->actor.frames.find(frame);
+            if (point == record.spec->actor.frames.end())
+            {
+                throw std::invalid_argument("'" + record.spec->id + "' has no frame '" +
+                                            std::string(frame) + "'");
+            }
+            return record.nominal * Pose{ point->second, Quaternion{} };
+        }
         case EntitySpec::Type::Body:
             break;
     }
@@ -754,7 +776,132 @@ std::vector<ConditionQuery> RoboticCell::builtinQueries() const
                             return norm(found->base().pose.position -
                                         found->trueBase().pose.position);
                         } });
+    storyQueries(queries);
     return queries;
+}
+
+void RoboticCell::storyQueries(std::vector<ConditionQuery>& p_queries) const
+{
+    using Arguments = std::vector<std::string>;
+    auto boolean = [](bool p_value) { return p_value ? 1.0 : 0.0; };
+    StorySpec const* story = &m_description.story;
+    // The arguments are checked on the description: the conditions of the
+    // story itself are compiled before the story exists, and read 0 then.
+    auto event = [story](std::string const& p_id)
+    {
+        if (std::ranges::none_of(story->events,
+                                 [&](StoryEvent const& p_event) { return p_event.id == p_id; }))
+        {
+            throw std::invalid_argument("the story has no event '" + p_id + "'");
+        }
+    };
+    auto actor = [this](std::string const& p_id)
+    {
+        EntitySpec const* spec = findEntity(m_description.world, p_id);
+        if (spec == nullptr || spec->type != EntitySpec::Type::Actor)
+        {
+            throw std::invalid_argument("'" + p_id + "' is no actor of the world");
+        }
+    };
+    auto eventQuery = [this, event](char const* p_name, auto p_answer)
+    {
+        return ConditionQuery{ p_name, 1U, 1U,
+                               [this, event, p_answer](Arguments const& p_args) -> std::optional<double>
+                               {
+                                   event(p_args[0]);
+                                   return m_story ? p_answer(*m_story, p_args[0]) : 0.0;
+                               } };
+    };
+    p_queries.push_back(eventQuery("event_started", [boolean](Story const& p_story, std::string const& p_id)
+                                   { return boolean(p_story.requireStarts(p_id) > 0U); }));
+    p_queries.push_back(eventQuery("event_running", [boolean](Story const& p_story, std::string const& p_id)
+                                   {
+                                       EventPhase const phase = p_story.requirePhase(p_id);
+                                       return boolean(phase == EventPhase::Running ||
+                                                      phase == EventPhase::Delaying);
+                                   }));
+    p_queries.push_back(eventQuery("event_done", [boolean](Story const& p_story, std::string const& p_id)
+                                   { return boolean(p_story.requireCompletions(p_id) > 0U); }));
+    p_queries.push_back(eventQuery("event_failed", [boolean](Story const& p_story, std::string const& p_id)
+                                   { return boolean(p_story.requireFailures(p_id) > 0U); }));
+    p_queries.push_back(eventQuery("event_count", [](Story const& p_story, std::string const& p_id)
+                                   { return static_cast<double>(p_story.requireCompletions(p_id)); }));
+    p_queries.push_back({ "story_var", 1U, 1U,
+                          [this, story](Arguments const& p_args) -> std::optional<double>
+                          {
+                              auto const found = story->variables.find(p_args[0]);
+                              if (found == story->variables.end())
+                              {
+                                  throw std::invalid_argument("the story has no variable '" +
+                                                              p_args[0] + "'");
+                              }
+                              return m_story ? m_story->requireVariable(p_args[0]) : found->second;
+                          } });
+    p_queries.push_back({ "said", 2U, 2U,
+                          [this, boolean](Arguments const& p_args) -> std::optional<double>
+                          {
+                              static_cast<void>(require(p_args[0]));
+                              return boolean(m_story && m_story->said(p_args[0], p_args[1]));
+                          } });
+    auto actorQuery = [this, actor](char const* p_name, auto p_answer)
+    {
+        return ConditionQuery{ p_name, 1U, 1U,
+                               [this, actor, p_answer](Arguments const& p_args) -> std::optional<double>
+                               {
+                                   actor(p_args[0]);
+                                   return m_story ? p_answer(*m_story, p_args[0]) : 0.0;
+                               } };
+    };
+    p_queries.push_back(actorQuery("speaking", [boolean](Story const& p_story, std::string const& p_id)
+                                   { return boolean(p_story.requireSpeaking(p_id)); }));
+    p_queries.push_back(actorQuery("shown", [boolean](Story const& p_story, std::string const& p_id)
+                                   { return boolean(p_story.requireShown(p_id)); }));
+    p_queries.push_back(actorQuery("actor_speed", [](Story const& p_story, std::string const& p_id)
+                                   { return p_story.requireSpeed(p_id); }));
+    p_queries.push_back({ "expression", 2U, 2U,
+                          [this, actor](Arguments const& p_args) -> std::optional<double>
+                          {
+                              actor(p_args[0]);
+                              return m_story ? m_story->expression(p_args[0], p_args[1]) : 0.0;
+                          } });
+    // Where a target of the story is: a place, an entity, entity.frame.
+    auto point = [this, story](std::string const& p_target)
+    {
+        if (auto const place = story->places.find(p_target); place != story->places.end())
+        {
+            return place->second;
+        }
+        return requirePose(p_target).position;
+    };
+    p_queries.push_back({ "at", 2U, 3U,
+                          [this, point, boolean](Arguments const& p_args) -> std::optional<double>
+                          {
+                              Vector3 const a = requirePose(p_args[0]).position;
+                              Vector3 const b = point(p_args[1]);
+                              double tolerance = 0.5;
+                              if (p_args.size() == 3U)
+                              {
+                                  try
+                                  {
+                                      tolerance = std::stod(p_args[2]);
+                                  }
+                                  catch (std::exception const&)
+                                  {
+                                      throw std::invalid_argument("(at a b tolerance): '" +
+                                                                  p_args[2] + "' is no number");
+                                  }
+                              }
+                              return boolean(std::hypot(b.x - a.x, b.y - a.y) <= tolerance);
+                          } });
+    p_queries.push_back({ "heading_error", 2U, 2U,
+                          [this, point](Arguments const& p_args) -> std::optional<double>
+                          {
+                              Pose const a = requirePose(p_args[0]);
+                              Vector3 const b = point(p_args[1]);
+                              double const toward = std::atan2(b.y - a.position.y, b.x - a.position.x);
+                              return std::abs(std::remainder(toward - yaw(a.rotation).value(),
+                                                             2.0 * 3.14159265358979323846));
+                          } });
 }
 
 } // namespace robotik

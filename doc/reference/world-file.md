@@ -47,6 +47,7 @@ world:
 | `tool` | A tool. It keeps its identity once mounted and brings its own actuators and sensors | Hangs on the flange |
 | `body` | A simulated rigid body: a URDF model (`physics: free` or `fixed`) or a box (`free`, with `mass`) | Yes: gravity, contacts, friction |
 | `prop` | A kinematic object: it does not move, unless the robot grasps it. Shape `box` or `container` (open box) | No |
+| `actor` | A person or a vehicle that the [story](story-file.md) of the scenario moves. A glTF `model` with clips, a `box`, both or neither ([Actors](#-actors)) | No |
 
 Use a `prop` when you want a simple, exact scene. Use a `body` when physics matters: "does the easel slide when the brush pushes it?".
 
@@ -88,6 +89,45 @@ A tool that works **by contact** (a drill on its workpiece, a probe) lists what 
 ```
 
 Only a tool has `touches`, and each name must be another entity of the world; otherwise the world is refused.
+
+## 🚶 Actors
+
+An actor is a person, an animal or a vehicle that moves by itself in the world: a visitor in a hall, a forklift in a warehouse. No skill commands it and no physics moves it. The [story](story-file.md) of the scenario says where it goes and what it says. From the Reception demo (`demos/Reception/worlds/hall.world.yaml`):
+
+```yaml
+    - id: woman
+      type: actor
+      model: robotik.reception.soldier
+      pose: { position: [8.0, 0.4, 0.0], rpy: [0.0, 0.0, 3.14159] }
+      actor:
+        height: 1.7
+        walk_speed: 1.2
+        model_yaw: 3.14159          # the soldier faces -z of its file
+        model_scale: 0.95
+        clips: { idle: Idle, walk: Walk, run: Run, talk: Idle }
+```
+
+An actor faces +X of its frame and turns about Z, like a mobile robot. Its `pose` is where it stands, its feet on the floor. `randomize` shifts it per seed, as for a prop.
+
+The `model` is a glTF or GLB file with skinned clips (Idle, Walk...), as an asset id or a path of the package. A glTF file is Y up and faces +Z; the simulator turns it to Z up and +X, then by `model_yaw`. Without a view (headless), the model is not loaded. A `shape: { type: box, size: [...] }` draws a box instead of a model. With neither, the actor is a point that only the story knows.
+
+| Key of `actor:` | Value | Default |
+|-----------------|-------|---------|
+| `height` | Height of the body (m). It places the `head` frame | `1.75` |
+| `radius` | Radius of the body seen from above (m) | `0.25` |
+| `walk_speed` | Speed of `walk` (m/s) | `1.3` |
+| `run_speed` | Speed of `run` (m/s) | `3.0` |
+| `turn_rate` | Fastest turn (rad/s) | `3.0` |
+| `turn_radius` | Smallest circle it walks on (m) | `0.4` |
+| `model_yaw` | Turn of the model about Z so that it faces +X (rad) | `0` |
+| `model_scale` | Scale of the model | `1` |
+| `fade` | Time a clip takes to fade into the next one (s) | `0.3` |
+| `clips` | Clip of the file for each role: `idle`, `walk`, `run`, `talk`, and the roles of `play` | none: the role is the clip name |
+| `frames` | Named points of the body, in its frame: `{ head: [0, 0, 1.65], hand: [0.3, -0.2, 1.0] }` | `head` at 93 % of `height` |
+
+A frame of an actor is a target and a reference of the conditions: `(distance robot.tool0 woman.head)`. The simulator plays each walk or run clip at the speed of the body, measured on the clip, so that the feet do not slide.
+
+An actor has no physics: a robot passes through it, and a lidar does not see it yet ([limits of the story](story-file.md#-limits)).
 
 ## 👥 Several robots
 

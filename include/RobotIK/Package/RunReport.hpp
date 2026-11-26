@@ -118,6 +118,9 @@ struct RunRecord
     std::vector<std::pair<std::string, std::optional<double>>> metrics;
     /// Plans and replans of the PDDL planner, if the scenario plans.
     PlannerSummary planner;
+    /// What the actors of the story did, one line each ("2.40 s arrive:
+    /// started"); empty without a story.
+    std::vector<std::string> story;
     /// Why the run could not be built or started, if it was not.
     std::string error;
 };

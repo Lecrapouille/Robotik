@@ -62,6 +62,7 @@ namespace robotik
 
 class PinocchioBackend;
 class MujocoBackend;
+class Story;
 
 namespace ecs
 {
@@ -444,6 +445,13 @@ public:
         return m_executor.get();
     }
 
+    /// @return What the actors do (events, sentences said, log), read only;
+    ///   null when the world has no actor and the scenario no story.
+    [[nodiscard]] Story const* story() const
+    {
+        return m_story.get();
+    }
+
     /// @return Controller status (behavior tree, planner, or scenario logic without
     ///   one); @c IDLE before the first tick.
     [[nodiscard]] Status status() const
@@ -710,6 +718,8 @@ private:
                                  std::vector<Contact> const& p_contacts) const;
     /// The queries every cell answers (see @ref requireQuery).
     [[nodiscard]] std::vector<ConditionQuery> builtinQueries() const;
+    /// Adds the queries of the story: event_done, said, at...
+    void storyQueries(std::vector<ConditionQuery>& p_queries) const;
 
 private:
 
@@ -794,6 +804,9 @@ private:
     PlanningDomain m_planning;
     /// After the factory and the scheduler it uses.
     std::unique_ptr<PlanExecutor> m_executor;
+    /// What the actors do; null when the world has no actor and the
+    /// scenario no story.
+    std::unique_ptr<Story> m_story;
 };
 
 

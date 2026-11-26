@@ -1,0 +1,11 @@
+id: robotik.reception
+version: 1.0.0
+# Soldier.glb: a Mixamo character, from the examples of three.js. It stands
+# in for the people until models made with MakeHuman (CC0) replace it.
+license: NOASSERTION
+source: https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf
+description: >
+  People of the hall (glTF with the clips Idle, Walk, Run). The file is
+  copied or downloaded by Reception.mk, not kept in git.
+models:
+  soldier: people/Soldier.glb

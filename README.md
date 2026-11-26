@@ -345,7 +345,7 @@ Start with the [tutorials](doc/tutorials/README.md). If robotics is new to you, 
 | 🎓 [Tutorials](doc/tutorials/README.md) | learn by doing, in order | getting started, three programs, a cube in a box, your first plugin, move the arm, a skill and a behavior tree, your own plugin, a planned pick and place, see and grasp |
 | 🧭 [Guides](doc/guides/README.md) | the steps of one task | mount a tool, share 3D models, write a skill, write tree nodes, recover from a fault, reinforcement learning, write a good demo |
 | 💡 [Concepts](doc/concepts/README.md) | why it works this way | robotics in ten minutes, worlds and scenarios, tools and frames, skills and behavior trees, the PDDL planner, architecture |
-| 📖 [Reference](doc/reference/README.md) | one fact at a time | world, scenario and experiment files, plugins, the planner, the API, the glossary |
+| 📖 [Reference](doc/reference/README.md) | one fact at a time | world, scenario, story and experiment files, plugins, the planner, the API, the glossary |
 | 🎬 [Case studies](doc/case-studies/README.md) | one demo from end to end | HelloWorld, pick and place, painter, line follower, RL, fly brain, humanoid walk, dual arm, micro duck |
 
 The libraries RobotIK is built on have their own documentation, written the same way: [Compages](https://github.com/Lecrapouille/Compages#-documentation) and [BlackThorn](https://github.com/Lecrapouille/BlackThorn/blob/master/doc/README.md).

@@ -11,12 +11,11 @@ COMPILATION_MODE ?= debug
 CXX_STANDARD := c++20
 
 #? The plugins built. PLUGINS="A B" builds only A and B. MicroDuck and
-#? HumanoidWalk fetch large models: add them to the list with
-#? EXTRA_PLUGINS="MicroDuck HumanoidWalk" (PLUGINS+= on the command line
-#? replaces the list, it does not add). FlyBrain uses the whole connectome
-#? of the fly (about 100 MB) with FLYBRAIN_CONNECTOME=1.
-PLUGINS ?= HelloWorld Painter PickAndPlace DualArm LineFollower FlyBrain
-EXTRA_PLUGINS ?=
+#? HumanoidWalk download their models and ONNX Runtime on the first build;
+#? Reception needs the humanoid of HumanoidWalk. FlyBrain uses the whole
+#? connectome of the fly (about 100 MB) with FLYBRAIN_CONNECTOME=1.
+PLUGINS ?= HelloWorld Painter PickAndPlace DualArm LineFollower FlyBrain \
+    MicroDuck HumanoidWalk Reception
 #? The web page (TOOLCHAIN=emscripten) holds the light plugins only, linked
 #? into it: no OpenCV (LineFollower), no ONNX Runtime (MicroDuck,
 #? HumanoidWalk), and FlyBrain with its 13-neuron circuit only.
@@ -24,10 +23,9 @@ WEB_PLUGINS ?= HelloWorld Painter PickAndPlace DualArm FlyBrain
 # (MyMakefile chooses TOOLCHAIN later, with this same test.)
 ifneq ($(EMSCRIPTEN)$(EXAEQUOS)$(filter em++%,$(notdir $(CXX)))$(filter emscripten,$(TOOLCHAIN)),)
     override PLUGINS := $(WEB_PLUGINS)
-    override EXTRA_PLUGINS :=
     override FLYBRAIN_CONNECTOME := 0
 endif
-override PLUGINS := $(sort $(PLUGINS) $(EXTRA_PLUGINS))
+override PLUGINS := $(sort $(PLUGINS))
 #? The folders where the sources of the plugins are: a plugin <Name> is the
 #? first <dir>/<Name>/<Name>.mk found. Add your own folder with
 #? PLUGIN_DIRS="demos doc/tutorials ~/my_plugins".

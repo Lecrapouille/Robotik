@@ -22,9 +22,11 @@
 
 #include "Compages/World/Import/UrdfLoader.hpp"
 #include "Compages/World/Entity.hpp"
+#include "RobotIK/Common/Math.hpp"
 
 #include <filesystem>
 #include <stdexcept>
+#include <string>
 
 namespace compages::world
 {
@@ -183,6 +185,82 @@ public:
                      float /*p_blue*/)
     {
         // Nothing to do by default.
+    }
+    // --- Actors (people, vehicles moved by a story) -------------------------
+
+    // -------------------------------------------------------------------------
+    /// Draws an actor with a glTF model that has clips (Idle, Walk...).
+    /// The model hangs from @p_entity, which faces +X with Z up; glTF files
+    /// are Y up and face +Z, so the view turns the model to match, then by
+    /// @p_yaw about Z. Headless views draw nothing.
+    /// @param p_entity Entity of the actor, moved by the story.
+    /// @param p_model glTF or GLB file.
+    /// @param p_yaw Extra turn of the model about Z (rad).
+    /// @param p_scale Scale of the model.
+    /// @throws std::runtime_error when the file cannot be loaded.
+    // -------------------------------------------------------------------------
+    virtual void actor(compages::world::Entity /*p_entity*/,
+                       std::filesystem::path const& /*p_model*/,
+                       double /*p_yaw*/,
+                       double /*p_scale*/)
+    {
+        /* no-op */
+    }
+
+    // -------------------------------------------------------------------------
+    /// Plays a clip on an actor; called at each step, so it must be cheap
+    /// when nothing changed.
+    /// @param p_entity Entity of the actor.
+    /// @param p_clip Name of the clip in the model file; empty: none.
+    /// @param p_fade Time for the clip before to fade out.
+    /// @param p_loop The clip starts again at its end.
+    /// @param p_ground_speed Speed of the body (m/s) for a walk or a run:
+    ///   the view plays the clip so the feet do not slide; 0 plays it at
+    ///   its own speed.
+    // -------------------------------------------------------------------------
+    virtual void animate(compages::world::Entity /*p_entity*/,
+                         std::string const& /*p_clip*/,
+                         Seconds /*p_fade*/,
+                         bool /*p_loop*/,
+                         double /*p_ground_speed*/)
+    {
+        /* no-op */
+    }
+
+    // -------------------------------------------------------------------------
+    /// Shows what an actor says, above its head, for a time.
+    /// @param p_entity Entity of the actor.
+    /// @param p_text The sentence; empty hides it.
+    /// @param p_height Where to write it above the entity (m).
+    // -------------------------------------------------------------------------
+    virtual void say(compages::world::Entity /*p_entity*/,
+                     std::string const& /*p_text*/,
+                     double /*p_height*/)
+    {
+        /* no-op */
+    }
+
+    // -------------------------------------------------------------------------
+    /// Sets a face expression of an actor (morph targets of the model).
+    /// @param p_entity Entity of the actor.
+    /// @param p_name Expression (smile, angry...).
+    /// @param p_weight Weight in [0, 1]; 0 removes it.
+    // -------------------------------------------------------------------------
+    virtual void expression(compages::world::Entity /*p_entity*/,
+                            std::string const& /*p_name*/,
+                            double /*p_weight*/)
+    {
+        /* no-op */
+    }
+
+    // -------------------------------------------------------------------------
+    /// Shows or hides an actor (it entered or left the world).
+    /// @param p_entity Entity of the actor.
+    /// @param p_shown True to draw it.
+    // -------------------------------------------------------------------------
+    virtual void shown(compages::world::Entity /*p_entity*/, bool /*p_shown*/)
+    {
+        /* no-op */
     }
 };
 

@@ -3,8 +3,8 @@
 #
 # This file is part of RobotIK. See LICENSING.md for details.
 #
-# The plugin MicroDuck: a microduck walking by a learned policy (built only
-# with EXTRA_PLUGINS=MicroDuck). Paths are relative to this directory.
+# The plugin MicroDuck: a microduck walking by a learned policy (not in the
+# web page: no ONNX Runtime there). Paths are relative to this directory.
 
 $(eval $(ROBOTIK_ONNXRUNTIME))
 TARGETS += microduck_rl robotik_microduck

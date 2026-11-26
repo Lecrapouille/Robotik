@@ -45,6 +45,7 @@ scenario:
 | `localization` | Where the base pose of the skills comes from: `truth` (default) or `plugin` ([Localization](#-localization)) |
 | `timeout` | Maximum simulated time, in seconds |
 | `stop_when` | A condition that ends the run as soon as it is true |
+| `story` | What the actors of the world do: places, variables, events ([The story of a scenario](story-file.md)) |
 | `assertions` | What is checked ([Assertions](#-assertions)) |
 
 **File names.** Every file named in a world, scenario or experiment file (`world`, `behavior_tree`, `trajectories`, `scenario`, a URDF path) is relative to the **package root**: the folder of `plugin.yaml`. It is the same in every file, whatever the folder of the file:
@@ -222,7 +223,7 @@ A value is a number, a metric, or a query on the world:
 | `(belief_error e)` | Distance between where the robot believes `e` is and where it is (m). No answer when `e` was never seen, its belief is older than `perception.max_age`, or a gripper carries it |
 | `(base_error robot)` | Distance between the estimated and the true base ([Localization](#-localization)) (m) |
 
-A plugin can add its own queries with `RoboticCell::addQuery` in `ScenarioLogic::setup`. A `;` starts a comment up to the end of the line. Put a name with spaces between double quotes.
+The story adds its own queries: `(event_done e)`, `(said who id)`, `(at a place)`, `(story_var name)`... ([Queries of the story](story-file.md#-queries-of-the-story)). A plugin can add its own queries with `RoboticCell::addQuery` in `ScenarioLogic::setup`. A `;` starts a comment up to the end of the line. Put a name with spaces between double quotes.
 
 RobotIK reads every condition when the scenario loads. A wrong condition stops the load with exit code 1, and the message names the column:
 

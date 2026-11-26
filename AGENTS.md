@@ -11,6 +11,7 @@ Read only what the task needs. Load a skill instead of reading the docs:
 |------|---------------------------|----------|
 | Create / change a plugin (C++ + manifest) | `robotik-plugin` | doc/tutorials/04-your-first-plugin.md |
 | Write world / scenario / experiment YAML, assertions | `robotik-scenario` | doc/reference/scenario-file.md, world-file.md |
+| Make people (actors) move and talk in a scenario | `robotik-scenario` | doc/reference/story-file.md, ROADMAP-HRI.md |
 | Write a skill, a behavior tree, handle faults | `robotik-skill` | doc/concepts/04-skills-and-behavior-trees.md |
 | Plan from a PDDL goal (domain, observers, bindings) | `robotik-skill` | doc/concepts/05-pddl-planner.md |
 | Change the simulator interface (panels, layouts, scenario editor) | `robotik-simulator` | doc/tutorials/01-getting-started.md |
@@ -41,7 +42,8 @@ include/RobotIK/<Layer>/...  public headers; src/RobotIK/<Layer>/... implementat
             controllers, perception fidelity), ScenarioLogic, SkillScheduler,
             RobotContext, Faults, Metrics, Skills/, Perception/ (WorldModel),
             Planning/ (Pddl, PlanningDomain, PlanExecutor, PlanGraph,
-            Kairos/), Grasp/, Learning/ (RL environments), Agents/
+            Kairos/), Grasp/, Learning/ (RL environments), Agents/,
+            Story/ (actors moved by the story: events, actions, queries)
   Package/  files and plugins: Simulation (scenario = cell + verdict),
             RunReport, Scenario/ (World, Scenario, Experiment, Assertions,
             Trajectory, PackagePath, FileRole), Plugin/ (PluginABI.h,
@@ -58,7 +60,9 @@ external/web/  CMake superbuild of MuJoCo + Pinocchio (+Boost, urdfdom) for Emsc
 Plugins: HelloWorld (tutorial + test fixture), PickAndPlace (reference: BT,
 faults, RL scenario), Painter, LineFollower, FlyBrain, HumanoidWalk (ONNX policy),
 DualArm (two robots, parallel and temporal PDDL plans), MicroDuck (a small
-walking robot pushing a box in a room, ONNX policy).
+walking robot pushing a box in a room, ONNX policy), Reception (people
+played by a story in the hall of a reception robot; the robot does nothing
+yet, see ROADMAP-HRI.md).
 
 ## Commands
 

@@ -21,7 +21,10 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <memory>
+#include <set>
+#include <string>
 #include <vector>
 
 // Offscreen picture shown in an ImGui panel.
@@ -103,6 +106,19 @@ public:
              float p_red,
              float p_green,
              float p_blue) override;
+    void actor(compages::world::Entity p_entity,
+               std::filesystem::path const& p_model,
+               double p_yaw,
+               double p_scale) override;
+    void animate(compages::world::Entity p_entity,
+                 std::string const& p_clip,
+                 robotik::Seconds p_fade,
+                 bool p_loop,
+                 double p_ground_speed) override;
+    void say(compages::world::Entity p_entity,
+             std::string const& p_text,
+             double p_height) override;
+    void shown(compages::world::Entity p_entity, bool p_shown) override;
 
     /// Marks @p_entity as a help for the operator: the 3D view shows
     /// it, the robot cameras never see it (it would fool perception).
@@ -141,4 +157,21 @@ private:
     double m_sheet_width = 1.0;
     double m_sheet_height = 1.0;
     bool m_sheet_ready = false;
+
+    /// The model of an actor and what was measured on its clips.
+    struct ActorModel
+    {
+        compages::world::Entity model;
+        /// Entity of the speech bubble, above the head.
+        compages::world::Entity bubble;
+        /// Ground speed of each walk or run clip (m/s), measured once.
+        std::map<std::string, double, std::less<>> strides;
+        /// Clips the model does not have: asked once, not again.
+        std::set<std::string, std::less<>> missing;
+        compages::Vector3f scale{ 1.0F, 1.0F, 1.0F };
+    };
+    /// @return The model of an actor entity, or null.
+    ActorModel* actorModel(compages::world::Entity p_entity);
+    std::map<compages::world::EntityId, ActorModel> m_actors;
+    bool m_font = false;
 };

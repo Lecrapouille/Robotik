@@ -1,0 +1,32 @@
+# People walk, queue and talk in the hall of a reception robot. Their moves
+# are a story of the scenario (doc/reference/story-file.md): no C++ moves them.
+plugin:
+  id: robotik.reception
+  name: Reception
+  version: 1.0.0
+  api_version: 1
+  category: Human-robot interaction
+  description: A reception hall. Visitors come in, queue at the desk, talk to the robot and leave, as the story of the scenario says.
+
+library:
+  entrypoint: librobotik_reception.so
+
+resources:
+  directory: data
+  packs:
+    - { id: robotik.limx, version: "1.0" }
+
+# The humanoid comes from the pack of the plugin HumanoidWalk.
+dependencies:
+  plugins: [robotik.humanoid_walk]
+
+scenarios:
+  directory: scenarios
+  entries:
+    - { id: welcome, name: Welcome three visitors, file: welcome.scenario.yaml }
+
+# The view (Y-up: x, z up, -y) looks at the hall from behind the door.
+host:
+  view:
+    eye: [7.5, 3.2, 3.5]
+    target: [2.0, 0.9, -0.5]
