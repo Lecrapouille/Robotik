@@ -1,7 +1,7 @@
 # The hall of a reception robot. The humanoid stands behind the desk and
 # faces +x, the door is 8 m in front of it. Z-up, metres, radians.
 # The three people are actors: the story of a scenario moves them; no physics
-# does. They are the same Mixamo soldier for now, at three sizes.
+# does. Their models are made with MakeHuman by people/make_people.py.
 world:
   id: hall
   floor: { friction: 0.8 }
@@ -45,33 +45,31 @@ world:
       pose: { position: [0.8, 0.0, 0.45] }
     - id: woman
       type: actor
-      model: robotik.reception.soldier
+      model: robotik.reception.woman
       pose: { position: [8.0, 0.4, 0.0], rpy: [0.0, 0.0, 3.14159] }
       actor:
-        height: 1.7
+        height: 1.6
         walk_speed: 1.2
-        model_yaw: 3.14159          # the soldier faces -z of its file
-        model_scale: 0.95
+        model_yaw: 3.14159          # the model faces -z of its file
         clips: { idle: Idle, walk: Walk, run: Run, talk: Idle }
     - id: child
       type: actor
-      model: robotik.reception.soldier
+      model: robotik.reception.child
       pose: { position: [8.6, 1.0, 0.0], rpy: [0.0, 0.0, 3.14159] }
       actor:
-        height: 1.15
+        height: 1.2
         radius: 0.18
         walk_speed: 1.0
         run_speed: 2.5
         model_yaw: 3.14159
-        model_scale: 0.65
         clips: { idle: Idle, walk: Walk, run: Run, talk: Idle }
     - id: man
       type: actor
-      model: robotik.reception.soldier
+      model: robotik.reception.man
       pose: { position: [9.0, -2.0, 0.0], rpy: [0.0, 0.0, 3.14159] }
       randomize: { y: [-0.5, 0.5] }
       actor:
-        height: 1.82
+        height: 1.78
         walk_speed: 1.4
         model_yaw: 3.14159
         clips: { idle: Idle, walk: Walk, run: Run, talk: Idle }

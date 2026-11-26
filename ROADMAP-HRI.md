@@ -18,13 +18,21 @@ Done: actors in the world file, the story of a scenario
 and feet that do not slide (Compages `play(model, clip, fade)`,
 `groundSpeed`).
 
-- [ ] Models of people made with MakeHuman (MPFB 2 in Blender, CC0): a
-      script that makes a man, a woman and a child with clothes, the
-      "game engine" rig (53 joints) and the ARKit face units as shape keys,
-      then exports a GLB. Replaces `Soldier.glb` in `demos/Reception`
-- [ ] Clips for these models under a free license: the Universal Animation
-      Library of Quaternius (CC0) or the CMU motion capture, retargeted in
-      Blender (idle, walk, run, talk, wave, point, sit)
+- [x] Models of people made with MakeHuman (MPFB 2 in Blender, CC0):
+      `demos/Reception/people/make_people.py` makes a woman, a man and a
+      child with clothes, the Mixamo rig of MPFB (52 joints), the 52 face
+      units of ARKit and the visemes as morph targets, and moves the clips
+      of Soldier.glb onto them (`make reception-people`)
+- [x] Compages: cut the transparent parts of a glTF material (cornea,
+      hair, brows and lashes)
+- [ ] Clips under a free license, for a visitor: the Idle of Soldier.glb is
+      a soldier on guard, its license is not checked. The Universal
+      Animation Library of Quaternius (CC0) retargeted by the same script
+      (idle, walk, run, talk, wave, point, sit)
+- [ ] More people drawn from a seed: random sliders, skins, hair and
+      clothes in people.json (the character builder of MPFB)
+- [ ] Compages: the shadows and the transparent parts (a hair card casts
+      a full rectangle today)
 - [ ] Compages: morph targets (glTF loader, vertex shader, weights driven by
       the clips and by code): the `expression` action shows on the face
 - [ ] Compages: a visibility switch on an entity (today `hide` scales the

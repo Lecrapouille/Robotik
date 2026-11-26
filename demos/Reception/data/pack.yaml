@@ -1,11 +1,17 @@
 id: robotik.reception
 version: 1.0.0
-# Soldier.glb: a Mixamo character, from the examples of three.js. It stands
-# in for the people until models made with MakeHuman (CC0) replace it.
+# The people are made with MakeHuman (MPFB in Blender, CC0 bodies, skins and
+# clothes) by people/make_people.py; their clips come from Soldier.glb, a
+# Mixamo character of the examples of three.js, so their license is not
+# checked. None of these files is in git.
 license: NOASSERTION
-source: https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf
+source: https://static.makehumancommunity.org/assets/assetpacks.html
 description: >
-  People of the hall (glTF with the clips Idle, Walk, Run). The file is
-  copied or downloaded by Reception.mk, not kept in git.
+  People of the hall (glTF with the clips Idle, Walk, Run and the 52 face
+  units of ARKit as morph targets). Made by make_people.py, or Soldier.glb
+  copied in their place by Reception.mk when Blender has not made them.
 models:
   soldier: people/Soldier.glb
+  woman: people/woman.glb
+  man: people/man.glb
+  child: people/child.glb

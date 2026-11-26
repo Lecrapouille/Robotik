@@ -1,2 +1,2 @@
-# Made by Reception.mk (see the license of each model in pack.yaml).
-people/Soldier.glb
+# Made by Reception.mk and people/make_people.py (see pack.yaml).
+people/*.glb

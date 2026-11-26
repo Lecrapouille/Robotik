@@ -120,11 +120,11 @@ People/vehicles moved by data, not C++. World entity:
 ```yaml
 - id: woman
   type: actor                          # no physics, no attach
-  model: robotik.reception.soldier     # glTF/GLB with clips; optional (or shape: box, or none)
+  model: robotik.reception.woman       # glTF/GLB with clips; optional (or shape: box, or none)
   pose: { position: [8, 0.4, 0], rpy: [0, 0, 3.14159] }   # faces +X of its frame
   randomize: { y: [-0.5, 0.5] }
   actor: { height: 1.7, radius: 0.25, walk_speed: 1.2, run_speed: 3.0, turn_rate: 3.0,
-           turn_radius: 0.4, model_yaw: 3.14159, model_scale: 0.95, fade: 0.3,
+           turn_radius: 0.4, model_yaw: 3.14159, model_scale: 1.0, fade: 0.3,
            clips: { idle: Idle, walk: Walk, run: Run, talk: Idle }, frames: { head: [0, 0, 1.6] } }
 ```
 

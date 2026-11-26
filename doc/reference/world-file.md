@@ -97,19 +97,18 @@ An actor is a person, an animal or a vehicle that moves by itself in the world: 
 ```yaml
     - id: woman
       type: actor
-      model: robotik.reception.soldier
+      model: robotik.reception.woman
       pose: { position: [8.0, 0.4, 0.0], rpy: [0.0, 0.0, 3.14159] }
       actor:
-        height: 1.7
+        height: 1.6
         walk_speed: 1.2
-        model_yaw: 3.14159          # the soldier faces -z of its file
-        model_scale: 0.95
+        model_yaw: 3.14159          # the model faces -z of its file
         clips: { idle: Idle, walk: Walk, run: Run, talk: Idle }
 ```
 
 An actor faces +X of its frame and turns about Z, like a mobile robot. Its `pose` is where it stands, its feet on the floor. `randomize` shifts it per seed, as for a prop.
 
-The `model` is a glTF or GLB file with skinned clips (Idle, Walk...), as an asset id or a path of the package. A glTF file is Y up and faces +Z; the simulator turns it to Z up and +X, then by `model_yaw`. Without a view (headless), the model is not loaded. A `shape: { type: box, size: [...] }` draws a box instead of a model. With neither, the actor is a point that only the story knows.
+The `model` is a glTF or GLB file with skinned clips (Idle, Walk...), as an asset id or a path of the package. A glTF file is Y up and faces +Z; the simulator turns it to Z up and +X, then by `model_yaw`. Without a view (headless), the model is not loaded. The people of the Reception demo are made with MakeHuman ([demos/Reception/README.md](../../demos/Reception/README.md)). A `shape: { type: box, size: [...] }` draws a box instead of a model. With neither, the actor is a point that only the story knows.
 
 | Key of `actor:` | Value | Default |
 |-----------------|-------|---------|
