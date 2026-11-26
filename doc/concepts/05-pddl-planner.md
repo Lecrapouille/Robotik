@@ -165,7 +165,7 @@ Before its skills, each subtree asks "Done already?": when every effect of the a
 
 The generated tree is the tree of the run: the **Execution graph** panel shows it with **Tree of the plan**, as for a written tree.
 
-**Why a step failed.** The reason comes from the scheduler (a resource `unavailable: wrist_camera`, `preempted`…) or from the skill itself: a skill may explain its failure with `Skill::why()` (`red_cube not seen by the camera within 2 s`). The Planner panel, the Execution graph and the headless trace show it.
+**Why a step failed.** The reason comes from the scheduler (a resource `unavailable: wrist_camera`, `preempted`…) or from the skill itself: a skill explains its failure with `fail(code, words)` (`not_seen`, `red_cube not seen by the camera within 2 s`). The Planner panel, the Execution graph and the headless trace show it.
 
 **Unknown is not false.** For the planner, an atom that is not true is false (PDDL works like that). But when the executor checks an effect or the goal, `Unknown` is accepted: "not seen" does not mean "false". In the fault scenario the camera is down at the end, so the robot cannot see that the cube is in the box: `in` says `Unknown`, the plan ends, and the **assertions** (ground truth) say whether it really worked.
 

@@ -62,7 +62,9 @@ Status HomeSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
     }
     if (m_joints.empty())
     {
-        return Status::FAILURE;
+        return fail("no_joints",
+                    m_group.empty() ? std::string("the robot has no joint")
+                                    : "the group " + m_group + " has no joint");
     }
     bool reached = true;
     for (JointId const id : m_joints)
@@ -102,7 +104,7 @@ Status MoveJointSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
         m_joint = joints.find(m_name);
         if (m_joint == NO_JOINT)
         {
-            return Status::FAILURE;
+            return fail("unknown_joint", "no joint " + m_name);
         }
     }
     joints.moveTo(m_joint, m_target);
@@ -143,14 +145,14 @@ Status MoveJointsSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
             JointId const id = joints.find(name);
             if (id == NO_JOINT)
             {
-                return Status::FAILURE;
+                return fail("unknown_joint", "no joint " + name);
             }
             m_joints.push_back(id);
             m_goals.push_back(goal);
         }
         if (m_joints.empty())
         {
-            return Status::FAILURE;
+            return fail("no_joints", "no joint to move");
         }
     }
     bool reached = true;
@@ -194,11 +196,12 @@ Status MoveTCPSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
     Robot& robot = p_context.robot;
     if (!m_planned)
     {
-        auto solution = robot.inverseKinematics(
-            m_frame.empty() ? robot.tool() : m_frame, m_target);
+        std::string const& frame = m_frame.empty() ? robot.tool() : m_frame;
+        auto solution = robot.inverseKinematics(frame, m_target);
         if (!solution)
         {
-            return Status::FAILURE;
+            return fail("no_ik_solution",
+                        "no joint solution brings " + frame + " to the target");
         }
         m_solution = std::move(*solution);
         m_planned = true;

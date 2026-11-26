@@ -61,7 +61,7 @@ private:
             case SkillState::Cancelled:
                 break;
         }
-        tell(state, m_scheduler.reason(m_run));
+        tell(state, m_scheduler.reason(m_run), m_scheduler.failure(m_run));
         m_run = NO_RUN;
         return state == SkillState::Succeeded ? bt::Status::SUCCESS
                                               : bt::Status::FAILURE;
@@ -77,8 +77,12 @@ private:
         }
     }
 
-    /// Writes how the run ended on the blackboard of the tree.
-    void tell(SkillState p_state, SkillReason p_reason) const
+    /// Writes how the run ended on the blackboard of the tree: its state,
+    /// its reason and the failure code of the skill (empty unless the skill
+    /// failed by itself).
+    void tell(SkillState p_state,
+              SkillReason p_reason,
+              SkillFailure const& p_failure) const
     {
         if (bt::Blackboard::Ptr const board = blackboard())
         {
@@ -87,6 +91,7 @@ private:
                        std::string(robotik::toString(p_state)));
             board->set(skill + ".reason",
                        std::string(robotik::toString(p_reason)));
+            board->set(skill + ".failure", p_failure.code);
         }
     }
 

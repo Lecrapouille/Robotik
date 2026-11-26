@@ -227,6 +227,23 @@ SkillReason SkillScheduler::reason(RunId p_run) const
     return end != nullptr ? end->reason : SkillReason::None;
 }
 
+SkillFailure const& SkillScheduler::failure(RunId p_run) const
+{
+    static SkillFailure const NONE{};
+    if (p_run.skill >= m_skills.size() || p_run.generation == 0U)
+    {
+        return NONE;
+    }
+    if (p_run.generation == m_generations[p_run.skill])
+    {
+        return m_reasons[p_run.skill] == SkillReason::Failed
+                   ? m_skills[p_run.skill]->failure()
+                   : NONE;
+    }
+    RunEnd const* end = ended(p_run);
+    return end != nullptr ? end->failure : NONE;
+}
+
 void SkillScheduler::cancel(RunId p_run)
 {
     if (p_run.skill >= m_skills.size())
@@ -329,6 +346,10 @@ void SkillScheduler::record(SkillId p_id, Seconds p_now)
     run.reason = m_reasons[p_id];
     run.blocker = m_blockers[p_id];
     run.end = p_now;
+    if (run.reason == SkillReason::Failed)
+    {
+        run.failure = m_skills[p_id]->failure();
+    }
 }
 
 void SkillScheduler::finish(SkillId p_id,
@@ -354,7 +375,12 @@ void SkillScheduler::finish(SkillId p_id,
     m_states[p_id] = p_state;
     m_reasons[p_id] = p_reason;
     m_cancels[p_id] = 0U;
-    m_ended[p_id].push_back({ m_generations[p_id], p_state, p_reason });
+    m_ended[p_id].push_back({ m_generations[p_id],
+                              p_state,
+                              p_reason,
+                              p_reason == SkillReason::Failed
+                                  ? m_skills[p_id]->failure()
+                                  : SkillFailure{} });
     record(p_id, p_now);
     changed(p_id, p_state);
     dequeue(p_id);
@@ -527,6 +553,8 @@ void SkillScheduler::admit(SkillId p_id)
     RobotContext& p_context = contextOf(p_id);
     SkillDescription const& description = m_descriptions[p_id];
     Seconds const now = p_context.time;
+    // A new run: the failure of the last one is no longer true.
+    m_skills[p_id]->m_failure = {};
 
     for (ResourceRequirement const& requirement : description.resources)
     {

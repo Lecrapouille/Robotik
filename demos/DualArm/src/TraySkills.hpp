@@ -43,17 +43,11 @@ public:
     void reset() override
     {
         m_started = false;
-        m_why.clear();
     }
 
     robotik::Status tick(robotik::RobotContext& p_context,
                          robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
-
-    [[nodiscard]] std::string why() const override
-    {
-        return m_why;
-    }
 
 private:
 
@@ -66,7 +60,6 @@ private:
     robotik::Seconds m_elapsed{};
     robotik::Pose m_from{ robotik::Vector3::ZERO, robotik::Quaternion{} };
     robotik::Vector3 m_to = robotik::Vector3::ZERO;
-    std::string m_why;
 };
 
 // ****************************************************************************
@@ -103,17 +96,11 @@ public:
         m_travel = 0.0;
         m_tare = robotik::Vector3::ZERO;
         m_elapsed = robotik::Seconds{};
-        m_why.clear();
     }
 
     robotik::Status tick(robotik::RobotContext& p_context,
                          robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
-
-    [[nodiscard]] std::string why() const override
-    {
-        return m_why;
-    }
 
 private:
 
@@ -145,7 +132,6 @@ private:
     /// Length of the path done (m).
     double m_travel = 0.0;
     robotik::Seconds m_elapsed{};
-    std::string m_why;
 };
 
 } // namespace dual_arm

@@ -90,7 +90,10 @@ robotik::Status LocalizeSkill::tick(robotik::RobotContext& /*p_context*/,
     if (m_elapsed > LOCALIZE_TIMEOUT_S)
     {
         m_wheels.stop();
-        return robotik::Status::FAILURE;
+        return fail("not_localized",
+                    "no position estimate after " +
+                        std::to_string(static_cast<int>(LOCALIZE_TIMEOUT_S)) +
+                        " s");
     }
     // A full turn, then a short straight run.
     double const turn = 2.0 * std::numbers::pi / LOCALIZE_YAW_RATE;
@@ -135,7 +138,10 @@ robotik::Status ReachLineSkill::tick(robotik::RobotContext& /*p_context*/,
     if (m_elapsed > REACH_TIMEOUT_S)
     {
         m_wheels.stop();
-        return robotik::Status::FAILURE;
+        return fail("timeout",
+                    "the line is not reached after " +
+                        std::to_string(static_cast<int>(REACH_TIMEOUT_S)) +
+                        " s");
     }
     double const dx = m_goal.x - pose.x;
     double const dy = m_goal.y - pose.y;
@@ -184,7 +190,7 @@ robotik::Status FollowLineSkill::tick(robotik::RobotContext& p_context,
     if (m_elapsed > 3.0 * m_laps * track.perimeter() / m_speed)
     {
         m_wheels.stop();
-        return robotik::Status::FAILURE;
+        return fail("timeout", "the laps take three times too long");
     }
 
     // Lift the line centroid onto the floor, in the base frame.
@@ -211,7 +217,10 @@ robotik::Status FollowLineSkill::tick(robotik::RobotContext& p_context,
     if (age > FOLLOW_GIVE_UP_S)
     {
         m_wheels.stop();
-        return robotik::Status::FAILURE;
+        return fail("line_lost",
+                    "the line is not seen for " +
+                        std::to_string(static_cast<int>(FOLLOW_GIVE_UP_S)) +
+                        " s");
     }
     if (m_seen.value() < 0.0 || age > FOLLOW_LOST_S)
     {

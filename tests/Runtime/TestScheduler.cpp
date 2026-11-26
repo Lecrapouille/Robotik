@@ -24,7 +24,8 @@ using robotik::SkillReason;
 using robotik::SkillState;
 using robotik::Status;
 
-/// Runs for a fixed number of ticks, records cancellations.
+/// Runs for a fixed number of ticks, records cancellations. A countdown that
+/// ends in failure says so with the code @c countdown_over.
 class CountdownSkill final: public robotik::Skill
 {
 public:
@@ -43,7 +44,13 @@ public:
     Status tick(robotik::RobotContext&, robotik::Seconds) override
     {
         ++ticks;
-        return --m_left > 0 ? Status::RUNNING : m_end;
+        if (--m_left > 0)
+        {
+            return Status::RUNNING;
+        }
+        return m_end == Status::FAILURE
+                   ? fail("countdown_over", "the countdown ended in failure")
+                   : m_end;
     }
 
     void cancel(robotik::RobotContext&) override
@@ -523,6 +530,58 @@ BehaviorTree:
     EXPECT_EQ(status, bt::Status::FAILURE);
     EXPECT_EQ(board->get<std::string>("Grasp.state"), "FAILED");
     EXPECT_EQ(board->get<std::string>("Grasp.reason"), "failed");
+    EXPECT_EQ(board->get<std::string>("Grasp.failure"), "countdown_over");
+}
+
+TEST_F(SchedulerTest, EachRunKeepsWhatTheSkillSaidWhenItFailed)
+{
+    auto const id = skills.add<CountdownSkill>(
+        describe("Grasp", { arm() }), 2, Status::FAILURE);
+    robotik::RunId const first = skills.request(id);
+    update(3);
+    ASSERT_EQ(skills.state(first), SkillState::Failed);
+    EXPECT_EQ(skills.failure(first).code, "countdown_over");
+    EXPECT_EQ(skills.failure(first).why, "the countdown ended in failure");
+    EXPECT_EQ(skills.trace().back().failure.code, "countdown_over");
+
+    // The next run loses its resource: the skill said nothing, the reason
+    // and the blocker say it. The first run keeps its own failure.
+    robotik::RunId const second = skills.request(id);
+    EXPECT_TRUE(skills.failure(second).code.empty());
+    update();
+    robot.resources().fail("arm");
+    update();
+    ASSERT_EQ(skills.state(second), SkillState::Failed);
+    EXPECT_EQ(skills.reason(second), SkillReason::ResourceLost);
+    EXPECT_TRUE(skills.failure(second).code.empty());
+    EXPECT_TRUE(skills.trace().back().failure.code.empty());
+    EXPECT_EQ(skills.failure(first).code, "countdown_over");
+}
+
+TEST_F(SchedulerTest, ACompositeSkillPassesOnTheFailureOfItsChild)
+{
+    /// Moves to a joint that the robot does not have, as a child.
+    class Outer final: public robotik::Skill
+    {
+    public:
+
+        Status tick(robotik::RobotContext& p_context,
+                    robotik::Seconds p_dt) override
+        {
+            Status const status = m_child.tick(p_context, p_dt);
+            return status == Status::FAILURE ? fail(m_child.failure()) : status;
+        }
+
+    private:
+
+        robotik::MoveJointSkill m_child{ "no_such_joint", 0.0 };
+    };
+    auto const id = skills.add<Outer>(describe("Outer", {}));
+    robotik::RunId const run = skills.request(id);
+    update(2);
+    ASSERT_EQ(skills.state(run), SkillState::Failed);
+    EXPECT_EQ(skills.failure(run).code, "unknown_joint");
+    EXPECT_EQ(skills.failure(run).why, "no joint no_such_joint");
 }
 
 /// Moves joint 0 at each tick, to check that writes follow the leases.

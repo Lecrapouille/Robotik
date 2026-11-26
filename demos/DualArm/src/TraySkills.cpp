@@ -112,8 +112,8 @@ Status PathSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
                 p_context.world_model.find(m_object);
             if (object == nullptr)
             {
-                m_why = m_object + " is not in the beliefs";
-                return Status::FAILURE;
+                return fail("unknown_object",
+                            m_object + " is not in the beliefs");
             }
             robotik::Vector3 const above = inBase(p_context, object->position);
             m_to = robotik::Vector3(above.x, above.y, m_from.position.z);
@@ -135,8 +135,7 @@ Status PathSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
                                 m_from.rotation };
     if (!servo(p_context, target))
     {
-        m_why = "no joint solution on the way";
-        return Status::FAILURE;
+        return fail("no_ik_solution", "no joint solution on the way");
     }
     double const left =
         (robot.requireFramePose(robot.tool()).position - m_to).norm();
@@ -190,26 +189,25 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
     }
     if (holder == nullptr)
     {
-        m_why = "no arm holds " + m_tray;
-        return Status::FAILURE;
+        return fail("not_held", "no arm holds " + m_tray);
     }
     robotik::Pose const carrier = holder->requireWorldPose(holder->tool());
     auto const* sensor =
         p_context.robot.sensors().first<robotik::ForceTorqueSensor>();
     if (sensor == nullptr || !sensor->reading().valid)
     {
-        m_why = sensor == nullptr ? "no force sensor on the robot"
-                                  : "the force sensor gives nothing";
-        return Status::FAILURE;
+        return sensor == nullptr
+                   ? fail("no_force_sensor", "no force sensor on the robot")
+                   : fail("no_force_reading", "the force sensor gives nothing");
     }
     if (m_offsets.empty())
     {
         robotik::WorldObject const* tray = p_context.world_model.find(m_tray);
         if (tray == nullptr || m_path.empty())
         {
-            m_why = tray == nullptr ? m_tray + " is not in the beliefs"
-                                    : "the path is empty";
-            return Status::FAILURE;
+            return tray == nullptr ? fail("unknown_object",
+                                          m_tray + " is not in the beliefs")
+                                   : fail("empty_path", "the path is empty");
         }
         // Shared beliefs: the world frame, as the pose of the carrier.
         for (robotik::Vector3 const& point : m_path)
@@ -250,8 +248,8 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
             }
             else if (m_height < -DEEPEST)
             {
-                m_why = "the tool felt no " + m_tray + " under it";
-                return Status::FAILURE;
+                return fail("no_contact",
+                            "the tool felt no " + m_tray + " under it");
             }
             break;
         case Phase::Follow:
@@ -288,8 +286,7 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
     robotik::Vector3 const at = inBase(p_context, goal);
     if (!servo(p_context, { at, pointingDown(at) }))
     {
-        m_why = "no joint solution on the path";
-        return Status::FAILURE;
+        return fail("no_ik_solution", "no joint solution on the path");
     }
 
     if (m_phase == Phase::Lift && m_height >= APPROACH_HEIGHT)
@@ -299,9 +296,10 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
     m_elapsed += p_dt;
     if (m_elapsed > m_timeout)
     {
-        m_why = "the path on " + m_tray + " is not done after " +
-                std::to_string(static_cast<int>(m_timeout.value())) + " s";
-        return Status::FAILURE;
+        return fail("timeout",
+                    "the path on " + m_tray + " is not done after " +
+                        std::to_string(static_cast<int>(m_timeout.value())) +
+                        " s");
     }
     return Status::RUNNING;
 }

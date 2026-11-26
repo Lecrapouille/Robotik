@@ -220,11 +220,11 @@ A fault (`FaultInjector`) makes a resource unavailable. Running skills that hold
 
 ### 🌳 What the tree sees
 
-A behavior tree node answers `SUCCESS` or `FAILURE`, and many endings give `FAILURE`. So when a run ends, its node writes `<skill>.state` and `<skill>.reason` on the blackboard of the tree. A condition of the tree can then tell the cases apart:
+A behavior tree node answers `SUCCESS` or `FAILURE`, and many endings give `FAILURE`. So when a run ends, its node writes `<skill>.state`, `<skill>.reason` and `<skill>.failure` on the blackboard of the tree. A condition of the tree can then tell the cases apart:
 
 | `<skill>.reason` | Meaning |
 |------------------|---------|
-| `failed` | The skill returned `FAILURE` (`Skill::why` says more). |
+| `failed` | The skill returned `FAILURE`; `<skill>.failure` gives its code (`not_seen`, `grasp_not_confirmed`), chosen by the plugin. |
 | `cancelled` | A caller cancelled the run. |
 | `preempted` | A higher priority took a resource, and the run may not wait. |
 | `resource lost` | A resource failed during the run. |

@@ -17,8 +17,10 @@ public:
     robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override; // RUNNING/SUCCESS/FAILURE
     void cancel(robotik::RobotContext& p_context) override;                   // safe stop: joints().hold()
     robotik::Status stopping(robotik::RobotContext&, Seconds) override;       // optional: RUNNING keeps the resources until safe
-    std::string why() const override;   // optional: why the last FAILURE ("cube not seen within 2 s")
 };
+// A failing tick: return fail("not_seen", "cube not seen within 2 s");
+// code (plugin's own, snake_case) -> blackboard "<skill>.failure"; why -> trace, UI, planner.
+// Composite: return status == FAILURE ? fail(m_child.failure()) : status;
 ```
 
 `RobotContext { Robot& robot; WorldModel& world_model; Seconds time, dt; }`
@@ -104,8 +106,10 @@ Nodes: `Sequence`, `Selector` (not "Fallback"), `Parallel`
 (one-element list). Action maps Waiting/Running/Stopping→RUNNING,
 Succeeded→SUCCESS, Failed/Cancelled→FAILURE; leaving a running node cancels
 its own ticket only. At the end of a run the node writes `<skill>.state`
-(`FAILED`) and `<skill>.reason` (`resource lost`, `cancelled`...) on the
-blackboard: a condition can tell a fault from a failure.
+(`FAILED`), `<skill>.reason` (`resource lost`, `cancelled`...) and
+`<skill>.failure` (code of `fail`, empty unless reason `failed`) on the
+blackboard: a condition can tell a fault from a failure, and one failure
+from another. `SkillScheduler::failure(RunId)` gives it in C++.
 
 `Timeout`, `Delay`, `Wait`, `Cooldown` count simulated time: `RoboticCell`
 and `PlanExecutor` give the tree their clock (`bt::Tree::clock`), so they

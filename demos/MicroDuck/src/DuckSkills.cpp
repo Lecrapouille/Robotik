@@ -86,7 +86,7 @@ robotik::Status WalkSkill::tick(robotik::RobotContext& p_context, robotik::Secon
     if (imu == nullptr || !imu->reading().valid)
     {
         damp(robot.joints(), m_body.joints);
-        return robotik::Status::FAILURE;
+        return fail("no_imu_reading", "the IMU gives no valid reading");
     }
 
     m_wait = m_wait - p_dt;

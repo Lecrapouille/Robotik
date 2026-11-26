@@ -119,10 +119,9 @@ plugin. "Not seen" is not "broken": an empty scene is not a camera fault,
 porous object, leak, pump, sensor), not "cup broken". Losing the camera
 while holding a part does not open the cup.
 
-- [ ] 1. Typed failures: a skill gives a short failure code with `why()`
-      (e.g. `grasp_not_confirmed`, declared by the plugin, not a core
-      enum); the tree reads `<skill>.failure` on the blackboard, next to
-      `.state` and `.reason`.
+- [x] 1. Typed failures: a skill returns `fail(code, why)` (code chosen by
+      the plugin, not a core enum); the scheduler keeps it per run
+      (`failure(RunId)`, trace); the tree reads `<skill>.failure`.
 - [ ] 2. Monitors that last the whole run: camera without frames or with a
       frozen image; load lost during a carry (holding went false with no
       Release). A diagnosis has a component, a state (`ok`, `suspected`,

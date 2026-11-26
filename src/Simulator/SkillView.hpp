@@ -156,7 +156,7 @@ inline std::string skillWhy(robotik::SkillScheduler const& p_skills,
     }
     if (reason == robotik::SkillReason::Failed)
     {
-        std::string const why = p_skills.skill(p_id).why();
+        std::string const& why = p_skills.skill(p_id).failure().why;
         return why.empty() ? std::string("failed (the skill gave no reason)")
                            : "failed: " + why;
     }

@@ -90,7 +90,7 @@ robotik::Status WalkSkill::tick(robotik::RobotContext& p_context, robotik::Secon
     if (imu == nullptr || !imu->reading().valid)
     {
         damp(robot.joints(), m_body.joints);
-        return robotik::Status::FAILURE;
+        return fail("no_imu_reading", "the IMU gives no valid reading");
     }
     robotik::ImuReading const& reading = imu->reading();
     robotik::Vector3 const gravity =
@@ -98,7 +98,7 @@ robotik::Status WalkSkill::tick(robotik::RobotContext& p_context, robotik::Secon
     if (gravity.z > FALLEN_GRAVITY_Z)
     {
         damp(robot.joints(), m_body.joints);
-        return robotik::Status::FAILURE;
+        return fail("fallen", "the body is tilted too much: the robot fell");
     }
 
     m_wait = m_wait - p_dt;

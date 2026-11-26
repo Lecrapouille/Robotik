@@ -15,7 +15,8 @@
 ///
 /// @par Contract
 /// - Promises: @c reset before the first tick; @c cancel when the scheduler
-///   stops the skill; @c why tells a person why it failed.
+///   stops the skill; @c failure tells a tree (its code) and a person (its
+///   words) why the run failed.
 /// - Expects: a skill reads only its @ref robotik::RobotContext; it declares
 ///   the resources it needs in its @ref robotik::SkillDescription.
 #pragma once
@@ -28,6 +29,7 @@
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace robotik
@@ -37,6 +39,30 @@ struct RobotContext;
 
 /// Higher runs first and may preempt lower (e.g. stop = 1000).
 using Priority = std::int32_t;
+
+// ****************************************************************************
+/// Why a run of a skill failed, for a tree and for a person.
+///
+/// A behavior tree reacts to the @c code: it reads @c "<skill>.failure" on
+/// its blackboard, so a grasp not confirmed can lead to a new approach, and
+/// an object not seen to a new detection. The @c why is for the trace, the
+/// simulator and the planner history. The plugin chooses its codes: the
+/// core does not know the tools (a vacuum cup, a brush). The core motion
+/// skills use @c no_joints, @c unknown_joint and @c no_ik_solution.
+///
+/// @code
+/// return fail("grasp_not_confirmed", "suction holds nothing after 2 s");
+/// @endcode
+// ****************************************************************************
+struct SkillFailure
+{
+    /// Short, stable name of the failure, in lower case with underscores
+    /// (@c grasp_not_confirmed); empty when the skill gave none.
+    std::string code;
+    /// The same failure in words for a person ("red_cube not seen within
+    /// 2 s").
+    std::string why;
+};
 
 // ****************************************************************************
 /// Condition that must hold before a skill starts.
@@ -129,6 +155,10 @@ struct SkillDescription
 /// run keeps, and @ref tick must read where the robot and the objects are
 /// now (joints, beliefs), not where they were when the run started.
 ///
+/// A tick that fails returns @ref fail with a code and words: the tree can
+/// then choose its reaction from the code (@ref SkillFailure). A composite
+/// skill passes on the failure of its child with @c fail(child.failure()).
+///
 /// @code
 /// class WaveSkill final : public robotik::Skill {
 /// public:
@@ -194,15 +224,47 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Explains the last failure. Shown by the simulator and the planner.
-    /// @return Why the last run returned @ref Status::FAILURE, in words for
-    ///   the user ("red_cube not seen within 2 s"), or empty when the skill
-    ///   does not say.
+    /// @return Why the current run returned @ref Status::FAILURE; empty
+    ///   while it has not failed, or when the skill gave no reason. The
+    ///   scheduler clears it when a run starts.
     // -------------------------------------------------------------------------
-    [[nodiscard]] virtual std::string why() const
+    [[nodiscard]] SkillFailure const& failure() const
     {
-        return {};
+        return m_failure;
     }
+
+protected:
+
+    // -------------------------------------------------------------------------
+    /// Records why the run fails; return its result from @ref tick.
+    /// @param p_code Short name of the failure (@ref SkillFailure::code).
+    /// @param p_why The failure in words for a person.
+    /// @return @ref Status::FAILURE.
+    // -------------------------------------------------------------------------
+    Status fail(std::string p_code, std::string p_why)
+    {
+        m_failure = { std::move(p_code), std::move(p_why) };
+        return Status::FAILURE;
+    }
+
+    // -------------------------------------------------------------------------
+    /// Records the failure of a child skill as the failure of this run.
+    /// @param p_failure The failure of the child.
+    /// @return @ref Status::FAILURE.
+    // -------------------------------------------------------------------------
+    Status fail(SkillFailure p_failure)
+    {
+        m_failure = std::move(p_failure);
+        return Status::FAILURE;
+    }
+
+private:
+
+    /// The scheduler clears the failure when a run starts.
+    friend class SkillScheduler;
+
+    /// Why the current run failed.
+    SkillFailure m_failure;
 };
 
 } // namespace robotik

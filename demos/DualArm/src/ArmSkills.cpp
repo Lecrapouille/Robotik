@@ -79,7 +79,6 @@ HoverSkill::HoverSkill(std::string p_object, robotik::Length p_clearance)
 void HoverSkill::reset()
 {
     m_planned = false;
-    m_why.clear();
     m_move.reset();
 }
 
@@ -93,9 +92,9 @@ Status HoverSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
         robotik::VacuumGripper const* cup = cupOf(p_context.robot);
         if (object == nullptr || cup == nullptr)
         {
-            m_why = object == nullptr ? m_object + " is not in the beliefs"
-                                      : "no vacuum cup";
-            return Status::FAILURE;
+            return object == nullptr ? fail("unknown_object",
+                                            m_object + " is not in the beliefs")
+                                     : fail("no_gripper", "no vacuum cup");
         }
         robotik::Vector3 const at = inBase(p_context, object->position);
         double const top =
@@ -108,7 +107,7 @@ Status HoverSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
     Status const status = m_move.tick(p_context, p_dt);
     if (status == Status::FAILURE)
     {
-        m_why = "no joint solution above " + m_object;
+        return fail("no_ik_solution", "no joint solution above " + m_object);
     }
     return status;
 }
@@ -129,8 +128,7 @@ Status GraspSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
     robotik::VacuumGripper* cup = cupOf(p_context.robot);
     if (cup == nullptr)
     {
-        m_why = "no vacuum cup on the robot";
-        return Status::FAILURE;
+        return fail("no_gripper", "no vacuum cup on the robot");
     }
     cup->suction(true);
     // The vacuum holds: the cup took what it was sent to take.
@@ -143,8 +141,7 @@ Status GraspSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
     if (m_waited > m_timeout)
     {
         cup->suction(false);
-        m_why = "suction holds nothing";
-        return Status::FAILURE;
+        return fail("grasp_not_confirmed", "suction holds nothing");
     }
     return Status::RUNNING;
 }
@@ -164,8 +161,7 @@ Status ReleaseSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_d
     robotik::VacuumGripper* cup = cupOf(p_context.robot);
     if (cup == nullptr)
     {
-        m_why = "no vacuum cup on the robot";
-        return Status::FAILURE;
+        return fail("no_gripper", "no vacuum cup on the robot");
     }
     cup->suction(false);
     if (!cup->holding())
@@ -175,8 +171,8 @@ Status ReleaseSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_d
     m_waited += p_dt;
     if (m_waited > m_timeout)
     {
-        m_why = "the part is still held after the suction stopped";
-        return Status::FAILURE;
+        return fail("release_not_confirmed",
+                    "the part is still held after the suction stopped");
     }
     return Status::RUNNING;
 }

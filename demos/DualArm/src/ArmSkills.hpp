@@ -69,18 +69,12 @@ public:
                          robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
-    [[nodiscard]] std::string why() const override
-    {
-        return m_why;
-    }
-
 private:
 
     std::string m_object;
     robotik::Length m_clearance;
     robotik::MoveTCPSkill m_move;
     bool m_planned = false;
-    std::string m_why;
 };
 
 // ****************************************************************************
@@ -95,24 +89,17 @@ public:
     void reset() override
     {
         m_waited = robotik::Seconds{};
-        m_why.clear();
     }
 
     robotik::Status tick(robotik::RobotContext& p_context,
                          robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
-    [[nodiscard]] std::string why() const override
-    {
-        return m_why;
-    }
-
 private:
 
     std::string m_object;
     robotik::Seconds m_timeout;
     robotik::Seconds m_waited{};
-    std::string m_why;
 };
 
 // ****************************************************************************
@@ -130,22 +117,15 @@ public:
     void reset() override
     {
         m_waited = robotik::Seconds{};
-        m_why.clear();
     }
 
     robotik::Status tick(robotik::RobotContext& p_context,
                          robotik::Seconds p_dt) override;
 
-    [[nodiscard]] std::string why() const override
-    {
-        return m_why;
-    }
-
 private:
 
     robotik::Seconds m_timeout;
     robotik::Seconds m_waited{};
-    std::string m_why;
 };
 
 } // namespace dual_arm

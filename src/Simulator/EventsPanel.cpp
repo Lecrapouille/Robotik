@@ -54,11 +54,6 @@ static void skillEvents(robotik::Simulation const& p_simulation,
     robotik::ResourceManager const& resources =
         p_simulation.cell().robot().resources();
     std::span<robotik::SkillRun const> const trace = skills.trace();
-    std::vector<std::size_t> last(skills.size(), trace.size());
-    for (std::size_t i = 0; i < trace.size(); ++i)
-    {
-        last[trace[i].skill] = i;
-    }
     // Last line of each skill: the same line again only counts it.
     std::vector<std::size_t> previous(skills.size(), static_cast<std::size_t>(-1));
     for (std::size_t i = 0; i < trace.size(); ++i)
@@ -127,11 +122,9 @@ static void skillEvents(robotik::Simulation const& p_simulation,
             case robotik::SkillState::Failed:
             {
                 std::string why = reasonText(resources, run);
-                if (last[run.skill] == i &&
-                    run.reason == robotik::SkillReason::Failed &&
-                    !skills.skill(run.skill).why().empty())
+                if (!run.failure.why.empty())
                 {
-                    why = skills.skill(run.skill).why();
+                    why = run.failure.why;
                 }
                 add(run.end.value(), true, RED,
                     name + (refused ? " refused (" : " failed (") + why + ")");

@@ -114,9 +114,14 @@ Status ApproachSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
         // Believed pose from perception (or oracle), not ECS ground truth.
         WorldObject const* object = p_context.world_model.find(m_object);
         VacuumGripper const* gripper = findGripper(p_context.robot, m_gripper);
-        if (object == nullptr || gripper == nullptr)
+        if (object == nullptr)
         {
-            return Status::FAILURE;
+            return fail("unknown_object",
+                        m_object + " is not in the world model");
+        }
+        if (gripper == nullptr)
+        {
+            return fail("no_gripper", "no vacuum gripper on the robot");
         }
 
         // Default target: hover above the object's reported top + clearance.
@@ -151,7 +156,8 @@ Status ApproachSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
     }
 
     // Tick the move skill.
-    return m_move.tick(p_context, p_dt);
+    Status const status = m_move.tick(p_context, p_dt);
+    return status == Status::FAILURE ? fail(m_move.failure()) : status;
 }
 
 void ApproachSkill::cancel(RobotContext& p_context)
@@ -174,8 +180,7 @@ Status GraspSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
     VacuumGripper* gripper = findGripper(p_context.robot, m_gripper);
     if (gripper == nullptr)
     {
-        m_why = "no vacuum gripper on the robot";
-        return Status::FAILURE;
+        return fail("no_gripper", "no vacuum gripper on the robot");
     }
 
     // Turn on the vacuum.
@@ -193,9 +198,9 @@ Status GraspSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
     if (m_waited > m_timeout)
     {
         gripper->suction(false);
-        m_why = "suction holds nothing after " +
-                std::to_string(m_timeout.value()) + " s";
-        return Status::FAILURE;
+        return fail("grasp_not_confirmed",
+                    "suction holds nothing after " +
+                        std::to_string(m_timeout.value()) + " s");
     }
 
     // Otherwise, return running.
@@ -229,8 +234,7 @@ Status ReleaseSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
     VacuumGripper* gripper = findGripper(p_context.robot, m_gripper);
     if (gripper == nullptr)
     {
-        m_why = "no vacuum gripper on the robot";
-        return Status::FAILURE;
+        return fail("no_gripper", "no vacuum gripper on the robot");
     }
 
     // Turn off the vacuum.
@@ -244,8 +248,8 @@ Status ReleaseSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
     m_waited += p_dt;
     if (m_waited > m_timeout)
     {
-        m_why = "the object is still held after the suction stopped";
-        return Status::FAILURE;
+        return fail("release_not_confirmed",
+                    "the object is still held after the suction stopped");
     }
     return Status::RUNNING;
 }
@@ -275,8 +279,7 @@ Status DetectSkill::tick(RobotContext& p_context, robotik::Seconds /*p_dt*/)
     WorldObject const* object = p_context.world_model.find(m_object);
     if (object == nullptr)
     {
-        m_why = m_object + " is not in the world model";
-        return Status::FAILURE;
+        return fail("unknown_object", m_object + " is not in the world model");
     }
 
     // Check if the object is fresh and has been seen since the start.
@@ -289,9 +292,10 @@ Status DetectSkill::tick(RobotContext& p_context, robotik::Seconds /*p_dt*/)
     // Timeout has been reached ?
     if (p_context.time - m_start > m_timeout)
     {
-        m_why = m_object + " not seen by the camera within " +
-                std::to_string(static_cast<int>(m_timeout.value())) + " s";
-        return Status::FAILURE;
+        return fail("not_seen",
+                    m_object + " not seen by the camera within " +
+                        std::to_string(static_cast<int>(m_timeout.value())) +
+                        " s");
     }
     return Status::RUNNING;
 }

@@ -1065,7 +1065,7 @@ std::string PlanExecutor::stepFailure(RobotContext const& p_context) const
         std::string text = title + ": skill " + node + " ";
         if (reason == SkillReason::Failed)
         {
-            std::string const why = m_skills.skill(id).why();
+            std::string const& why = m_skills.skill(id).failure().why;
             return text + (why.empty() ? "failed (it gave no reason)"
                                        : "failed: " + why);
         }

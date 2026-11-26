@@ -106,7 +106,15 @@ static void printTrace(robotik::Simulation const& p_simulation)
             {
                 std::cout << ": " << resources.name(run.blocker);
             }
+            else if (!run.failure.code.empty())
+            {
+                std::cout << ": " << run.failure.code;
+            }
             std::cout << ')';
+            if (!run.failure.why.empty())
+            {
+                std::cout << "  " << run.failure.why;
+            }
         }
         std::cout << "  (" << run.end - run.start << ")\n";
     }

@@ -193,7 +193,7 @@ A tick of this node **requests** the skill `Wave` and returns:
 
 Each node has its own ticket: two nodes of the same skill make two runs, one after the other. When the tree leaves the node while it is running (for example a parent gives up), only the run of this node is cancelled.
 
-When the run ends, the node writes `Wave.state` and `Wave.reason` on the blackboard of the tree (`FAILED` and `resource lost`, for example). A condition of the tree can read them to react to a fault and not to a failure. The list of reasons is in [What the tree sees](06-architecture.md#-what-the-tree-sees).
+When the run ends, the node writes `Wave.state`, `Wave.reason` and `Wave.failure` on the blackboard of the tree (`FAILED`, `resource lost` and an empty failure, for example). A condition of the tree can read them to react to a fault and not to a failure, and to tell one failure of the skill from another (the code the skill gave to `fail`). The list of reasons is in [What the tree sees](06-architecture.md#-what-the-tree-sees).
 
 ### 🌿 The main nodes
 

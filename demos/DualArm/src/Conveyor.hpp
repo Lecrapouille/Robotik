@@ -81,17 +81,11 @@ public:
     void reset() override
     {
         m_started = false;
-        m_why.clear();
     }
 
     robotik::Status tick(robotik::RobotContext& p_context,
                          robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
-
-    [[nodiscard]] std::string why() const override
-    {
-        return m_why;
-    }
 
 private:
 
@@ -100,7 +94,6 @@ private:
     std::string m_feeder;
     std::string m_zone;
     bool m_started = false;
-    std::string m_why;
 };
 
 } // namespace dual_arm

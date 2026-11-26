@@ -29,7 +29,6 @@ public:
     {
         m_move.reset();
         m_has_goal = false;
-        m_why.clear();
     }
 
     robotik::Status tick(robotik::RobotContext& p_context,
@@ -42,8 +41,7 @@ public:
                 p_context.world_model.find(m_object);
             if (object == nullptr || !observed(*object))
             {
-                m_why = m_object + " not seen";
-                return robotik::Status::FAILURE;
+                return fail("not_seen", m_object + " not seen");
             }
             // Keep the orientation of the tool; go 10 cm above the object.
             robotik::Robot& robot = p_context.robot;
@@ -52,7 +50,10 @@ public:
             m_move.goal(target);
             m_has_goal = true;
         }
-        return m_move.tick(p_context, p_dt);
+        robotik::Status const status = m_move.tick(p_context, p_dt);
+        // Pass on why the inner move failed (no_ik_solution).
+        return status == robotik::Status::FAILURE ? fail(m_move.failure())
+                                                  : status;
     }
 
     void cancel(robotik::RobotContext& p_context) override
@@ -60,17 +61,11 @@ public:
         m_move.cancel(p_context);
     }
 
-    [[nodiscard]] std::string why() const override
-    {
-        return m_why;
-    }
-
 private:
 
     std::string m_object;
     robotik::MoveTCPSkill m_move;
     bool m_has_goal = false;
-    std::string m_why;
 };
 ```
 
@@ -78,7 +73,13 @@ The first `tick` reads the belief and gives a goal to `m_move`. The next ticks o
 
 With one robot, the beliefs are in the frame of the robot base, like the goal of `MoveTCPSkill`. With several robots, the beliefs are in the world frame ([Several robots](../reference/world-file.md#-several-robots)).
 
-`why` explains the last failure in words. The simulator shows it in the **Why** column of the execution graph, and the planner writes it when it plans again. The `--trace` of RobotIK-Headless gives only `FAILED (failed)`.
+A tick that fails returns `fail(code, words)`. The code is a short name chosen by the plugin (`not_seen`, `grasp_not_confirmed`); the words are for a person. When the run ends, the tree node writes the code in `Touch.failure` on the blackboard, next to `Touch.state` and `Touch.reason`, so that a tree can choose its reaction ([What the tree sees](../concepts/06-architecture.md#-what-the-tree-sees)). The simulator shows the words in the **Why** column of the execution graph, and the planner writes them when it plans again. The `--trace` of RobotIK-Headless prints both:
+
+```text
+  0.01 s  Detect(red_cube)  FAILED (failed: not_seen)  red_cube not seen by the camera within 2 s  (2.01 s)
+```
+
+The scheduler clears the failure when a new run starts. A run that loses a resource has no failure code: `reason` and the resource say it (`FAILED (resource lost: arm)`).
 
 The includes are `RobotIK/Task/Skills/MotionSkills.hpp`, `RobotIK/Task/Perception/WorldModel.hpp` and `RobotIK/Task/RobotContext.hpp`.
 

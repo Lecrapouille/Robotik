@@ -260,8 +260,13 @@ class Skill
     virtual void reset();
     virtual Status tick(RobotContext& p_context, Seconds p_dt) = 0;
     virtual void cancel(RobotContext& p_context);
-    virtual std::string why() const;   // why the last run failed, for the user; empty by default
+    SkillFailure const& failure() const;   // why the current run failed: { code, why }; empty until it fails
+protected:
+    Status fail(std::string code, std::string why);  // records the failure, returns FAILURE
+    Status fail(SkillFailure child);                 // passes on the failure of a child skill
 };
+
+struct SkillFailure { std::string code; std::string why; };  // code for the tree, why for a person
 
 struct RobotContext { Robot& robot; WorldModel& world_model; Seconds time; Seconds dt;
                       std::span<Robot* const> team; };   // team: every robot, empty when alone

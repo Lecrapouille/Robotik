@@ -167,7 +167,7 @@ robotik::Status DipSkill::tick(robotik::RobotContext& p_context,
         robotik::WorldObject const* pot = p_context.world_model.find(m_color);
         if (pot == nullptr)
         {
-            return robotik::Status::FAILURE;
+            return fail("unknown_object", m_color + " is not in the beliefs");
         }
         robotik::Quaternion const down = brushDown();
         double const top = robotik::top(*pot);
@@ -181,6 +181,10 @@ robotik::Status DipSkill::tick(robotik::RobotContext& p_context,
     }
     robotik::Status const status =
         follow(m_path, m_index, m_move, p_context, p_dt);
+    if (status == robotik::Status::FAILURE)
+    {
+        return fail(m_move.failure());
+    }
     if (status == robotik::Status::SUCCESS)
     {
         m_stroke->brush = m_color;
@@ -224,7 +228,7 @@ robotik::Status MarkSkill::tick(robotik::RobotContext& p_context,
         auto const stroke = m_strokes.find(m_color);
         if (stroke == m_strokes.end() || stroke->second.size() < 3U)
         {
-            return robotik::Status::FAILURE;
+            return fail("no_stroke", "no stroke of " + m_color + " to paint");
         }
         // Straight lines in Cartesian space: cut each segment into small
         // steps, each one solved by IK.
@@ -271,6 +275,10 @@ robotik::Status MarkSkill::tick(robotik::RobotContext& p_context,
     {
         m_stroke->painting = false;
     }
+    if (status == robotik::Status::FAILURE)
+    {
+        return fail(m_move.failure());
+    }
     if (status == robotik::Status::SUCCESS)
     {
         m_stroke->painted.insert(m_color);
@@ -303,7 +311,7 @@ robotik::Status RinseSkill::tick(robotik::RobotContext& p_context,
         robotik::WorldObject const* water = p_context.world_model.find("water");
         if (water == nullptr)
         {
-            return robotik::Status::FAILURE;
+            return fail("unknown_object", "water is not in the beliefs");
         }
         robotik::Quaternion const down = brushDown();
         double const x = water->position.x;
@@ -329,6 +337,10 @@ robotik::Status RinseSkill::tick(robotik::RobotContext& p_context,
     }
     robotik::Status const status =
         follow(m_path, m_index, m_move, p_context, p_dt);
+    if (status == robotik::Status::FAILURE)
+    {
+        return fail(m_move.failure());
+    }
     if (status == robotik::Status::SUCCESS)
     {
         m_stroke->brush.clear();

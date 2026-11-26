@@ -154,6 +154,9 @@ struct SkillRun
     /// True when the stop of the run reached @ref SkillDescription::stop_timeout
     /// and was forced.
     bool forced = false;
+    /// What the skill said when it failed (@c reason @c Failed); empty
+    /// otherwise.
+    SkillFailure failure{};
 };
 
 // ****************************************************************************
@@ -167,6 +170,8 @@ struct RunEnd
     SkillState state = SkillState::Idle;
     /// Why it ended so.
     SkillReason reason = SkillReason::None;
+    /// What the skill said when it failed (@c reason @c Failed).
+    SkillFailure failure{};
 };
 
 // ****************************************************************************
@@ -350,6 +355,15 @@ public:
     ///   cancelled.
     // -------------------------------------------------------------------------
     [[nodiscard]] SkillReason reason(RunId p_run) const;
+
+    // -------------------------------------------------------------------------
+    /// @param p_run Ticket given by @ref request.
+    /// @return What the skill said when this run failed (reason
+    ///   @c Failed): a code for the tree, words for a person. Empty for a
+    ///   run that did not fail by itself (a lost resource says it with
+    ///   @ref reason and @ref blocker), or that has not ended.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] SkillFailure const& failure(RunId p_run) const;
 
     // -------------------------------------------------------------------------
     /// @param p_id Skill id.

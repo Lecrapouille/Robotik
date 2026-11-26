@@ -113,11 +113,11 @@ robotik::Status ConveySkill::tick(robotik::RobotContext& p_context,
         robotik::WorldObject const* zone = beliefs.find(m_zone);
         if (part == nullptr || feeder == nullptr || zone == nullptr)
         {
-            m_why = (part == nullptr     ? m_part
-                     : feeder == nullptr ? m_feeder
-                                         : m_zone) +
-                    " is not in the beliefs";
-            return robotik::Status::FAILURE;
+            return fail("unknown_object",
+                        (part == nullptr     ? m_part
+                         : feeder == nullptr ? m_feeder
+                                             : m_zone) +
+                            " is not in the beliefs");
         }
         // Off the feeder, across to the lane of the zone, down the lane.
         double const transfer =
