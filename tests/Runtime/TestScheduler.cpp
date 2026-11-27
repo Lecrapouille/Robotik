@@ -10,7 +10,7 @@
 #include <limits>
 
 #include "RobotIK/Robot/Actuators.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 #include "RobotIK/Task/Perception/WorldModel.hpp"
 #include "RobotIK/Task/RobotContext.hpp"
 #include "RobotIK/Task/Scheduler.hpp"
@@ -107,12 +107,12 @@ protected:
 
     SchedulerTest()
         : robot(world, assetFile("robotik.robots.simple_revolute_robot")),
-          context{ robot, beliefs, {}, robotik::Seconds(0.01) },
-          skills(robot.resources())
+          context{ robot.robot(), beliefs, {}, robotik::Seconds(0.01) },
+          skills(robot.getResources())
     {
-        robot.resources().add("arm");
-        robot.resources().add("gripper");
-        robot.resources().add("camera");
+        robot.getResources().add("arm");
+        robot.getResources().add("gripper");
+        robot.getResources().add("camera");
     }
 
     robotik::SkillDescription
@@ -129,7 +129,7 @@ protected:
 
     robotik::ResourceRequirement arm() const
     {
-        return robot.resources().require("arm");
+        return robot.robot().getResources().require("arm");
     }
 
     void update(int p_times = 1)
@@ -142,7 +142,7 @@ protected:
     }
 
     compages::world::World world;
-    robotik::RobotSession robot;
+    robotik::RobotRuntime robot;
     robotik::WorldModel beliefs;
     robotik::RobotContext context;
     robotik::SkillScheduler skills;
@@ -157,10 +157,10 @@ TEST_F(SchedulerTest, RunsUntilSuccessAndReleases)
     EXPECT_EQ(skills.state(id), SkillState::Waiting);
     update();
     EXPECT_EQ(skills.state(id), SkillState::Running);
-    EXPECT_EQ(robot.resources().owner(arm().id), id);
+    EXPECT_EQ(robot.getResources().owner(arm().id), id);
     update(2);
     EXPECT_EQ(skills.state(id), SkillState::Succeeded);
-    EXPECT_EQ(robot.resources().owner(arm().id), robotik::NO_OWNER);
+    EXPECT_EQ(robot.getResources().owner(arm().id), robotik::NO_OWNER);
     ASSERT_EQ(skills.trace().size(), 1U);
     EXPECT_EQ(skills.trace()[0].state, SkillState::Succeeded);
 }
@@ -196,7 +196,7 @@ TEST_F(SchedulerTest, BusyResourceMakesWait)
 
 TEST_F(SchedulerTest, SharedResourcesRunTogether)
 {
-    auto const camera = robot.resources().require("camera", Access::Shared);
+    auto const camera = robot.getResources().require("camera", Access::Shared);
     auto const a = skills.add<CountdownSkill>(describe("A", { camera }), 5);
     auto const b = skills.add<CountdownSkill>(describe("B", { camera }), 5);
     skills.request(a);
@@ -275,14 +275,13 @@ TEST_F(SchedulerTest, PreemptionIsAllOrNothing)
     auto const wave =
         skills.add<CountdownSkill>(describe("Wave", { arm() }, 0), 100);
     auto hold_description =
-        describe("Hold", { robot.resources().require("gripper") }, 0);
+        describe("Hold", { robot.getResources().require("gripper") }, 0);
     hold_description.cancellable = false;
     auto const hold =
         skills.add<CountdownSkill>(std::move(hold_description), 100);
     auto const grasp = skills.add<CountdownSkill>(
-        describe("Grasp",
-                 { arm(), robot.resources().require("gripper") },
-                 50),
+        describe(
+            "Grasp", { arm(), robot.getResources().require("gripper") }, 50),
         1);
     skills.request(wave);
     skills.request(hold);
@@ -294,18 +293,19 @@ TEST_F(SchedulerTest, PreemptionIsAllOrNothing)
     EXPECT_EQ(skills.state(hold), SkillState::Running);
     EXPECT_EQ(skills.state(grasp), SkillState::Waiting);
     EXPECT_EQ(skills.reason(grasp), SkillReason::Busy);
-    EXPECT_EQ(skills.blocker(grasp), robot.resources().find("gripper"));
+    EXPECT_EQ(skills.blocker(grasp), robot.getResources().find("gripper"));
     EXPECT_EQ(skills.blocker(wave), robotik::NO_RESOURCE);
 }
 
 TEST_F(SchedulerTest, LeaseOutsideTheSchedulerIsNotPreempted)
 {
     // A shared lease taken by the scenario logic is not a skill.
-    robotik::ResourceLease logic = robot.resources().acquire(
-        { robot.resources().require("camera", robotik::Access::Shared) });
+    robotik::ResourceLease logic = robot.getResources().acquire(
+        { robot.getResources().require("camera", robotik::Access::Shared) });
     ASSERT_TRUE(logic);
     auto const urgent = skills.add<CountdownSkill>(
-        describe("Urgent", { robot.resources().require("camera") }, 1000), 1);
+        describe("Urgent", { robot.getResources().require("camera") }, 1000),
+        1);
     skills.request(urgent);
     update();
     EXPECT_EQ(skills.state(urgent), SkillState::Waiting);
@@ -318,7 +318,7 @@ TEST_F(SchedulerTest, LostResourceAbortsTheRun)
         skills.add<CountdownSkill>(describe("Move", { arm() }), 100);
     skills.request(id);
     update();
-    robot.resources().fail("arm");
+    robot.getResources().fail("arm");
     update();
     EXPECT_EQ(skills.state(id), SkillState::Failed);
     EXPECT_EQ(skills.reason(id), SkillReason::ResourceLost);
@@ -365,7 +365,7 @@ TEST_F(SchedulerTest, CancelIsCooperative)
     update();
     EXPECT_EQ(skills.state(id), SkillState::Cancelled);
     EXPECT_EQ(skills.reason(id), SkillReason::Cancelled);
-    EXPECT_EQ(robot.resources().owner(arm().id), robotik::NO_OWNER);
+    EXPECT_EQ(robot.getResources().owner(arm().id), robotik::NO_OWNER);
 }
 
 TEST_F(SchedulerTest, ResourcesHeldWhileStopping)
@@ -379,7 +379,7 @@ TEST_F(SchedulerTest, ResourcesHeldWhileStopping)
     skills.request(next);
     update(); // preempted: stopping 1/3, the arm stays held
     EXPECT_EQ(skills.state(slow), SkillState::Stopping);
-    EXPECT_EQ(robot.resources().owner(arm().id), slow);
+    EXPECT_EQ(robot.getResources().owner(arm().id), slow);
     EXPECT_EQ(skills.state(next), SkillState::Waiting);
     EXPECT_EQ(skills.reason(next), SkillReason::Preempting);
     update(2); // stopping 2/3, then 3/3: safe, the arm goes to Next
@@ -387,7 +387,7 @@ TEST_F(SchedulerTest, ResourcesHeldWhileStopping)
     EXPECT_EQ(skills.state(slow), SkillState::Waiting);
     EXPECT_EQ(skills.reason(slow), SkillReason::Busy);
     EXPECT_EQ(skills.state(next), SkillState::Running);
-    EXPECT_EQ(robot.resources().owner(arm().id), next);
+    EXPECT_EQ(robot.getResources().owner(arm().id), next);
 }
 
 TEST_F(SchedulerTest, StopTimeoutForcesTheEnd)
@@ -403,7 +403,7 @@ TEST_F(SchedulerTest, StopTimeoutForcesTheEnd)
     update(); // 0.03 s > 0.025 s
     EXPECT_EQ(skills.state(slow), SkillState::Cancelled);
     EXPECT_TRUE(skills.trace().back().forced);
-    EXPECT_EQ(robot.resources().owner(arm().id), robotik::NO_OWNER);
+    EXPECT_EQ(robot.getResources().owner(arm().id), robotik::NO_OWNER);
 }
 
 TEST_F(SchedulerTest, UrgentSkillDoesNotWaitForStopping)
@@ -549,7 +549,7 @@ TEST_F(SchedulerTest, EachRunKeepsWhatTheSkillSaidWhenItFailed)
     robotik::RunId const second = skills.request(id);
     EXPECT_TRUE(skills.failure(second).code.empty());
     update();
-    robot.resources().fail("arm");
+    robot.getResources().fail("arm");
     update();
     ASSERT_EQ(skills.state(second), SkillState::Failed);
     EXPECT_EQ(skills.reason(second), SkillReason::ResourceLost);
@@ -591,7 +591,7 @@ public:
 
     Status tick(robotik::RobotContext& p_context, robotik::Seconds) override
     {
-        p_context.robot.joints().moveTo(0, 0.3);
+        p_context.robot.getJoints().moveTo(0, 0.3);
         return Status::RUNNING;
     }
 };
@@ -603,19 +603,19 @@ protected:
 
     GuardedJoints()
         : robot(world, assetFile("robotik.robots.simple_revolute_robot")),
-          context{ robot, beliefs, {}, robotik::Seconds(0.01) },
-          skills(robot.resources())
+          context{ robot.robot(), beliefs, {}, robotik::Seconds(0.01) },
+          skills(robot.getResources())
     {
-        robot.actuators().add<robotik::JointGroup>("body");
+        robot.addActuator<robotik::JointGroup>("body");
     }
 
     robotik::ResourceRequirement body() const
     {
-        return robot.resources().require("body");
+        return robot.robot().getResources().require("body");
     }
 
     compages::world::World world;
-    robotik::RobotSession robot;
+    robotik::RobotRuntime robot;
     robotik::WorldModel beliefs;
     robotik::RobotContext context;
     robotik::SkillScheduler skills;
@@ -623,7 +623,7 @@ protected:
 
 TEST_F(GuardedJoints, FreeJointIsWritable)
 {
-    EXPECT_NO_THROW(robot.joints().moveTo(0, 0.2));
+    EXPECT_NO_THROW(robot.robot().getJoints().moveTo(0, 0.2));
 }
 
 TEST_F(GuardedJoints, SkillWritesUnderItsLease)
@@ -635,7 +635,7 @@ TEST_F(GuardedJoints, SkillWritesUnderItsLease)
     skills.request(push);
     EXPECT_NO_THROW(skills.update(context));
     EXPECT_EQ(skills.state(push), SkillState::Running);
-    EXPECT_DOUBLE_EQ(robot.joints().target(0), 0.3);
+    EXPECT_DOUBLE_EQ(robot.robot().getJoints().target(0), 0.3);
 }
 
 TEST_F(GuardedJoints, WriteToHeldJointThrows)
@@ -648,15 +648,15 @@ TEST_F(GuardedJoints, WriteToHeldJointThrows)
     auto const push = skills.add<PushJointSkill>(std::move(description));
     skills.request(push);
     skills.update(context);
-    EXPECT_THROW(robot.joints().moveTo(0, 0.2), std::logic_error);
-    EXPECT_THROW(robot.joints().hold(), std::logic_error);
+    EXPECT_THROW(robot.robot().getJoints().moveTo(0, 0.2), std::logic_error);
+    EXPECT_THROW(robot.robot().getJoints().hold(), std::logic_error);
 }
 
 TEST_F(GuardedJoints, LogicLeaseBlocksSkill)
 {
-    robotik::ResourceLease logic = robot.resources().acquire({ body() });
+    robotik::ResourceLease logic = robot.getResources().acquire({ body() });
     ASSERT_TRUE(logic);
-    EXPECT_NO_THROW(robot.joints().moveTo(0, 0.2));
+    EXPECT_NO_THROW(robot.robot().getJoints().moveTo(0, 0.2));
     robotik::SkillDescription description;
     description.name = "Push";
     description.resources = { body() };
@@ -676,21 +676,26 @@ TEST_F(GuardedJoints, SafeStateIsWrittenWhoeverHoldsTheJoints)
     skills.request(push);
     skills.update(context);
     // The group fails: the robot puts it in its safe state at the next step.
-    robot.resources().fail("body");
+    robot.getResources().fail("body");
     EXPECT_NO_THROW(robot.step(robotik::Seconds(0.01)));
 }
 
 TEST_F(SchedulerTest, MoveJointWaitsForTheJointToSlowDown)
 {
-    std::string const joint = robot.joints().name(0);
+    std::string const joint = robot.robot().getJoints().name(0);
     robotik::MoveJointSkill settle(joint, 0.5);
     robotik::MoveJointSkill pass(
         joint, 0.5, 1e-2, std::numeric_limits<double>::infinity());
     settle.reset();
     pass.reset();
-    robot.measureJoint(0, 0.5, 1.0); // on the target, still at 1 rad/s
+    robot.measureJoint(
+        robot.robot().getJoints().requireRevolute(0),
+        robotik::Radians(0.5),
+        robotik::AngularVelocity(1.0)); // on the target, still at 1 rad/s
     EXPECT_EQ(settle.tick(context, context.dt), Status::RUNNING);
     EXPECT_EQ(pass.tick(context, context.dt), Status::SUCCESS);
-    robot.measureJoint(0, 0.5, 0.01);
+    robot.measureJoint(robot.robot().getJoints().requireRevolute(0),
+                       robotik::Radians(0.5),
+                       robotik::AngularVelocity(0.01));
     EXPECT_EQ(settle.tick(context, context.dt), Status::SUCCESS);
 }

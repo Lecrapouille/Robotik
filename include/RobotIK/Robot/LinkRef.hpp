@@ -13,7 +13,7 @@
 ///   that made it, across resets (the kinematic model is built once).
 /// - Expects: code uses it only on the robot that made it.
 /// - Errors: a handle from another robot, or never found, is a mistake in
-///   the code: @ref robotik::Robot::worldPose throws @c std::logic_error.
+///   the code: @ref robotik::Robot::getWorldPose throws @c std::logic_error.
 #pragma once
 
 #include <cstddef>
@@ -31,11 +31,11 @@ class Robot;
 /// Why: finding a link by its name walks the tree of the robot and compares
 /// strings. That is fine once, too slow for a sensor that reads its link
 /// 1000 times a second. @ref Robot::requireLink does the search once;
-/// @ref Robot::worldPose then reads the pose with no search.
+/// @ref Robot::getWorldPose then reads the pose with no search.
 ///
 /// Guarantees: the handle is opaque. It names a frame of the kinematic model
 /// and the robot that made it, nothing of the simulator (no ECS entity). The
-/// robot checks the owner at each @ref Robot::worldPose: a handle of another
+/// robot checks the owner at each @ref Robot::getWorldPose: a handle of another
 /// robot (two arms in a cell), or a default one, throws @c std::logic_error
 /// instead of reading the wrong frame. The check is one integer compare.
 ///
@@ -44,14 +44,14 @@ class Robot;
 ///
 /// @code
 /// robotik::LinkRef const wrist = robot.requireLink("link6"); // once
-/// robotik::Pose const pose = robot.worldPose(wrist);    // every step
+/// robotik::Pose const pose = robot.getWorldPose(wrist);    // every step
 /// @endcode
 // ****************************************************************************
 class LinkRef
 {
 public:
 
-    /// A handle that names no link; @ref Robot::worldPose refuses it.
+    /// A handle that names no link; @ref Robot::getWorldPose refuses it.
     LinkRef() = default;
 
 private:

@@ -13,7 +13,7 @@
 
 #include "RobotIK/Common/Math.hpp"
 #include "RobotIK/Common/Random.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 #include "RobotIK/Task/Learning/SimulationEnvironment.hpp"
 
 #include <cstdint>
@@ -43,7 +43,7 @@ inline robotik::Vector3 const PICK_PLACE_READY{ 0.40, 0.0, 0.25 };
 // Ry(pi): the natural wrist of the 6-axis arm.
 inline robotik::Quaternion const PICK_PLACE_DOWN{ 0.0, 0.0, 1.0, 0.0 };
 
-void readyPosture(robotik::RobotSession& p_robot,
+void readyPosture(robotik::RobotRuntime& p_robot,
                   robotik::VacuumGripper const& p_gripper,
                   robotik::Vector3 const& p_tip = PICK_PLACE_READY);
 

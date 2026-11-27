@@ -72,7 +72,7 @@ void ConveyorLogic::setup(robotik::RoboticCell& p_cell,
     }
 
     // The belt is a resource of the cell, next to the arms and the cups.
-    robotik::ResourceManager& resources = p_cell.robot().resources();
+    robotik::ResourceManager& resources = p_cell.runtime().getResources();
     std::vector<robotik::ResourceRequirement> const belt = {
         { resources.add(Conveyor::RESOURCE), robotik::Access::Exclusive }
     };
@@ -94,10 +94,10 @@ void ConveyorLogic::setup(robotik::RoboticCell& p_cell,
             }
         }
     }
-    for (std::unique_ptr<robotik::RobotSession> const& robot :
-         p_cell.robots())
+    for (std::unique_ptr<robotik::RobotRuntime> const& runtime :
+         p_cell.runtimes())
     {
-        addArmSkills(p_cell, *robot);
+        addArmSkills(p_cell, runtime->robot());
     }
     addPlanning(p_cell);
 }
@@ -105,8 +105,8 @@ void ConveyorLogic::setup(robotik::RoboticCell& p_cell,
 void ConveyorLogic::addArmSkills(robotik::RoboticCell& p_cell,
                                  robotik::Robot const& p_robot)
 {
-    robotik::ResourceManager const& resources = p_robot.resources();
-    robotik::ActuatorList const& actuators = p_robot.actuators();
+    robotik::ResourceManager const& resources = p_robot.getResources();
+    robotik::ActuatorSet const& actuators = p_robot.getActuators();
     std::vector<robotik::ResourceRequirement> arm;
     if (auto const* group = actuators.first<robotik::JointGroup>())
     {
@@ -119,7 +119,7 @@ void ConveyorLogic::addArmSkills(robotik::RoboticCell& p_cell,
     }
 
     // "left.Hover(p1)": one family per robot, named after its id.
-    std::string const& id = p_robot.id();
+    std::string const& id = p_robot.getId();
     std::string const scope = id + ".";
     robotik::SkillScheduler& skills = p_cell.skills();
     skills.add<ReleaseSkill>(describe(scope + "Release", id, cup));

@@ -149,6 +149,11 @@ public:
     ~ResourceLease();
 
     // -------------------------------------------------------------------------
+    /// Gives the resources back now; the lease becomes empty.
+    // -------------------------------------------------------------------------
+    void release();
+
+    // -------------------------------------------------------------------------
     /// @return True when the lease holds its resources.
     // -------------------------------------------------------------------------
     [[nodiscard]] explicit operator bool() const
@@ -171,11 +176,6 @@ public:
     {
         return { m_items.data(), m_count };
     }
-
-    // -------------------------------------------------------------------------
-    /// Gives the resources back now; the lease becomes empty.
-    // -------------------------------------------------------------------------
-    void release();
 
 private:
 
@@ -228,31 +228,60 @@ public:
     ResourceId add(std::string p_name);
 
     // -------------------------------------------------------------------------
-    /// @param p_name Resource name.
-    /// @return Its id, or @ref NO_RESOURCE.
+    /// Reserves all the requirements at once, or nothing. Duplicates are
+    /// merged first (see @ref normalize).
+    /// @param p_requirements Resources wanted (at most
+    ///   @ref ResourceLease::CAPACITY different ones).
+    /// @param p_owner Who holds the lease (a skill id).
+    /// @return The lease; an empty lease on conflict.
     // -------------------------------------------------------------------------
-    [[nodiscard]] ResourceId find(std::string_view p_name) const;
+    [[nodiscard]] ResourceLease
+    acquire(std::span<ResourceRequirement const> p_requirements,
+            OwnerId p_owner = ANONYMOUS);
 
-    // -------------------------------------------------------------------------
-    /// Builds a requirement on a known resource.
-    /// @param p_name Resource name.
-    /// @param p_access Alone or shared.
-    /// @return The requirement.
-    /// @throws std::invalid_argument for an unknown name.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] ResourceRequirement
-    require(std::string_view p_name, Access p_access = Access::Exclusive) const;
-
-    /// @return The number of resources.
-    [[nodiscard]] std::size_t size() const
+    /// @copydoc acquire(std::span<ResourceRequirement const>, OwnerId)
+    [[nodiscard]] ResourceLease
+    acquire(std::initializer_list<ResourceRequirement> p_requirements,
+            OwnerId p_owner = ANONYMOUS)
     {
-        return m_names.size();
+        return acquire(std::span<ResourceRequirement const>(
+                           p_requirements.begin(), p_requirements.size()),
+                       p_owner);
     }
 
-    /// @return The name of resource @p_id.
-    [[nodiscard]] std::string const& name(ResourceId p_id) const
+    // -------------------------------------------------------------------------
+    /// Tells why requirements cannot be acquired now, without acquiring.
+    /// @param p_requirements Resources wanted.
+    /// @return The first reason; an empty conflict when all are free.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Conflict
+    conflict(std::span<ResourceRequirement const> p_requirements) const;
+
+    // --- Writes -------------------------------------------------------------
+
+    // -------------------------------------------------------------------------
+    /// Checks that the current @ref writer may command resource @p_id: the
+    /// resource is free, or held exclusively by the writer. An actuator
+    /// calls it before each command. One compare when the resource is free.
+    /// @param p_id Resource of the actuator, or @ref NO_RESOURCE (no check).
+    /// @param p_what What is written, for the message ("joint 'joint1'").
+    /// @throws std::logic_error when another owner holds the resource: a
+    ///   command that bypasses the scheduler is a mistake in the code.
+    // -------------------------------------------------------------------------
+    void checkWrite(ResourceId p_id, std::string_view p_what) const
     {
-        return m_names[p_id];
+        if (p_id < m_owners.size() && m_owners[p_id] != NO_OWNER &&
+            m_owners[p_id] != m_writer && m_writer != SAFETY)
+        {
+            refuseWrite(p_id, p_what);
+        }
+    }
+
+    /// @return Who sends the commands now: the skill ticked by the
+    ///   scheduler, else @ref ANONYMOUS (see @ref WriterScope).
+    [[nodiscard]] OwnerId writer() const
+    {
+        return m_writer;
     }
 
     // --- Health -------------------------------------------------------------
@@ -294,61 +323,32 @@ public:
         return m_users[p_id];
     }
 
-    // --- Writes -------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    /// @param p_name Resource name.
+    /// @return Its id, or @ref NO_RESOURCE.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] ResourceId find(std::string_view p_name) const;
 
-    /// @return Who sends the commands now: the skill ticked by the
-    ///   scheduler, else @ref ANONYMOUS (see @ref WriterScope).
-    [[nodiscard]] OwnerId writer() const
+    // -------------------------------------------------------------------------
+    /// Builds a requirement on a known resource.
+    /// @param p_name Resource name.
+    /// @param p_access Alone or shared.
+    /// @return The requirement.
+    /// @throws std::invalid_argument for an unknown name.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] ResourceRequirement
+    require(std::string_view p_name, Access p_access = Access::Exclusive) const;
+
+    /// @return The number of resources.
+    [[nodiscard]] std::size_t size() const
     {
-        return m_writer;
+        return m_names.size();
     }
 
-    // -------------------------------------------------------------------------
-    /// Checks that the current @ref writer may command resource @p_id: the
-    /// resource is free, or held exclusively by the writer. An actuator
-    /// calls it before each command. One compare when the resource is free.
-    /// @param p_id Resource of the actuator, or @ref NO_RESOURCE (no check).
-    /// @param p_what What is written, for the message ("joint 'joint1'").
-    /// @throws std::logic_error when another owner holds the resource: a
-    ///   command that bypasses the scheduler is a mistake in the code.
-    // -------------------------------------------------------------------------
-    void checkWrite(ResourceId p_id, std::string_view p_what) const
+    /// @return The name of resource @p_id.
+    [[nodiscard]] std::string const& name(ResourceId p_id) const
     {
-        if (p_id < m_owners.size() && m_owners[p_id] != NO_OWNER &&
-            m_owners[p_id] != m_writer && m_writer != SAFETY)
-        {
-            refuseWrite(p_id, p_what);
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    /// Tells why requirements cannot be acquired now, without acquiring.
-    /// @param p_requirements Resources wanted.
-    /// @return The first reason; an empty conflict when all are free.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] Conflict
-    conflict(std::span<ResourceRequirement const> p_requirements) const;
-
-    // -------------------------------------------------------------------------
-    /// Reserves all the requirements at once, or nothing. Duplicates are
-    /// merged first (see @ref normalize).
-    /// @param p_requirements Resources wanted (at most
-    ///   @ref ResourceLease::CAPACITY different ones).
-    /// @param p_owner Who holds the lease (a skill id).
-    /// @return The lease; an empty lease on conflict.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] ResourceLease
-    acquire(std::span<ResourceRequirement const> p_requirements,
-            OwnerId p_owner = ANONYMOUS);
-
-    /// @copydoc acquire(std::span<ResourceRequirement const>, OwnerId)
-    [[nodiscard]] ResourceLease
-    acquire(std::initializer_list<ResourceRequirement> p_requirements,
-            OwnerId p_owner = ANONYMOUS)
-    {
-        return acquire(std::span<ResourceRequirement const>(
-                           p_requirements.begin(), p_requirements.size()),
-                       p_owner);
+        return m_names[p_id];
     }
 
 private:
@@ -358,7 +358,8 @@ private:
     /// Gives back the resources of @p_lease (called by the lease).
     void release(ResourceLease& p_lease);
     /// Throws the error of @ref checkWrite.
-    [[noreturn]] void refuseWrite(ResourceId p_id, std::string_view p_what) const;
+    [[noreturn]] void refuseWrite(ResourceId p_id,
+                                  std::string_view p_what) const;
 
     /// Resource names.
     std::vector<std::string> m_names;

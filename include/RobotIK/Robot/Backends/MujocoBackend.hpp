@@ -20,6 +20,7 @@
 ///   throws @c std::runtime_error when the cell is built.
 #pragma once
 
+#include "RobotIK/Robot/Backends/PhysicsWorld.hpp"
 #include "RobotIK/Robot/Backends/RobotBackend.hpp"
 #include "RobotIK/Common/Math.hpp"
 
@@ -138,7 +139,7 @@ struct FreeBox
 /// A <em>backend</em> is a thin adapter around an external library that owns
 /// the simulated bodies and exposes a stable API for the rest of the stack
 /// (see @ref RobotBackend). Backends are not ECS components: the
-/// @ref RobotSession holds them, next to the @ref PinocchioBackend that every
+/// @ref RobotRuntime holds them, next to the @ref Kinematics that every
 /// robot owns for analytical FK/IK. Skills talk to the robot; the robot
 /// forwards work to its backends.
 ///
@@ -185,13 +186,33 @@ struct FreeBox
 /// robot.connect(std::move(physics));
 /// @endcode
 // ****************************************************************************
-class MujocoBackend final: public RobotBackend
+class MujocoBackend final: public RobotBackend, public PhysicsWorld
 {
 public:
 
     /// @param p_options Placement, floor, friction, timestep, inertia.
     explicit MujocoBackend(MujocoOptions p_options = {});
     ~MujocoBackend() override;
+
+    // -------------------------------------------------------------------------
+    /// Makes a backend for one robot of a world of several robots. Connect
+    /// one per robot (@ref RobotRuntime::connect); stepping the first robot
+    /// steps them all.
+    ///
+    /// @code
+    /// auto physics = std::make_shared<robotik::MujocoBackend>();
+    /// (void)physics->load("left.urdf", { .prefix = "left_" });
+    /// (void)physics->load("right.urdf", { .prefix = "right_" });
+    /// left.connect(robotik::MujocoBackend::member(physics, "left_"));
+    /// right.connect(robotik::MujocoBackend::member(physics, "right_"));
+    /// @endcode
+    ///
+    /// @param p_physics Physics shared by every robot of the world.
+    /// @param p_prefix Chain prefix of the robot.
+    /// @return The backend to connect.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] static std::unique_ptr<RobotBackend>
+    member(std::shared_ptr<MujocoBackend> p_physics, std::string p_prefix);
 
     // -------------------------------------------------------------------------
     /// Loads one URDF as its own kinematic chain.
@@ -202,6 +223,44 @@ public:
     // -------------------------------------------------------------------------
     [[nodiscard]] std::string load(std::filesystem::path const& p_urdf,
                                    ChainOptions const& p_options = {});
+
+    // -------------------------------------------------------------------------
+    /// Maps the joints of a robot to MuJoCo @b qpos, @b DOF and actuator
+    /// indices: the robot of the first chain (@ref join with no prefix).
+    /// @param p_robot Robot of the first chain.
+    // -------------------------------------------------------------------------
+    void attach(RobotRuntime& p_robot) override;
+
+    // -------------------------------------------------------------------------
+    /// Resets @c mjData, writes the joint positions and the base pose of
+    /// every bound robot, then runs @c mj_forward.
+    /// @param p_robot Robot asking for the reset.
+    // -------------------------------------------------------------------------
+    void reset(RobotRuntime& p_robot) override;
+
+    // -------------------------------------------------------------------------
+    /// Integrates @p_dt in steps of @ref MujocoOptions::timestep. Each
+    /// physics step runs the joint loops of every bound robot, applies their
+    /// efforts with gravity compensation, then measures the joints and the
+    /// bases. Only the first bound robot steps the world: the call is a no-op
+    /// for the others (their measures are already written).
+    /// @param p_robot Robot asking for the step.
+    /// @param p_dt Duration to integrate.
+    // -------------------------------------------------------------------------
+    void step(RobotRuntime& p_robot, Seconds p_dt) override;
+    /// @return The time of the MuJoCo data (sum of the physics timesteps).
+    [[nodiscard]] std::optional<Seconds> time() const override;
+
+    // -------------------------------------------------------------------------
+    /// Binds one more robot of the world. Its joint @c j is the MuJoCo
+    /// joint @c p_prefix + j. Binding the same robot again replaces its
+    /// binding.
+    /// @param p_robot Robot to bind.
+    /// @param p_prefix @ref ChainOptions::prefix its chain was loaded with
+    ///   (empty: the first chain).
+    /// @throws std::runtime_error if no chain was loaded with @p_prefix.
+    // -------------------------------------------------------------------------
+    void join(RobotRuntime& p_robot, std::string const& p_prefix);
 
     // -------------------------------------------------------------------------
     /// Adds a free box compiled with the chains. The origin is the centre.
@@ -227,23 +286,6 @@ public:
     /// @param p_body2 Second body.
     // -------------------------------------------------------------------------
     void excludeContacts(std::string p_body1, std::string p_body2);
-
-    /// Turns a weld of @ref addWeld on or off (see @ref RobotBackend::weld).
-    bool weld(std::string const& p_name, bool p_on) override;
-
-    /// Moves a free body at rest (see @ref RobotBackend::placeBody).
-    bool placeBody(std::string const& p_body, Pose const& p_pose) override;
-
-    // -------------------------------------------------------------------------
-    /// @param p_body Body name.
-    /// @return World pose of the body after the last step or reset, or
-    ///   nothing when unknown.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] std::optional<Pose>
-    bodyPose(std::string const& p_body) const override;
-
-    /// @return @c mjData.contact with the names of the bodies of both geoms.
-    [[nodiscard]] std::vector<Contact> contactList() const override;
 
     // -------------------------------------------------------------------------
     /// Hangs @p_robot2 on @p_robot1 (a tool on an arm).
@@ -277,71 +319,15 @@ public:
                 std::string const& p_robot2,
                 std::string const& p_joint2);
 
-    // -------------------------------------------------------------------------
-    /// Maps the joints of a robot to MuJoCo @b qpos, @b DOF and actuator
-    /// indices: the robot of the first chain (@ref join with no prefix).
-    /// @param p_robot Robot of the first chain.
-    // -------------------------------------------------------------------------
-    void attach(RobotSession& p_robot) override;
+    /// Turns a weld of @ref addWeld on or off (see @ref PhysicsWorld::weld).
+    bool weld(std::string const& p_name, bool p_on) override;
 
-    // -------------------------------------------------------------------------
-    /// Binds one more robot of the world. Its joint @c j is the MuJoCo
-    /// joint @c p_prefix + j. Binding the same robot again replaces its
-    /// binding.
-    /// @param p_robot Robot to bind.
-    /// @param p_prefix @ref ChainOptions::prefix its chain was loaded with
-    ///   (empty: the first chain).
-    /// @throws std::runtime_error if no chain was loaded with @p_prefix.
-    // -------------------------------------------------------------------------
-    void join(RobotSession& p_robot, std::string const& p_prefix);
-
-    // -------------------------------------------------------------------------
-    /// Makes a backend for one robot of a world of several robots. Connect
-    /// one per robot (@ref RobotSession::connect); stepping the first robot
-    /// steps them all.
-    ///
-    /// @code
-    /// auto physics = std::make_shared<robotik::MujocoBackend>();
-    /// (void)physics->load("left.urdf", { .prefix = "left_" });
-    /// (void)physics->load("right.urdf", { .prefix = "right_" });
-    /// left.connect(robotik::MujocoBackend::member(physics, "left_"));
-    /// right.connect(robotik::MujocoBackend::member(physics, "right_"));
-    /// @endcode
-    ///
-    /// @param p_physics Physics shared by every robot of the world.
-    /// @param p_prefix Chain prefix of the robot.
-    /// @return The backend to connect.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] static std::unique_ptr<RobotBackend>
-    member(std::shared_ptr<MujocoBackend> p_physics, std::string p_prefix);
-
-    // -------------------------------------------------------------------------
-    /// Resets @c mjData, writes the joint positions and the base pose of
-    /// every bound robot, then runs @c mj_forward.
-    /// @param p_robot Robot asking for the reset.
-    // -------------------------------------------------------------------------
-    void reset(RobotSession& p_robot) override;
-
-    // -------------------------------------------------------------------------
-    /// Integrates @p_dt in steps of @ref MujocoOptions::timestep. Each
-    /// physics step runs the joint loops of every bound robot, applies their
-    /// efforts with gravity compensation, then measures the joints and the
-    /// bases. Only the first bound robot steps the world: the call is a no-op
-    /// for the others (their measures are already written).
-    /// @param p_robot Robot asking for the step.
-    /// @param p_dt Duration to integrate.
-    // -------------------------------------------------------------------------
-    void step(RobotSession& p_robot, Seconds p_dt) override;
-    /// @return The time of the MuJoCo data (sum of the physics timesteps).
-    [[nodiscard]] std::optional<Seconds> time() const override;
-
-    /// @return Active contacts after the last step (@c mjData.ncon), robot
-    ///   against the floor excluded.
-    [[nodiscard]] int contacts() const override;
+    /// Moves a free body at rest (see @ref PhysicsWorld::placeBody).
+    bool placeBody(std::string const& p_body, Pose const& p_pose) override;
 
     // -------------------------------------------------------------------------
     /// Casts a ray with @c mj_ray against every geom except the robot ones
-    /// (see @ref RobotBackend::raycast).
+    /// (see @ref PhysicsWorld::raycast).
     // -------------------------------------------------------------------------
     [[nodiscard]] std::optional<double> raycast(Vector3 const& p_origin,
                                                 Vector3 const& p_direction,
@@ -363,6 +349,21 @@ public:
     // -------------------------------------------------------------------------
     [[nodiscard]] std::optional<Wrench>
     wrench(std::string const& p_link) const override;
+
+    // -------------------------------------------------------------------------
+    /// @param p_body Body name.
+    /// @return World pose of the body after the last step or reset, or
+    ///   nothing when unknown.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::optional<Pose>
+    bodyPose(std::string const& p_body) const override;
+
+    /// @return @c mjData.contact with the names of the bodies of both geoms.
+    [[nodiscard]] std::vector<Contact> contactList() const override;
+
+    /// @return Active contacts after the last step (@c mjData.ncon), robot
+    ///   against the floor excluded.
+    [[nodiscard]] int contacts() const override;
 
 private:
 

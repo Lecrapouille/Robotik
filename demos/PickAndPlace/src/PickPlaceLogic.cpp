@@ -45,9 +45,8 @@ void PickPlaceLogic::setup(robotik::RoboticCell& p_cell,
         m_detector->add(prop->id, prop->shape->color);
     }
 
-    robotik::ResourceManager const& resources =
-        p_cell.robot().resources();
-    robotik::ActuatorList const& actuators = p_cell.robot().actuators();
+    robotik::ResourceManager const& resources = p_cell.robot().getResources();
+    robotik::ActuatorSet const& actuators = p_cell.robot().getActuators();
     robotik::SkillScheduler& skills = p_cell.skills();
 
     std::vector<robotik::ResourceRequirement> arm;

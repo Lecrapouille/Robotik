@@ -47,7 +47,7 @@ void Conveyor::reset()
 
 void Conveyor::simulate(robotik::RoboticCell& p_cell, robotik::Seconds p_dt)
 {
-    if (!m_running || !p_cell.robot().resources().available(RESOURCE))
+    if (!m_running || !p_cell.robot().getResources().available(RESOURCE))
     {
         return;
     }

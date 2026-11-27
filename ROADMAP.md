@@ -16,6 +16,13 @@ failure; a demo or test shows it; the docs give its dependencies and limits;
 
 ## 📋 To do
 
+- [ ] Rename the accessors of the public headers to `get`/`set`/`is`/`has`/`count`
+  (AGENTS.md, Style), first `include/`, then the plugins and the docs
+  (doc/reference/api.md). Done: `TeachPendant`, `Robot`, `RobotRuntime`. This leaves the bare names
+  of Compages on purpose. In the same pass, replace the bare `double` of a
+  physical quantity in a public API by its SI type (AGENTS.md); done:
+  `TeachPendant`, `RobotRuntime::measureJoint/placeJoint`.
+
 ### Execution and control
 
 - [ ] Joint servo: one PD per joint with the same gains (kp 150, kd 15)
@@ -219,7 +226,7 @@ The audit ran the existing disabled sensor benchmark: 64 IMUs, 8 lidars,
 run reported 292.269 microseconds per step. This is a diagnostic sample,
 not a release baseline or a comparison with the older architecture document.
 
-Callgrind collected only `RobotSession::step` and its callees. Cache and
+Callgrind collected only `RobotRuntime::step` and its callees. Cache and
 branch figures below are simulated, not hardware counters. The model used
 32 KiB I1, 48 KiB D1 and 32 MiB LL caches, with 64-byte lines.
 
@@ -287,7 +294,7 @@ Reproduce the diagnostic cache profile, with Valgrind available:
 
 ```bash
 valgrind --tool=callgrind --cache-sim=yes --branch-sim=yes \
-  --collect-atstart=no '--toggle-collect=robotik::RobotSession::step*' \
+  --collect-atstart=no '--toggle-collect=robotik::RobotRuntime::step*' \
   --callgrind-out-file=/tmp/robotik-sensors.callgrind \
   ./build/linux-gcc-debug/bin/RobotIK-tests \
   --gtest_also_run_disabled_tests --gtest_filter='SensorBench.*'
@@ -380,7 +387,7 @@ The following headers need consumer changes or a split before moving:
 
 | Header | Target status | Dependency to remove first |
 |--------|---------------|----------------------------|
-| `Robot/Backends/PinocchioBackend.hpp` | Private implementation | Replace public `Robot::kinematics()` with robot-level frame/axis queries; migrate TeachPanel, TeachPendant and Camera; retain public `IkGoal` data separately |
+| `Robot/Kinematics.hpp` | Private implementation | Replace public `Robot::getKinematics()` with robot-level frame/axis queries; migrate TeachPanel, TeachPendant and Camera; retain public `IkGoal` data separately |
 | `Robot/Backends/MujocoBackend.hpp` | Private concrete implementation | Extract physics options and rotor specifications used by Walk/Duck; provide session construction through data; retain `RobotBackend` for custom drivers |
 | `Robot/Components/Queries.hpp` | Private lookup helper | Replace PickPlaceSkills' ECS lookup with belief access; keep privileged lookups inside the core |
 | `Robot/Components/Objects.hpp` | Split, then private ECS components | Migrate ArmSkills/PickPlaceSkills to beliefs; expose render shape data for SceneView without publishing physics markers; migrate Fly rendering and simulator inspectors |
@@ -472,6 +479,129 @@ this roadmap update.
 Order: 15 optimised baseline → 16 repeated work → 17 measured storage
 experiments. 18 headers and 19 entry points can start at any time. Recheck
 the consumers before each move: the include inventory is a snapshot.
+
+## 🧱 Ownership and names (review of 2026-11-27)
+
+The public split "what a skill sees / what runs the robot" exists in the
+methods, not in the storage: `Robot` holds the ECS world, the backend, the
+entities and the true base as `protected` members, and `RobotSession`
+derives from it only to get write access. There is no polymorphic family
+there. Other classes have the same kind of problem. One commit per line.
+
+### 20. The robot boundary — P1
+
+- [x] 20.1 `RobotContext::team` is `std::span<Robot* const>`: the pointer is
+      const, the robot is not, so a skill can command another robot and
+      bypass the scheduler leases. Use `std::span<Robot const* const>` and
+      `std::vector<Robot const*>` in `RoboticCell`. The demos read it const
+      already.
+- [x] 20.2 `RobotModel`: what does not change after the load (name, joint
+      names, types and limits, frames, tool, q/v indices, the Pinocchio
+      model), shared as `std::shared_ptr<RobotModel const>`, read with
+      `Robot::getModel()`. Done without the Pinocchio model: it stays in
+      the `Kinematics` of each robot (model and data together), so two
+      robots of one URDF do not share it yet. Mounting or removing a tool changes the joints,
+      so it makes a new model (check the callers first). A `TeachPendant`
+      waypoint keeps the joint names; `compatible()` compares the names and
+      their order, not only their count (two robots with six joints pass
+      today).
+- [x] 20.3 Rename `RobotSession` to `RobotRuntime` and make it own a `Robot`
+      by value (composition, `friend class RobotRuntime` in `Robot`). Move to
+      the runtime: the `World&`, the root entity, `m_world_from_urdf`, the
+      backend, the true base, the URDF and tool loading, `propagate()`.
+      `Robot` becomes `final`, without `protected` nor `virtual`, and does
+      not include the Compages world. `RobotBackend`, `GraspModel` and
+      `RoboticCell` take a `RobotRuntime&`; the skill gets
+      `runtime.robot()`. `OpenRobot.hpp`: `OpenedRobot` holds a
+      `RobotRuntime`; with task 19 its members become private.
+      Several robots stay in `RoboticCell` (`robots()`), not in the runtime.
+- [x] 20.4 No entity on the skill side: `JointSet::add(name, Entity)`,
+      `JointSet::link()` and `m_links` move to the runtime (one entity per
+      `JointId`). The sensors keep their `m_holder` private; the runtime
+      writes the reading to the entity.
+- [x] 20.5 Sensors read only for skills. `Robot::getSensors()` returns a
+      `SensorList&`, so a skill can call `Camera::source(nullptr)`,
+      `seed()` or `invalidate()`. Give `SensorList const&` to the skill,
+      make the reading methods `const` (caches `mutable`), and reach
+      `source`, `seed`, `invalidate` only from `RobotRuntime`. A real
+      command of a sensor (trigger a capture, pan a camera) is an actuator.
+- [x] 20.6 `DeviceList` / `DeviceSet`: the base class holds the devices as
+      `protected` and the derived owner adds `add`. Done as one class
+      `DeviceSet` whose `add` is private (`friend class RobotRuntime`);
+      `RobotRuntime::addSensor` / `addActuator` are the only way to add.
+- [x] 20.7 `PinocchioBackend` is not a `RobotBackend`: rename it
+      `Kinematics` (with the privatisation of task 18). `SceneView` gives
+      rendering hooks, it is not a backend: move it out of `Backends/`.
+- [x] 20.8 `RobotBackend` is the hardware abstraction layer of one robot
+      (`attach`, `reset`, `step`: commands to the actuators, encoders to
+      `measureJoint`), but it also measures and changes the simulated world
+      (`raycast`, `wrench`, `bodyPose`, `contactList`, `contacts`, `weld`,
+      `placeBody`), that a hardware driver leaves empty. Move these to a
+      `PhysicsWorld` interface, only in simulation: `MujocoBackend`
+      implements both, a kinematic model or a driver only `RobotBackend`.
+      Simulated sensors, the truth and `ScenarioLogic::simulate` use a
+      `PhysicsWorld*` (null on hardware); a hardware sensor reads a source
+      given by the driver, as `FrameSource` for the camera. After 20.3.
+- [x] 20.9 Hardware contract of `RobotBackend`, written before a first
+      driver:
+      - Time: in simulation `step(dt)` moves the world by `dt`; on hardware
+        time moves alone and `step` writes and reads at the bus period. The
+        contract says both, and what a late step does.
+      - Errors: a lost link or a drive fault is a `Result` or a fault
+        (`Faults`, `getHealth()`), never an exception inside a step.
+      - Safety: emergency stop and hardware limits are in the driver, not in
+        the skills.
+      Done: the contract is in `RobotBackend.hpp` and
+      doc/concepts/architecture/03-robot-runtime.md; `RobotBackend::Health`,
+      and a backend that is not healthy fails the actuator resources
+      (`tests/Robot/TestBackendHealth.cpp`).
+
+Acceptance: `make check`, `make check-layers`; compile-time tests (as
+`TestHiddenBlackThorn.cpp`) that code holding a `Robot&` or a
+`RobotContext&` cannot call `Camera::seed`, write a joint of a team robot,
+nor reach an entity.
+
+### 21. Names and ownership in the other layers — P2
+
+- [ ] 21.1 `struct Scenario : RoboticCellDescription`: inheritance of data.
+      A scenario has a cell and a verdict: `Scenario { RoboticCellDescription
+      cell; ... }`.
+- [ ] 21.2 `PlanExecutor` prepares, compiles and runs plans, and carries the
+      state of two planning methods. First extract the domain and problem
+      preparation (read, check, build the PDDL problem); then move the PA-BT
+      growth state next to `Backchaining.hpp`. Step tracking and replanning
+      stay in the executor.
+- [ ] 21.3 `RoboticCell` builds what it runs (`buildDevices`,
+      `connectBackend`, `addRigidProps`, URDF links). A cell builder makes
+      the parts from the `RoboticCellDescription`; the cell keeps their
+      lifetime and the step order. Same work as "share physical model
+      assembly between openRobot and RoboticCell" (task 19): do them
+      together.
+- [ ] 21.4 Plugin classes: `PluginManager` loads one library (a
+      `PluginLibrary`); `PluginSession` is one more "session"; the plugin
+      side `Host` and the host side `PluginHost` are two names for one
+      thing. Rename what task 19 keeps public; what it makes private can
+      wait.
+- [ ] 21.5 `Task/Scheduler.hpp` holds `SkillScheduler`: rename the file.
+- [ ] 21.6 Simulator `UiState` mixes three lifetimes: the application
+      (preferences, layout), the loaded package (open files, caches,
+      experiment) and the episode (manual faults, run history). Split it in
+      three; the episode state is made again at each load, so nothing of the
+      previous scenario stays.
+
+### 22. Architecture documentation — after 20.3
+
+- [x] Move `doc/concepts/06-architecture.md` to `doc/concepts/architecture/`:
+      `README.md` (index, principle, three layers, why), `01-decision-path.md`
+      (decision path, one step, time), `02-robot.md` (model, state,
+      backend, JointSet, fast data), `03-robot-runtime.md` (new: `Robot`,
+      `RobotModel`, `RobotRuntime`, who sees what), `04-resources.md`,
+      `05-truth-and-belief.md` (sensors, WorldModel, who owns which state),
+      `06-hosts-and-layout.md`. Update the links (AGENTS.md, skills,
+      concepts README) and the rules of AGENTS.md; `make check-links`.
+
+Order: 20.1 → 20.2 → 20.3 → 20.4 → 20.5 → 20.6 → 20.7 → 20.8 → 20.9 → 22; then 21 in any
+order (21.3 with task 19, 21.4 after task 19).
 
 ## 🔭 Later
 

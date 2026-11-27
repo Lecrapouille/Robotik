@@ -10,7 +10,7 @@
 #include "RobotIK/Robot/Backends/RobotBackend.hpp"
 #include "RobotIK/Robot/Components/Objects.hpp"
 #include "RobotIK/Robot/Components/Queries.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -29,15 +29,15 @@ std::string RigidGrasp::weldName(std::string const& p_gripper,
     return "robotik_grasp_" + p_gripper + "_" + p_object;
 }
 
-void RigidGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
+void RigidGrasp::update(RobotRuntime& p_robot, HeldObjects& p_held)
 {
-    RobotBackend* backend = p_robot.backend();
-    if (backend == nullptr || m_objects.empty())
+    PhysicsWorld* physics = p_robot.getPhysics();
+    if (physics == nullptr || m_objects.empty())
     {
         return;
     }
-    compages::world::World& world = p_robot.world();
-    ActuatorSet& actuators = p_robot.actuators();
+    compages::world::World& world = p_robot.getWorld();
+    ActuatorSet& actuators = p_robot.robot().getActuators();
     for (std::size_t i = 0; i < actuators.size(); ++i)
     {
         auto* gripper = dynamic_cast<VacuumGripper*>(&actuators[i]);
@@ -65,12 +65,13 @@ void RigidGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
         if (!gripper->suction() && held != nullptr)
         {
             // Release: the weld goes, the object falls.
-            (void)backend->weld(weldName(gripper->name(), held->id), false);
+            (void)physics->weld(weldName(gripper->name(), held->id), false);
             p_held.drop(p_robot, *gripper);
         }
         else if (gripper->suction() && !held_id.valid())
         {
-            Vector3 const tip = p_robot.trueBase().pose * gripper->tip(p_robot);
+            Vector3 const tip =
+                p_robot.getTrueBase().pose * gripper->tip(p_robot.robot());
             Graspable const* best = nullptr;
             double best_gap = CONTACT_DISTANCE_M;
             compages::world::EntityId best_id{};
@@ -99,7 +100,7 @@ void RigidGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
                 }
             }
             if (best != nullptr &&
-                backend->weld(weldName(gripper->name(), best->id), true))
+                physics->weld(weldName(gripper->name(), best->id), true))
             {
                 p_held.hold(p_robot, *gripper, best_id);
             }

@@ -52,10 +52,11 @@ static void skillEvents(robotik::Simulation const& p_simulation,
 {
     robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     robotik::ResourceManager const& resources =
-        p_simulation.cell().robot().resources();
+        p_simulation.cell().robot().getResources();
     std::span<robotik::SkillRun const> const trace = skills.trace();
     // Last line of each skill: the same line again only counts it.
-    std::vector<std::size_t> previous(skills.size(), static_cast<std::size_t>(-1));
+    std::vector<std::size_t> previous(skills.size(),
+                                      static_cast<std::size_t>(-1));
     for (std::size_t i = 0; i < trace.size(); ++i)
     {
         robotik::SkillRun const& run = trace[i];
@@ -71,9 +72,15 @@ static void skillEvents(robotik::Simulation const& p_simulation,
                 return;
             }
             before = p_events.size();
-            p_events.push_back({ p_time, RunEventKind::Skill, p_problem, p_color,
-                                 std::move(p_text), SelectionKind::Skill,
-                                 name, 1U, p_time });
+            p_events.push_back({ p_time,
+                                 RunEventKind::Skill,
+                                 p_problem,
+                                 p_color,
+                                 std::move(p_text),
+                                 SelectionKind::Skill,
+                                 name,
+                                 1U,
+                                 p_time });
         };
         double const start = run.start.value();
         double const lasted = run.end.value() - start;
@@ -150,7 +157,7 @@ static void otherEvents(App const& p_app, std::vector<RunEvent>& p_events)
 {
     robotik::Simulation const& simulation = *p_app.simulation;
     robotik::ResourceManager const& resources =
-        simulation.cell().robot().resources();
+        simulation.cell().robot().getResources();
     TimelineMemory const& memory = p_app.ui.timeline_memory;
     for (FaultSpan const& span : memory.faults)
     {
@@ -213,8 +220,8 @@ static void otherEvents(App const& p_app, std::vector<RunEvent>& p_events)
             continue;
         }
         bool const failed = check.verdict == robotik::Check::Verdict::Failed;
-        std::string text = (failed ? "Assertion failed: " : "Assertion holds: ") +
-                           check.text;
+        std::string text =
+            (failed ? "Assertion failed: " : "Assertion holds: ") + check.text;
         if (failed && !check.detail.empty())
         {
             text += " (" + check.detail + ")";
@@ -244,11 +251,11 @@ static bool contains(std::string const& p_text, char const* p_part)
 /// Kept by the filters.
 static bool kept(EventsView const& p_view, RunEvent const& p_event)
 {
-    bool const kind = (p_event.kind == RunEventKind::Skill && p_view.skills) ||
-                      (p_event.kind == RunEventKind::Resource &&
-                       p_view.resources) ||
-                      (p_event.kind == RunEventKind::Plan && p_view.plan) ||
-                      (p_event.kind == RunEventKind::Verdict && p_view.verdicts);
+    bool const kind =
+        (p_event.kind == RunEventKind::Skill && p_view.skills) ||
+        (p_event.kind == RunEventKind::Resource && p_view.resources) ||
+        (p_event.kind == RunEventKind::Plan && p_view.plan) ||
+        (p_event.kind == RunEventKind::Verdict && p_view.verdicts);
     return kind && (!p_view.problems_only || p_event.problem) &&
            contains(p_event.text, p_view.filter.data());
 }

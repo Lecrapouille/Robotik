@@ -7,7 +7,7 @@
 
 #include "RobotIK/Task/Story/Story.hpp"
 
-#include "RobotIK/Robot/Backends/SceneView.hpp"
+#include "RobotIK/Robot/SceneView.hpp"
 #include "RobotIK/Task/RoboticCell.hpp"
 #include "RobotIK/Task/RoboticCellDescription.hpp"
 
@@ -58,14 +58,16 @@ static double flat(Vector3 const& p_a, Vector3 const& p_b)
 static std::size_t words(std::string const& p_text)
 {
     std::istringstream stream(p_text);
-    return static_cast<std::size_t>(std::distance(std::istream_iterator<std::string>(stream),
-                                                  std::istream_iterator<std::string>()));
+    return static_cast<std::size_t>(
+        std::distance(std::istream_iterator<std::string>(stream),
+                      std::istream_iterator<std::string>()));
 }
 
 // ----------------------------------------------------------------------------
-Story::Story(StorySpec const& p_spec,
-             WorldDescription const& p_world,
-             std::function<Result<Condition>(std::string_view)> const& p_compile)
+Story::Story(
+    StorySpec const& p_spec,
+    WorldDescription const& p_world,
+    std::function<Result<Condition>(std::string_view)> const& p_compile)
     : m_spec(p_spec)
 {
     for (EntitySpec const& entity : p_world.entities)
@@ -118,7 +120,8 @@ Story::Story(StorySpec const& p_spec,
             if (!actions[i]->condition.empty())
             {
                 m_waits.emplace(actions[i],
-                                compile(actions[i]->condition, where + ", " + actions[i]->where));
+                                compile(actions[i]->condition,
+                                        where + ", " + actions[i]->where));
             }
         }
     }
@@ -190,7 +193,8 @@ std::size_t Story::eventIndex(std::string_view p_event) const
             return i;
         }
     }
-    throw std::invalid_argument("the story has no event '" + std::string(p_event) + "'");
+    throw std::invalid_argument("the story has no event '" +
+                                std::string(p_event) + "'");
 }
 
 std::size_t Story::actorIndex(std::string_view p_actor) const
@@ -202,21 +206,25 @@ std::size_t Story::actorIndex(std::string_view p_actor) const
             return i;
         }
     }
-    throw std::invalid_argument("'" + std::string(p_actor) + "' is no actor of the world");
+    throw std::invalid_argument("'" + std::string(p_actor) +
+                                "' is no actor of the world");
 }
 
-bool Story::holds(Condition const& p_condition, RoboticCell const& /*p_cell*/) const
+bool Story::holds(Condition const& p_condition,
+                  RoboticCell const& /*p_cell*/) const
 {
     return evaluate(p_condition, m_metrics).holds;
 }
 
-Vector3 Story::where(RoboticCell const& p_cell, StoryTarget const& p_target) const
+Vector3 Story::where(RoboticCell const& p_cell,
+                     StoryTarget const& p_target) const
 {
     if (p_target.point)
     {
         return *p_target.point;
     }
-    if (auto const place = m_spec.places.find(p_target.reference); place != m_spec.places.end())
+    if (auto const place = m_spec.places.find(p_target.reference);
+        place != m_spec.places.end())
     {
         return place->second;
     }
@@ -226,17 +234,23 @@ Vector3 Story::where(RoboticCell const& p_cell, StoryTarget const& p_target) con
 Vector3 Story::positionOf(RoboticCell& p_cell, ActorState const& p_actor) const
 {
     auto const at = p_cell.entity(p_actor.id).position();
-    return Vector3(static_cast<double>(at.x), static_cast<double>(at.y), static_cast<double>(at.z));
+    return Vector3(static_cast<double>(at.x),
+                   static_cast<double>(at.y),
+                   static_cast<double>(at.z));
 }
 
-void Story::place(RoboticCell& p_cell, ActorState& p_actor, Vector3 const& p_at) const
+void Story::place(RoboticCell& p_cell,
+                  ActorState& p_actor,
+                  Vector3 const& p_at) const
 {
     // The actors hang from the Z-up frame of the world: their local pose is
     // the world one.
     p_cell.entity(p_actor.id)
-        .position(static_cast<float>(p_at.x), static_cast<float>(p_at.y), static_cast<float>(p_at.z))
-        .rotation(compages::Quatf::fromAngleAxis(Radians(p_actor.heading),
-                                                 compages::Vector3f(0.0F, 0.0F, 1.0F)));
+        .position(static_cast<float>(p_at.x),
+                  static_cast<float>(p_at.y),
+                  static_cast<float>(p_at.z))
+        .rotation(compages::Quatf::fromAngleAxis(
+            Radians(p_actor.heading), compages::Vector3f(0.0F, 0.0F, 1.0F)));
 }
 
 // ----------------------------------------------------------------------------
@@ -267,8 +281,9 @@ bool Story::walk(RoboticCell& p_cell,
     // Slower while it still turns a lot, but never still: on an arc, the
     // turn follows the steps.
     double const speed = p_speed * std::max(SLOWEST, std::cos(error));
-    double rate = std::min(spec.turn_rate, spec.turn_radius > 0.0 ? speed / spec.turn_radius
-                                                                  : spec.turn_rate);
+    double rate = std::min(spec.turn_rate,
+                           spec.turn_radius > 0.0 ? speed / spec.turn_radius
+                                                  : spec.turn_rate);
     if (distance < 2.0 * spec.turn_radius)
     {
         // Near the goal, a tighter turn: else it circles round a goal
@@ -276,7 +291,8 @@ bool Story::walk(RoboticCell& p_cell,
         rate = spec.turn_rate;
     }
     double const turn_step = rate * p_dt.value();
-    p_actor.heading = wrap(p_actor.heading + std::clamp(error, -turn_step, turn_step));
+    p_actor.heading =
+        wrap(p_actor.heading + std::clamp(error, -turn_step, turn_step));
     double const step = std::min(speed * p_dt.value(), distance - p_stop);
     here.x += step * std::cos(p_actor.heading);
     here.y += step * std::sin(p_actor.heading);
@@ -298,20 +314,25 @@ void Story::fire(RoboticCell& p_cell, EventState& p_event)
                 p_event.phase = EventPhase::Pending;
                 return;
             }
-            finish(p_cell, m_events[actor.owner], "cancelled by " + p_event.spec->id);
+            finish(p_cell,
+                   m_events[actor.owner],
+                   "cancelled by " + p_event.spec->id);
         }
         actor.owner = static_cast<std::size_t>(&p_event - m_events.data());
     }
     p_event.armed = false;
     ++p_event.starts;
     p_event.delay_left = Seconds(p_event.spec->delay);
-    p_event.phase = p_event.spec->delay > 0.0 ? EventPhase::Delaying : EventPhase::Running;
+    p_event.phase =
+        p_event.spec->delay > 0.0 ? EventPhase::Delaying : EventPhase::Running;
     p_event.frames = { Frame{ &p_event.spec->actions, 0U } };
     p_event.progress = {};
     note(p_cell, p_event.spec->id + ": started");
 }
 
-void Story::finish(RoboticCell& p_cell, EventState& p_event, std::string const& p_how)
+void Story::finish(RoboticCell& p_cell,
+                   EventState& p_event,
+                   std::string const& p_how)
 {
     if (p_how == "done")
     {
@@ -322,13 +343,15 @@ void Story::finish(RoboticCell& p_cell, EventState& p_event, std::string const& 
         ++p_event.failures;
     }
     if (p_event.actor != NONE &&
-        m_actors[p_event.actor].owner == static_cast<std::size_t>(&p_event - m_events.data()))
+        m_actors[p_event.actor].owner ==
+            static_cast<std::size_t>(&p_event - m_events.data()))
     {
         m_actors[p_event.actor].owner = NONE;
     }
     std::uint32_t const repeat = p_event.spec->repeat;
-    p_event.phase = (repeat == 0U || p_event.starts < repeat) ? EventPhase::Waiting
-                                                               : EventPhase::Finished;
+    p_event.phase = (repeat == 0U || p_event.starts < repeat)
+                        ? EventPhase::Waiting
+                        : EventPhase::Finished;
     // Without a start condition, a repeated event goes again at once.
     p_event.armed = !p_event.start.has_value();
     p_event.frames.clear();
@@ -374,8 +397,11 @@ void Story::advance(RoboticCell& p_cell, EventState& p_event, Seconds p_dt)
                 draw -= action.branches[b].weight;
             }
             ++frame.next;
-            note(p_cell, p_event.spec->id + ": chose branch " + std::to_string(chosen + 1U));
-            p_event.frames.push_back(Frame{ &action.branches[chosen].actions, 0U });
+            note(p_cell,
+                 p_event.spec->id + ": chose branch " +
+                     std::to_string(chosen + 1U));
+            p_event.frames.push_back(
+                Frame{ &action.branches[chosen].actions, 0U });
             continue;
         }
         Outcome const outcome = play(p_cell, p_event, action, dt);
@@ -400,8 +426,10 @@ void Story::advance(RoboticCell& p_cell, EventState& p_event, Seconds p_dt)
 }
 
 // ----------------------------------------------------------------------------
-Story::Outcome
-Story::play(RoboticCell& p_cell, EventState& p_event, StoryAction const& p_action, Seconds p_dt)
+Story::Outcome Story::play(RoboticCell& p_cell,
+                           EventState& p_event,
+                           StoryAction const& p_action,
+                           Seconds p_dt)
 {
     using Type = StoryAction::Type;
     Progress& progress = p_event.progress;
@@ -410,7 +438,8 @@ Story::play(RoboticCell& p_cell, EventState& p_event, StoryAction const& p_actio
     progress.elapsed += p_dt;
     double const elapsed = progress.elapsed.value();
     bool const late = p_action.timeout > 0.0 && elapsed > p_action.timeout;
-    ActorState* actor = p_event.actor == NONE ? nullptr : &m_actors[p_event.actor];
+    ActorState* actor =
+        p_event.actor == NONE ? nullptr : &m_actors[p_event.actor];
 
     auto speedOf = [&]() -> double
     {
@@ -418,9 +447,11 @@ Story::play(RoboticCell& p_cell, EventState& p_event, StoryAction const& p_actio
         {
             return *p_action.speed;
         }
-        return p_action.gait == Gait::Run ? actor->spec->run_speed : actor->spec->walk_speed;
+        return p_action.gait == Gait::Run ? actor->spec->run_speed
+                                          : actor->spec->walk_speed;
     };
-    auto gaitRole = [&]() { return std::string(p_action.gait == Gait::Run ? "run" : "walk"); };
+    auto gaitRole = [&]()
+    { return std::string(p_action.gait == Gait::Run ? "run" : "walk"); };
 
     switch (p_action.type)
     {
@@ -428,9 +459,15 @@ Story::play(RoboticCell& p_cell, EventState& p_event, StoryAction const& p_actio
         {
             StoryTarget const& target = p_action.targets.front();
             bool const entity = !target.point && !isPlace(target.reference);
-            double const stop =
-                p_action.distance > 0.0 ? p_action.distance : (entity ? ENTITY_STOP : PLACE_STOP);
-            if (walk(p_cell, *actor, where(p_cell, target), stop, speedOf(), p_dt))
+            double const stop = p_action.distance > 0.0
+                                    ? p_action.distance
+                                    : (entity ? ENTITY_STOP : PLACE_STOP);
+            if (walk(p_cell,
+                     *actor,
+                     where(p_cell, target),
+                     stop,
+                     speedOf(),
+                     p_dt))
             {
                 return Outcome::Done;
             }
@@ -440,14 +477,16 @@ Story::play(RoboticCell& p_cell, EventState& p_event, StoryAction const& p_actio
         case Type::FollowPath:
         {
             std::size_t const last = p_action.targets.size() - 1U;
-            Vector3 const goal = where(p_cell, p_action.targets[progress.point]);
+            Vector3 const goal =
+                where(p_cell, p_action.targets[progress.point]);
             if (walk(p_cell, *actor, goal, PATH_TOLERANCE, speedOf(), p_dt))
             {
                 if (progress.point == last && !p_action.loop)
                 {
                     return Outcome::Done;
                 }
-                progress.point = progress.point == last ? 0U : progress.point + 1U;
+                progress.point =
+                    progress.point == last ? 0U : progress.point + 1U;
             }
             actor->role = gaitRole();
             return late ? Outcome::Failed : Outcome::Busy;
@@ -474,7 +513,12 @@ Story::play(RoboticCell& p_cell, EventState& p_event, StoryAction const& p_actio
             }
             if (progress.point == 1U)
             {
-                if (!walk(p_cell, *actor, goal, p_action.distance, speedOf(), p_dt))
+                if (!walk(p_cell,
+                          *actor,
+                          goal,
+                          p_action.distance,
+                          speedOf(),
+                          p_dt))
                 {
                     actor->role = gaitRole();
                     return Outcome::Busy;
@@ -503,7 +547,8 @@ Story::play(RoboticCell& p_cell, EventState& p_event, StoryAction const& p_actio
             if (first)
             {
                 progress.length = p_action.duration_max > 0.0
-                                      ? m_random.uniform(p_action.duration, p_action.duration_max)
+                                      ? m_random.uniform(p_action.duration,
+                                                         p_action.duration_max)
                                       : p_action.duration;
             }
             return elapsed >= progress.length ? Outcome::Done : Outcome::Busy;
@@ -520,25 +565,36 @@ Story::play(RoboticCell& p_cell, EventState& p_event, StoryAction const& p_actio
         {
             if (first)
             {
-                progress.length = p_action.duration > 0.0
-                                      ? p_action.duration
-                                      : std::max(1.0, static_cast<double>(words(p_action.text)) /
-                                                          WORDS_PER_SECOND);
-                m_utterances.push_back(
-                    { p_cell.time(), actor->id, p_action.name, p_action.text, p_action.to });
-                actor->speaking_until = p_cell.time() + Seconds(progress.length);
-                note(p_cell, actor->id + " says '" + p_action.text + "'" +
-                                 (p_action.to.empty() ? "" : " to " + p_action.to));
+                progress.length =
+                    p_action.duration > 0.0
+                        ? p_action.duration
+                        : std::max(1.0,
+                                   static_cast<double>(words(p_action.text)) /
+                                       WORDS_PER_SECOND);
+                m_utterances.push_back({ p_cell.time(),
+                                         actor->id,
+                                         p_action.name,
+                                         p_action.text,
+                                         p_action.to });
+                actor->speaking_until =
+                    p_cell.time() + Seconds(progress.length);
+                note(p_cell,
+                     actor->id + " says '" + p_action.text + "'" +
+                         (p_action.to.empty() ? "" : " to " + p_action.to));
                 if (m_view != nullptr)
                 {
-                    m_view->say(p_cell.entity(actor->id), p_action.text, actor->spec->height + 0.25);
+                    m_view->say(p_cell.entity(actor->id),
+                                p_action.text,
+                                actor->spec->height + 0.25);
                 }
             }
             if (!p_action.to.empty())
             {
-                Vector3 const goal = where(p_cell, StoryTarget{ p_action.to, std::nullopt });
+                Vector3 const goal =
+                    where(p_cell, StoryTarget{ p_action.to, std::nullopt });
                 Vector3 const here = positionOf(p_cell, *actor);
-                turn(*actor, std::atan2(goal.y - here.y, goal.x - here.x), p_dt);
+                turn(
+                    *actor, std::atan2(goal.y - here.y, goal.x - here.x), p_dt);
                 place(p_cell, *actor, here);
             }
             actor->role = "talk";
@@ -548,7 +604,8 @@ Story::play(RoboticCell& p_cell, EventState& p_event, StoryAction const& p_actio
         {
             actor->role = p_action.name;
             actor->loop = p_action.loop;
-            double const length = p_action.duration > 0.0 ? p_action.duration : PLAY_LENGTH;
+            double const length =
+                p_action.duration > 0.0 ? p_action.duration : PLAY_LENGTH;
             return elapsed >= length ? Outcome::Done : Outcome::Busy;
         }
         case Type::Expression:
@@ -556,7 +613,9 @@ Story::play(RoboticCell& p_cell, EventState& p_event, StoryAction const& p_actio
             actor->expression = p_action.name;
             actor->expression_weight = p_action.value;
             actor->expression_until =
-                p_action.duration > 0.0 ? p_cell.time() + Seconds(p_action.duration) : Seconds(-1.0);
+                p_action.duration > 0.0
+                    ? p_cell.time() + Seconds(p_action.duration)
+                    : Seconds(-1.0);
             actor->face_set = false;
             return Outcome::Done;
         }
@@ -597,7 +656,8 @@ Story::play(RoboticCell& p_cell, EventState& p_event, StoryAction const& p_actio
             for (std::string const& id : p_action.events)
             {
                 EventState& event = m_events[eventIndex(id)];
-                if (event.phase == EventPhase::Running || event.phase == EventPhase::Delaying ||
+                if (event.phase == EventPhase::Running ||
+                    event.phase == EventPhase::Delaying ||
                     event.phase == EventPhase::Pending)
                 {
                     finish(p_cell, event, "cancelled by " + p_event.spec->id);
@@ -688,7 +748,8 @@ void Story::show(RoboticCell& p_cell, SceneView* p_view)
                 p_view->say(p_cell.entity(actor.id), {}, 0.0);
             }
         }
-        if (actor.expression_until.value() >= 0.0 && p_cell.time() >= actor.expression_until)
+        if (actor.expression_until.value() >= 0.0 &&
+            p_cell.time() >= actor.expression_until)
         {
             actor.expression_until = Seconds(-1.0);
             actor.expression_weight = 0.0;
@@ -706,13 +767,15 @@ void Story::show(RoboticCell& p_cell, SceneView* p_view)
         }
         // A role without a clip in the actor plays the clip of that name.
         auto const clip = actor.spec->clips.find(role);
-        std::string const name = clip != actor.spec->clips.end() ? clip->second : role;
+        std::string const name =
+            clip != actor.spec->clips.end() ? clip->second : role;
         bool const moving = role == "walk" || role == "run";
         p_view->animate(entity, name, Seconds(actor.spec->fade), actor.loop,
                         moving ? actor.speed : 0.0);
         if (!actor.face_set && !actor.expression.empty())
         {
-            p_view->expression(entity, actor.expression, actor.expression_weight);
+            p_view->expression(
+                entity, actor.expression, actor.expression_weight);
             actor.face_set = true;
         }
     }
@@ -745,16 +808,18 @@ double Story::requireVariable(std::string_view p_name) const
     auto const found = m_variables.find(p_name);
     if (found == m_variables.end())
     {
-        throw std::invalid_argument("the story has no variable '" + std::string(p_name) + "'");
+        throw std::invalid_argument("the story has no variable '" +
+                                    std::string(p_name) + "'");
     }
     return found->second;
 }
 
 bool Story::said(std::string_view p_speaker, std::string_view p_id) const
 {
-    return std::ranges::any_of(m_utterances,
-                               [&](Utterance const& p_utterance)
-                               { return p_utterance.speaker == p_speaker && p_utterance.id == p_id; });
+    return std::ranges::any_of(
+        m_utterances,
+        [&](Utterance const& p_utterance)
+        { return p_utterance.speaker == p_speaker && p_utterance.id == p_id; });
 }
 
 double Story::requireSpeed(std::string_view p_actor) const
@@ -779,7 +844,9 @@ double Story::requireHeading(std::string_view p_actor) const
 
 bool Story::isActor(std::string_view p_id) const
 {
-    return std::ranges::any_of(m_actors, [&](ActorState const& p_actor) { return p_actor.id == p_id; });
+    return std::ranges::any_of(m_actors,
+                               [&](ActorState const& p_actor)
+                               { return p_actor.id == p_id; });
 }
 
 bool Story::isPlace(std::string_view p_name) const
@@ -787,7 +854,8 @@ bool Story::isPlace(std::string_view p_name) const
     return m_spec.places.contains(p_name);
 }
 
-double Story::expression(std::string_view p_actor, std::string_view p_name) const
+double Story::expression(std::string_view p_actor,
+                         std::string_view p_name) const
 {
     ActorState const& actor = m_actors[actorIndex(p_actor)];
     return actor.expression == p_name ? actor.expression_weight : 0.0;
@@ -798,7 +866,8 @@ Vector3 Story::requirePlace(std::string_view p_name) const
     auto const found = m_spec.places.find(p_name);
     if (found == m_spec.places.end())
     {
-        throw std::invalid_argument("the story has no place '" + std::string(p_name) + "'");
+        throw std::invalid_argument("the story has no place '" +
+                                    std::string(p_name) + "'");
     }
     return found->second;
 }

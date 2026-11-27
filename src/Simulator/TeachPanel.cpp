@@ -7,7 +7,7 @@
 
 #include "Ui.hpp"
 
-#include "RobotIK/Robot/Backends/PinocchioBackend.hpp"
+#include "RobotIK/Robot/Kinematics.hpp"
 #include "RobotIK/Robot/Components/Robots.hpp"
 #include "RobotIK/Robot/Actuators.hpp"
 
@@ -33,7 +33,7 @@ void takeArm(App& p_app)
     }
     p_app.teach.manual = true;
     p_app.simulation->cell().suspend(true);
-    p_app.simulation->cell().robot().joints().hold();
+    p_app.simulation->cell().robot().getJoints().hold();
 }
 
 void syncTeachAxes(App& p_app, bool p_visible)
@@ -43,8 +43,8 @@ void syncTeachAxes(App& p_app, bool p_visible)
         return;
     }
     TeachWatch& teach = p_app.teach;
-    robotik::RobotSession& robot = p_app.simulation->cell().robot();
-    std::string const& frame = teach.pendant.frame(robot);
+    robotik::Robot& robot = p_app.simulation->cell().robot();
+    std::string const& frame = teach.pendant.getFrame(robot);
     bool const show =
         p_visible && teach.show_axes && !frame.empty() && !p_app.owns_clock;
     if (!teach.axes_made || !p_app.world->alive(teach.axes[0].id()))
@@ -66,7 +66,7 @@ void syncTeachAxes(App& p_app, bool p_visible)
                 p_app.scene->box(NAMES[i],
                                  compages::renderer::color(
                                      COLORS[i][0], COLORS[i][1], COLORS[i][2]));
-            teach.axes[i].parent(robot.root());
+            teach.axes[i].parent(p_app.simulation->cell().runtime().getRoot());
             p_app.scene_view->overlay(teach.axes[i]);
         }
         teach.axes_made = true;
@@ -113,10 +113,11 @@ static void syncMarkers(App& p_app)
     {
         return;
     }
-    std::span<robotik::TeachWaypoint const> const points =
-        p_app.teach.pendant.waypoints();
+    std::span<robotik::TeachPendant::Waypoint const> const points =
+        p_app.teach.pendant.getWaypoints();
     std::vector<compages::world::Entity>& markers = p_app.teach.markers;
-    compages::world::Entity const root = p_app.simulation->cell().robot().root();
+    compages::world::Entity const root =
+        p_app.simulation->cell().runtime().getRoot();
     for (std::size_t i = 0; i < points.size(); ++i)
     {
         if (i == markers.size() || !p_app.world->alive(markers[i].id()))
@@ -203,7 +204,7 @@ static bool changeTool(App& p_app)
 }
 
 /// Actuates the mounted tool: suction, finger close, or spindle.
-static void triggerTool(App& p_app, robotik::RobotSession& p_robot)
+static void triggerTool(App& p_app, robotik::Robot& p_robot)
 {
     // Kind of tool: the model key of its asset id (robotik.tools.vacuum).
     robotik::EntitySpec const* tool =
@@ -214,11 +215,11 @@ static void triggerTool(App& p_app, robotik::RobotSession& p_robot)
         mounted =
             tool->model_ref.substr(tool->model_ref.find_last_of('.') + 1U);
     }
-    robotik::JointSet& joints = p_robot.joints();
+    robotik::JointSet& joints = p_robot.getJoints();
     if (mounted == "vacuum")
     {
         robotik::VacuumGripper* gripper =
-            p_robot.actuators().first<robotik::VacuumGripper>();
+            p_robot.getActuators().first<robotik::VacuumGripper>();
         if (gripper == nullptr)
         {
             ImGui::TextDisabled("Trigger: no suction cup");
@@ -318,11 +319,11 @@ static void triggerTool(App& p_app, robotik::RobotSession& p_robot)
 /// Greyed when the joints above the frame cannot move along @p_axis.
 static void jogRow(App& p_app,
                    char const* p_axis,
-                   robotik::Vector3 const& p_shift,
-                   robotik::Vector3 const& p_turn,
+                   robotik::Vector3m const& p_shift,
+                   robotik::Vector3rad const& p_turn,
                    bool p_movable)
 {
-    robotik::RobotSession& robot = p_app.simulation->cell().robot();
+    robotik::Robot& robot = p_app.simulation->cell().robot();
     ImGui::PushID(p_axis);
     ImGui::BeginDisabled(!p_movable);
     char const* const why = "The joints above this frame cannot move it "
@@ -331,10 +332,7 @@ static void jogRow(App& p_app,
     if (ImGui::Button("-", ImVec2(-1.0F, 0.0F)))
     {
         takeArm(p_app);
-        p_app.teach.pendant.jogTool(
-            robot,
-            robotik::Vector3(-p_shift.x, -p_shift.y, -p_shift.z),
-            robotik::Vector3(-p_turn.x, -p_turn.y, -p_turn.z));
+        p_app.teach.pendant.jogTool(robot, -p_shift, -p_turn);
     }
     if (!p_movable)
     {
@@ -364,33 +362,34 @@ static void jogRow(App& p_app,
 /// other link: a foot of a humanoid, a leg tip of a hexapod...
 static void frameChoice(App& p_app)
 {
-    robotik::RobotSession& robot = p_app.simulation->cell().robot();
+    robotik::Robot& robot = p_app.simulation->cell().robot();
     robotik::TeachPendant& pendant = p_app.teach.pendant;
-    std::string const& current = pendant.frame(robot);
-    std::string const work = robot.tool().empty() ? std::string("(none)")
-                                                  : robot.tool() + "  (tool)";
+    std::string const& current = pendant.getFrame(robot);
+    std::string const work = robot.getTool().empty()
+                                 ? std::string("(none)")
+                                 : robot.getTool() + "  (tool)";
     if (!ImGui::BeginCombo("##frame",
-                           current == robot.tool() ? work.c_str()
-                                                   : current.c_str()))
+                           current == robot.getTool() ? work.c_str()
+                                                      : current.c_str()))
     {
         return;
     }
-    if (ImGui::Selectable(work.c_str(), current == robot.tool()))
+    if (ImGui::Selectable(work.c_str(), current == robot.getTool()))
     {
-        pendant.frame({});
+        pendant.setFrame({});
     }
     ImGui::Separator();
-    for (std::string const& link : robot.kinematics().linkFrames())
+    for (std::string const& link : robot.getKinematics().linkFrames())
     {
         // The base and the links fixed to it: no joint moves them.
-        if (link == robot.tool() ||
-            robot.kinematics().requireChainDofs(link) == 0U)
+        if (link == robot.getTool() ||
+            robot.getKinematics().requireChainDofs(link) == 0U)
         {
             continue;
         }
         if (ImGui::Selectable(link.c_str(), link == current))
         {
-            pendant.frame(link);
+            pendant.setFrame(link);
         }
     }
     ImGui::EndCombo();
@@ -399,7 +398,7 @@ static void frameChoice(App& p_app)
 /// Jog buttons that move a frame by one step in the base frame.
 static void cartesianJog(App& p_app)
 {
-    robotik::RobotSession& robot = p_app.simulation->cell().robot();
+    robotik::Robot& robot = p_app.simulation->cell().robot();
     ImGui::SeparatorText("Move a frame");
     ImGui::SameLine();
     helpMarker("Each press moves the chosen frame by one step in the robot "
@@ -418,7 +417,7 @@ static void cartesianJog(App& p_app)
     ImGui::Checkbox("Axes", &p_app.teach.show_axes);
     ImGui::SetItemTooltip(
         "Show the frame in the 3D view: X red, Y green, Z blue.");
-    std::string const& frame = p_app.teach.pendant.frame(robot);
+    std::string const& frame = p_app.teach.pendant.getFrame(robot);
     if (!frame.empty())
     {
         robotik::Pose const pose = robot.requireFramePose(frame);
@@ -427,7 +426,7 @@ static void cartesianJog(App& p_app)
                             pose.position.x,
                             pose.position.y,
                             pose.position.z);
-        std::size_t const dofs = robot.kinematics().requireChainDofs(frame);
+        std::size_t const dofs = robot.getKinematics().requireChainDofs(frame);
         if (dofs < 6U)
         {
             ImGui::TextDisabled("%zu joint%s above it: a move places its "
@@ -436,10 +435,13 @@ static void cartesianJog(App& p_app)
                                 dofs == 1U ? "" : "s");
         }
     }
-    std::array<bool, 6> const axes = p_app.teach.pendant.jogAxes(robot);
-    float const linear = p_app.teach.linear_step;
-    float const angular = p_app.teach.angular_step;
-    robotik::Vector3 const none = robotik::Vector3::ZERO;
+    std::array<bool, 6> const axes = p_app.teach.pendant.getJogAxes(robot);
+    robotik::Length const linear(p_app.teach.linear_step);
+    robotik::Length const still(0.0);
+    robotik::Radians const angular(p_app.teach.angular_step);
+    robotik::Radians const straight(0.0);
+    robotik::Vector3m const no_shift = robotik::Vector3m::ZERO;
+    robotik::Vector3rad const no_turn = robotik::Vector3rad::ZERO;
     if (beginTable("jog", 7, ImGuiTableFlags_SizingStretchSame))
     {
         // Two blocks of three columns: translation, then rotation.
@@ -451,15 +453,15 @@ static void cartesianJog(App& p_app)
                                         : ImGuiTableColumnFlags_WidthStretch,
                                     column == 3 ? 12.0F : 0.0F);
         }
-        jogRow(p_app, "X", { linear, 0.0, 0.0 }, none, axes[0]);
+        jogRow(p_app, "X", { linear, still, still }, no_turn, axes[0]);
         ImGui::TableNextColumn();
-        jogRow(p_app, "Rx", none, { angular, 0.0, 0.0 }, axes[3]);
-        jogRow(p_app, "Y", { 0.0, linear, 0.0 }, none, axes[1]);
+        jogRow(p_app, "Rx", no_shift, { angular, straight, straight }, axes[3]);
+        jogRow(p_app, "Y", { still, linear, still }, no_turn, axes[1]);
         ImGui::TableNextColumn();
-        jogRow(p_app, "Ry", none, { 0.0, angular, 0.0 }, axes[4]);
-        jogRow(p_app, "Z", { 0.0, 0.0, linear }, none, axes[2]);
+        jogRow(p_app, "Ry", no_shift, { straight, angular, straight }, axes[4]);
+        jogRow(p_app, "Z", { still, still, linear }, no_turn, axes[2]);
         ImGui::TableNextColumn();
-        jogRow(p_app, "Rz", none, { 0.0, 0.0, angular }, axes[5]);
+        jogRow(p_app, "Rz", no_shift, { straight, straight, angular }, axes[5]);
         endTable();
     }
     float const half =
@@ -484,7 +486,7 @@ static void cartesianJog(App& p_app)
 /// Record, edit and play the pendant waypoints.
 static void waypoints(App& p_app)
 {
-    robotik::RobotSession& robot = p_app.simulation->cell().robot();
+    robotik::Robot& robot = p_app.simulation->cell().robot();
     robotik::TeachPendant& pendant = p_app.teach.pendant;
     ImGui::SeparatorText("Waypoints");
     ImGui::SameLine();
@@ -502,12 +504,12 @@ static void waypoints(App& p_app)
     ImGui::SameLine();
     if (ImGui::Button("Record", ImVec2(-1.0F, 0.0F)))
     {
-        pendant.record(robot,
-                       p_app.teach.label,
-                       static_cast<double>(p_app.teach.duration));
+        pendant.record(
+            robot, p_app.teach.label, robotik::Seconds(p_app.teach.duration));
     }
 
-    std::span<robotik::TeachWaypoint const> const points = pendant.waypoints();
+    std::span<robotik::TeachPendant::Waypoint const> const points =
+        pendant.getWaypoints();
     if (points.empty())
     {
         ImGui::TextDisabled("No waypoint yet.");
@@ -526,7 +528,7 @@ static void waypoints(App& p_app)
         {
             ImGui::PushID(static_cast<int>(i));
             ImGui::TableNextRow();
-            if (pendant.segment() == static_cast<int>(i))
+            if (pendant.getTargetIndex() == static_cast<int>(i))
             {
                 ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1,
                                        IM_COL32(255, 184, 38, 50));
@@ -537,7 +539,7 @@ static void waypoints(App& p_app)
             ImGui::TextUnformatted(
                 points[i].label.empty() ? "-" : points[i].label.c_str());
             ImGui::TableNextColumn();
-            ImGui::Text("%.1f s", points[i].duration);
+            ImGui::Text("%.1f s", points[i].duration.value());
             ImGui::TableNextColumn();
             if (ImGui::SmallButton("Go"))
             {
@@ -558,7 +560,7 @@ static void waypoints(App& p_app)
         }
     }
     ImGui::BeginDisabled(points.empty());
-    if (ImGui::Button(pendant.playing() ? "Playing..." : "Play waypoints"))
+    if (ImGui::Button(pendant.isPlaying() ? "Playing..." : "Play waypoints"))
     {
         takeArm(p_app);
         pendant.play(robot, p_app.teach.loop);
@@ -576,9 +578,9 @@ static void waypoints(App& p_app)
         pendant.clear();
     }
     ImGui::EndDisabled();
-    if (!pendant.error().empty())
+    if (!pendant.getError().empty())
     {
-        ImGui::TextColored(RED, "%s", pendant.error().c_str());
+        ImGui::TextColored(RED, "%s", pendant.getError().c_str());
     }
 }
 

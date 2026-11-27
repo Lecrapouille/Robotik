@@ -45,7 +45,7 @@ public:
             }
             // Keep the orientation of the tool; go 10 cm above the object.
             robotik::Robot& robot = p_context.robot;
-            robotik::Pose target = robot.requireFramePose(robot.tool());
+            robotik::Pose target = robot.requireFramePose(robot.getTool());
             target.position = object->position + robotik::Vector3(0.0, 0.0, 0.10);
             m_move.goal(target);
             m_has_goal = true;
@@ -73,7 +73,7 @@ The first `tick` reads the belief and gives a goal to `m_move`. The next ticks o
 
 With one robot, the beliefs are in the frame of the robot base, like the goal of `MoveTCPSkill`. With several robots, the beliefs are in the world frame ([Several robots](../reference/world-file.md#-several-robots)).
 
-A tick that fails returns `fail(code, words)`. The code is a short name chosen by the plugin (`not_seen`, `grasp_not_confirmed`); the words are for a person. When the run ends, the tree node writes the code in `Touch.failure` on the blackboard, next to `Touch.state` and `Touch.reason`, so that a tree can choose its reaction ([What the tree sees](../concepts/06-architecture.md#-what-the-tree-sees)). The simulator shows the words in the **Why** column of the execution graph, and the planner writes them when it plans again. The `--trace` of RobotIK-Headless prints both:
+A tick that fails returns `fail(code, words)`. The code is a short name chosen by the plugin (`not_seen`, `grasp_not_confirmed`); the words are for a person. When the run ends, the tree node writes the code in `Touch.failure` on the blackboard, next to `Touch.state` and `Touch.reason`, so that a tree can choose its reaction ([What the tree sees](../concepts/architecture/04-resources.md#-what-the-tree-sees)). The simulator shows the words in the **Why** column of the execution graph, and the planner writes them when it plans again. The `--trace` of RobotIK-Headless prints both:
 
 ```text
   0.01 s  Detect(red_cube)  FAILED (failed: not_seen)  red_cube not seen by the camera within 2 s  (2.01 s)
@@ -92,7 +92,7 @@ void setup(robotik::RoboticCell& p_cell, robotik::SceneView* /*p_view*/) overrid
 {
     p_cell.skills().add<TouchSkill>(
         { .name = "Touch",
-          .resources = { p_cell.robot().resources().require("arm") } },
+          .resources = { p_cell.robot().getResources().require("arm") } },
         "red_cube");
 }
 ```

@@ -7,7 +7,7 @@
 
 #include "RobotIK/Robot/Sensors/ForceTorqueSensor.hpp"
 
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 
 namespace robotik
 {
@@ -38,14 +38,14 @@ void ForceTorqueSensor::deliver(Seconds p_now)
     }
 }
 
-bool ForceTorqueSensor::sample(RobotSession const& p_robot, Seconds p_now)
+bool ForceTorqueSensor::sample(RobotRuntime const& p_robot, Seconds p_now)
 {
-    RobotBackend const* backend = p_robot.backend();
-    if (backend == nullptr)
+    PhysicsWorld const* physics = p_robot.getPhysics();
+    if (physics == nullptr)
     {
         return false;
     }
-    std::optional<Wrench> const wrench = backend->wrench(m_config.link);
+    std::optional<Wrench> const wrench = physics->wrench(m_config.link);
     if (!wrench)
     {
         return false;
@@ -57,11 +57,12 @@ bool ForceTorqueSensor::sample(RobotSession const& p_robot, Seconds p_now)
     reading.sequence = samples() + 1U;
     reading.valid = true;
     reading.wrench.force = applyNoise(m_config.force, wrench->force, m_random);
-    reading.wrench.torque = applyNoise(m_config.torque, wrench->torque, m_random);
+    reading.wrench.torque =
+        applyNoise(m_config.torque, wrench->torque, m_random);
     m_readings.push(p_now, std::move(reading));
     if (!m_resolved)
     {
-        m_holder = p_robot.link(m_config.link);
+        m_holder = p_robot.getLink(m_config.link);
         m_resolved = true;
     }
     return true;

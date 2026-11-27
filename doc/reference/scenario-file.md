@@ -102,12 +102,12 @@ Rules:
 
 ## 🧭 Localization
 
-A skill reads the base pose of its robot with `robot.base()`. On a real robot nobody knows the true pose of a mobile base: an algorithm estimates it (wheel odometry, landmarks). The simulator knows it. So the robot keeps two bases:
+A skill reads the base pose of its robot with `robot.getBase()`. On a real robot nobody knows the true pose of a mobile base: an algorithm estimates it (wheel odometry, landmarks). The simulator knows it. So the robot keeps two bases:
 
 | Base | Read by | Written by |
 |------|---------|------------|
-| Estimated: `Robot::base()`, `worldPose`, `requireWorldPose` | skills, observers, the scenario logic when it decides | the cell (`truth`) or the plugin (`RobotSession::estimateBase`) |
-| True: `RobotSession::trueBase()`, `trueWorldPose`, `requireTrueWorldPose` | sensors, rendering, grasp models, truth queries | the backend (`RobotSession::measureBase`) |
+| Estimated: `Robot::getBase()`, `getWorldPose`, `requireWorldPose` | skills, observers, the scenario logic when it decides | the cell (`truth`) or the plugin (`RobotRuntime::estimateBase`) |
+| True: `RobotRuntime::getTrueBase()`, `getTrueWorldPose`, `requireTrueWorldPose` | sensors, rendering, grasp models, truth queries | the backend (`RobotRuntime::measureBase`) |
 
 ```yaml
 localization: truth    # truth (default) | plugin

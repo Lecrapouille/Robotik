@@ -116,6 +116,56 @@ public:
         m_pixels.clear();
     }
 
+    // -------------------------------------------------------------------------
+    /// Typed pointer on one row (e.g. @c row<float>(y) for depth).
+    /// @tparam T Type of one channel.
+    /// @param p_y Row index, 0 at the top.
+    /// @return The first channel of the first pixel of the row.
+    /// @note The row is aligned for @c T: @c operator new aligns the buffer
+    /// on at least 16 bytes, and a row of a format made of @c T holds a whole
+    /// number of @c T. Checked by an assert in debug builds.
+    // -------------------------------------------------------------------------
+    template <typename T = std::uint8_t>
+    [[nodiscard]] T* row(std::uint32_t p_y)
+    {
+        void* const first = m_pixels.data() + p_y * stride();
+        assert(reinterpret_cast<std::uintptr_t>(first) % alignof(T) == 0);
+        return static_cast<T*>(first);
+    }
+
+    /// @copydoc row(std::uint32_t)
+    template <typename T = std::uint8_t>
+    [[nodiscard]] T const* row(std::uint32_t p_y) const
+    {
+        void const* const first = m_pixels.data() + p_y * stride();
+        assert(reinterpret_cast<std::uintptr_t>(first) % alignof(T) == 0);
+        return static_cast<T const*>(first);
+    }
+
+    /// @return The first byte of the top-left pixel.
+    [[nodiscard]] std::uint8_t* data()
+    {
+        return m_pixels.data();
+    }
+
+    /// @copydoc data()
+    [[nodiscard]] std::uint8_t const* data() const
+    {
+        return m_pixels.data();
+    }
+
+    /// @return Every byte of the image, row after row.
+    [[nodiscard]] std::span<std::uint8_t> bytes()
+    {
+        return m_pixels;
+    }
+
+    /// @copydoc bytes()
+    [[nodiscard]] std::span<std::uint8_t const> bytes() const
+    {
+        return m_pixels;
+    }
+
     /// @return True when the image holds no pixel.
     [[nodiscard]] bool empty() const
     {
@@ -144,56 +194,6 @@ public:
     [[nodiscard]] std::size_t stride() const
     {
         return std::size_t(m_width) * bytesPerPixel(m_format);
-    }
-
-    /// @return The first byte of the top-left pixel.
-    [[nodiscard]] std::uint8_t* data()
-    {
-        return m_pixels.data();
-    }
-
-    /// @copydoc data()
-    [[nodiscard]] std::uint8_t const* data() const
-    {
-        return m_pixels.data();
-    }
-
-    /// @return Every byte of the image, row after row.
-    [[nodiscard]] std::span<std::uint8_t> bytes()
-    {
-        return m_pixels;
-    }
-
-    /// @copydoc bytes()
-    [[nodiscard]] std::span<std::uint8_t const> bytes() const
-    {
-        return m_pixels;
-    }
-
-    // -------------------------------------------------------------------------
-    /// Typed pointer on one row (e.g. @c row<float>(y) for depth).
-    /// @tparam T Type of one channel.
-    /// @param p_y Row index, 0 at the top.
-    /// @return The first channel of the first pixel of the row.
-    /// @note The row is aligned for @c T: @c operator new aligns the buffer
-    /// on at least 16 bytes, and a row of a format made of @c T holds a whole
-    /// number of @c T. Checked by an assert in debug builds.
-    // -------------------------------------------------------------------------
-    template <typename T = std::uint8_t>
-    [[nodiscard]] T* row(std::uint32_t p_y)
-    {
-        void* const first = m_pixels.data() + p_y * stride();
-        assert(reinterpret_cast<std::uintptr_t>(first) % alignof(T) == 0);
-        return static_cast<T*>(first);
-    }
-
-    /// @copydoc row(std::uint32_t)
-    template <typename T = std::uint8_t>
-    [[nodiscard]] T const* row(std::uint32_t p_y) const
-    {
-        void const* const first = m_pixels.data() + p_y * stride();
-        assert(reinterpret_cast<std::uintptr_t>(first) % alignof(T) == 0);
-        return static_cast<T const*>(first);
     }
 
 private:

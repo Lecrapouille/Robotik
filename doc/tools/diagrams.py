@@ -237,11 +237,11 @@ s.save(f"{C}/robotik-backends.svg")
 
 # Concept 06: the layers
 s = Svg(900, 500, "The four layers of RobotIK",
-        "Package: files and plugins, Simulation, RunReport, the YAML files, assertions, plugin ABI. Task: a job in C++, RoboticCell, ScenarioLogic, SkillScheduler, skills, WorldModel, planning, grasp, learning. Robot: one robot, Robot, RobotSession, joints, sensors, actuators, resources, backends, asset packs. Common: units, poses, Result, Signal, Config, Random. Each layer uses only the layers below it.",
+        "Package: files and plugins, Simulation, RunReport, the YAML files, assertions, plugin ABI. Task: a job in C++, RoboticCell, ScenarioLogic, SkillScheduler, skills, WorldModel, planning, grasp, learning. Robot: one robot, Robot, RobotRuntime, joints, sensors, actuators, resources, backends, asset packs. Common: units, poses, Result, Signal, Config, Random. Each layer uses only the layers below it.",
         "Each layer uses only the layers below it")
 layers = [("Package", "files and plugins", "Simulation (scenario = cell + verdict), RunReport, World / Scenario / Experiment YAML, Assertions, plugin ABI"),
           ("Task", "a job in C++", "RoboticCell (step loop, controllers, truth), ScenarioLogic, SkillScheduler, skills, WorldModel, Planning (PDDL), Grasp, Learning"),
-          ("Robot", "one robot", "Robot, RobotSession, openRobot, joints, sensors, actuators, resources, backends (MuJoCo, Pinocchio), asset packs"),
+          ("Robot", "one robot", "Robot, RobotRuntime, openRobot, joints, sensors, actuators, resources, backends (MuJoCo, Pinocchio), asset packs"),
           ("Common", "small tools", "units and poses (from Compages), Result, Signal, Config, Random")]
 y = 64
 for i, (t, sub, l) in enumerate(layers):
@@ -264,9 +264,9 @@ s.save(f"{C}/layers.svg")
 
 # Concept 06: backends of a session
 s = Svg(900, 340, "The backend of a robot session",
-        "A RobotSession uses a RobotBackend. The MuJoCo backend reads and writes the joint positions and velocities of the simulation. A hardware backend, planned, will talk to the servos on their bus.",
+        "A RobotRuntime uses a RobotBackend. The MuJoCo backend reads and writes the joint positions and velocities of the simulation. A hardware backend, planned, will talk to the servos on their bus.",
         "Simulated or real: the same session")
-s.box(330, 64, 240, 50, "RobotSession", [], "box", center=True)
+s.box(330, 64, 240, 50, "RobotRuntime", [], "box", center=True)
 s.arrow([(450, 114), (450, 140)])
 s.box(330, 145, 240, 50, "RobotBackend", [], "box", center=True)
 s.arrow([(450, 195), (450, 215), (230, 215), (230, 235)])
@@ -394,7 +394,7 @@ steps = [
     ("FaultInjector::update", "faults on / off: resources available or not"),
     ("controller tick", "behavior tree or plan: requests and cancels skills"),
     ("SkillScheduler::update", "admit, preempt, tick the skills"),
-    ("RobotSession prepare / advance / sense", "every robot: actuators, one physics step, sensors"),
+    ("RobotRuntime prepare / advance / sense", "every robot: actuators, one physics step, sensors"),
     ("GraspModel::update", "what the grippers hold"),
     ("observe()", "perception → WorldModel (or the truth: fidelity)"),
     ("track / syncBodies", "ground truth of the bodies, contacts"),

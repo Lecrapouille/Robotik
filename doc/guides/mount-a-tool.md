@@ -97,7 +97,7 @@ The gripper is 8.8 cm long. With the other tools, the same assertion gives:
 
 If the value is not the one that you expect, the tool is not the one that you think, or its `tcp` is at the wrong place in its file. Replace the bound `0` by the length that you expect, for example `(< (distance robot.tool0 robot.tcp) 0.1)`: the scenario then fails if the tool changes.
 
-With a tool, `robot.tool()` in C++ gives `tcp`, and inverse kinematics puts the `tcp` on the target ([Move the arm](../tutorials/05-move-the-arm.md)). Without a tool, it gives `tool0`.
+With a tool, `robot.getTool()` in C++ gives `tcp`, and inverse kinematics puts the `tcp` on the target ([Move the arm](../tutorials/05-move-the-arm.md)). Without a tool, it gives `tool0`.
 
 ## 🔁 4. Keep other tools in storage
 

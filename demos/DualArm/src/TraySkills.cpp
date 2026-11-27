@@ -55,14 +55,14 @@ static bool servo(robotik::RobotContext& p_context,
                   robotik::Pose const& p_target)
 {
     robotik::Robot& robot = p_context.robot;
-    auto const solution = robot.inverseKinematics(robot.tool(), p_target);
+    auto const solution = robot.inverseKinematics(robot.getTool(), p_target);
     if (!solution)
     {
         return false;
     }
     robotik::JointGroup const* arm =
-        robot.actuators().first<robotik::JointGroup>();
-    robotik::JointSet& joints = robot.joints();
+        robot.getActuators().first<robotik::JointGroup>();
+    robotik::JointSet& joints = robot.getJoints();
     for (robotik::JointId id = 0; id < joints.size(); ++id)
     {
         if (arm == nullptr || arm->contains(id))
@@ -82,7 +82,8 @@ static double minimumJerk(double p_s)
 }
 
 // ----------------------------------------------------------------------------
-PathSkill::PathSkill(robotik::Vector3 const& p_offset, robotik::Seconds p_duration)
+PathSkill::PathSkill(robotik::Vector3 const& p_offset,
+                     robotik::Seconds p_duration)
     : m_offset(p_offset), m_duration(p_duration)
 {
 }
@@ -92,7 +93,9 @@ PathSkill::PathSkill(std::string p_object, robotik::Seconds p_duration)
 {
 }
 
-PathSkill::PathSkill(std::string p_object, robotik::Length p_below, robotik::Seconds p_duration)
+PathSkill::PathSkill(std::string p_object,
+                     robotik::Length p_below,
+                     robotik::Seconds p_duration)
     : m_object(std::move(p_object)),
       m_below(p_below.value()),
       m_duration(p_duration)
@@ -104,7 +107,7 @@ Status PathSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
     robotik::Robot& robot = p_context.robot;
     if (!m_started)
     {
-        m_from = robot.requireFramePose(robot.tool());
+        m_from = robot.requireFramePose(robot.getTool());
         m_to = m_from.position + m_offset;
         if (!m_object.empty())
         {
@@ -138,14 +141,14 @@ Status PathSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
         return fail("no_ik_solution", "no joint solution on the way");
     }
     double const left =
-        (robot.requireFramePose(robot.tool()).position - m_to).norm();
+        (robot.requireFramePose(robot.getTool()).position - m_to).norm();
     return s >= 1.0 && left < PATH_TOLERANCE ? Status::SUCCESS
                                              : Status::RUNNING;
 }
 
 void PathSkill::cancel(robotik::RobotContext& p_context)
 {
-    p_context.robot.joints().hold();
+    p_context.robot.getJoints().hold();
 }
 
 // ----------------------------------------------------------------------------
@@ -191,9 +194,9 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
     {
         return fail("not_held", "no arm holds " + m_tray);
     }
-    robotik::Pose const carrier = holder->requireWorldPose(holder->tool());
+    robotik::Pose const carrier = holder->requireWorldPose(holder->getTool());
     auto const* sensor =
-        p_context.robot.sensors().first<robotik::ForceTorqueSensor>();
+        p_context.robot.getSensors().first<robotik::ForceTorqueSensor>();
     if (sensor == nullptr || !sensor->reading().valid)
     {
         return sensor == nullptr
@@ -224,7 +227,8 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
     // Where the tool goes now: over the path, or on it and pressing.
     double const dt = p_dt.value();
     robotik::Robot const& self = p_context.robot;
-    robotik::Vector3 const tool = self.requireWorldPose(self.tool()).position;
+    robotik::Vector3 const tool =
+        self.requireWorldPose(self.getTool()).position;
     switch (m_phase)
     {
         case Phase::Approach:
@@ -306,7 +310,7 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
 
 void TraceSkill::cancel(robotik::RobotContext& p_context)
 {
-    p_context.robot.joints().hold();
+    p_context.robot.getJoints().hold();
 }
 
 } // namespace dual_arm

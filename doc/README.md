@@ -14,4 +14,4 @@ If robotics is new to you, read [Robotics in ten minutes](concepts/01-robotics-i
 - *"I want to change a test without compiling."* → [A cube in a box](tutorials/03-a-cube-in-a-box.md), then [the scenario file](reference/scenario-file.md)
 - *"I want to write my own robot program."* → [Your first plugin](tutorials/04-your-first-plugin.md)
 - *"Which method do I call?"* → [API reference](reference/api.md)
-- *"I want to change RobotIK itself."* → [Architecture](concepts/06-architecture.md), and [AGENTS.md](../AGENTS.md) for the conventions
+- *"I want to change RobotIK itself."* → [Architecture](concepts/architecture/README.md), and [AGENTS.md](../AGENTS.md) for the conventions

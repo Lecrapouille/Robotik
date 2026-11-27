@@ -39,11 +39,12 @@ static robotik::Vector3 clampWorkspace(robotik::Vector3 const& p_point)
 // --- Scripted ready pose before RL episodes
 // -----------------------------------
 
-void readyPosture(robotik::RobotSession& p_robot,
+void readyPosture(robotik::RobotRuntime& p_robot,
                   robotik::VacuumGripper const& p_gripper,
                   robotik::Vector3 const& p_tip)
 {
-    robotik::Pose const start = p_robot.requireFramePose(p_robot.tool());
+    robotik::Pose const start =
+        p_robot.robot().requireFramePose(p_robot.robot().getTool());
     robotik::Pose const goal{
         p_tip + robotik::Vector3{ 0.0, 0.0, p_gripper.length().value() },
         PICK_PLACE_DOWN
@@ -65,15 +66,17 @@ void readyPosture(robotik::RobotSession& p_robot,
         robotik::Pose const pose{
             start.position * (1.0 - t) + goal.position * t, q.normalized()
         };
-        auto solution = p_robot.inverseKinematics(p_robot.tool(), pose);
+        auto solution =
+            p_robot.robot().inverseKinematics(p_robot.robot().getTool(), pose);
         if (!solution)
         {
             throw std::runtime_error("No IK solution toward the ready posture");
         }
         robotik::JointPosture posture;
-        for (robotik::JointId id = 0; id < p_robot.joints().size(); ++id)
+        for (robotik::JointId id = 0; id < p_robot.robot().getJoints().size();
+             ++id)
         {
-            posture[p_robot.joints().name(id)] = (*solution)[id];
+            posture[p_robot.robot().getJoints().name(id)] = (*solution)[id];
         }
         p_robot.hold(posture);
     }
@@ -96,7 +99,7 @@ bool cubeInBox(robotik::RoboticCell const& p_cell,
 static robotik::VacuumGripper* findGripper(robotik::RoboticCell& p_cell)
 {
     robotik::VacuumGripper* gripper =
-        p_cell.robot().actuators().first<robotik::VacuumGripper>();
+        p_cell.robot().getActuators().first<robotik::VacuumGripper>();
     if (gripper == nullptr)
     {
         throw std::runtime_error(
@@ -182,7 +185,7 @@ robotik::Space PickPlaceAction::space() const
 
 void PickPlaceAction::setup(robotik::RoboticCell& p_cell)
 {
-    m_arm = p_cell.robot().actuators().find<robotik::JointGroup>("arm");
+    m_arm = p_cell.robot().getActuators().find<robotik::JointGroup>("arm");
     if (m_arm == nullptr)
     {
         throw std::runtime_error(
@@ -190,27 +193,29 @@ void PickPlaceAction::setup(robotik::RoboticCell& p_cell)
     }
     m_gripper = findGripper(p_cell);
     // hold() makes the posture the home: every reset starts from it.
-    readyPosture(p_cell.robot(), *m_gripper);
+    readyPosture(p_cell.runtime(), *m_gripper);
 }
 
 void PickPlaceAction::apply(std::span<float const> p_action,
                             robotik::RoboticCell& p_cell)
 {
-    robotik::RobotSession& robot = p_cell.robot();
+    robotik::RobotRuntime& robot = p_cell.runtime();
     auto axis = [&](std::size_t p_index)
     {
         return STEP_M *
                std::clamp(static_cast<double>(p_action[p_index]), -1.0, 1.0);
     };
-    robotik::Vector3 const target = clampWorkspace(
-        m_gripper->tip(robot) + robotik::Vector3{ axis(0), axis(1), axis(2) });
+    robotik::Vector3 const target =
+        clampWorkspace(m_gripper->tip(robot.robot()) +
+                       robotik::Vector3{ axis(0), axis(1), axis(2) });
     m_gripper->suction(p_action[3] > 0.0F);
 
     robotik::Pose const flange{
         target + robotik::Vector3{ 0.0, 0.0, m_gripper->length().value() },
         PICK_PLACE_DOWN
     };
-    if (auto solution = robot.inverseKinematics(robot.tool(), flange))
+    if (auto solution =
+            robot.robot().inverseKinematics(robot.robot().getTool(), flange))
     {
         std::vector<double> targets;
         targets.reserve(m_arm->joints().size());
@@ -226,8 +231,7 @@ void PickPlaceAction::apply(std::span<float const> p_action,
 
 void PickPlaceReward::setup(robotik::RoboticCell const& p_cell)
 {
-    m_gripper =
-        p_cell.robot().actuators().first<robotik::VacuumGripper>();
+    m_gripper = p_cell.robot().getActuators().first<robotik::VacuumGripper>();
     if (m_gripper == nullptr)
     {
         throw std::runtime_error(

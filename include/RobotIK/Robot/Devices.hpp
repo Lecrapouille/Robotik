@@ -33,65 +33,47 @@ namespace robotik
 {
 
 class Robot;
+class RobotRuntime;
 
 // ****************************************************************************
-/// The devices of a robot, as a skill sees them: find, read, command.
+/// The devices of a robot: find, read, command; only the runtime adds one.
 ///
-/// A skill cannot add a device: a real robot does not grow a camera because
-/// a program asks. @ref DeviceSet, given by @ref RobotSession, adds them.
+/// Why: a skill must not grow a camera nor a gripper: a real robot does not
+/// change because a program asks. So @c add is private: @ref RobotRuntime
+/// calls it (@ref RobotRuntime::addSensor, @ref RobotRuntime::addActuator),
+/// a skill gets the set from @ref Robot and only finds and uses.
+///
+/// Each device is a resource of the same name (see
+/// doc/reference/glossary.md: "Resource"): a skill that needs the camera
+/// reserves @c wrist_camera, and a fault on @c wrist_camera stops it.
+///
+/// Why one class and not a list seen by skills plus a set that adds: the
+/// right to add is one method, a @c friend says it without a second type.
 ///
 /// @code
-/// auto* gripper = robot.actuators().first<robotik::VacuumGripper>();
-/// auto const* camera = robot.sensors().find<robotik::Camera>("wrist_camera");
+/// auto& camera = runtime.addSensor<robotik::Camera>("wrist_camera", config);
+/// auto* gripper = robot.getActuators().first<robotik::VacuumGripper>();
+/// auto const* imu = robot.getSensors().find<robotik::Imu>("imu");
 /// @endcode
 ///
 /// @tparam Base @ref Sensor or @ref Actuator.
 // ****************************************************************************
 template <typename Base>
-class DeviceList
+class DeviceSet final
 {
 public:
 
     // -------------------------------------------------------------------------
-    /// @return The number of devices.
+    /// @param p_robot Robot carrying the devices (given to their @c bind).
+    /// @param p_resources Manager receiving one resource per device.
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::size_t size() const
+    DeviceSet(Robot& p_robot, ResourceManager& p_resources)
+        : m_robot(p_robot), m_resources(p_resources)
     {
-        return m_devices.size();
     }
 
-    // -------------------------------------------------------------------------
-    /// @param p_index Index in insertion order, below @ref size.
-    /// @return The device.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] Base& operator[](std::size_t p_index)
-    {
-        return *m_devices[p_index];
-    }
-
-    /// @copydoc operator[](std::size_t)
-    [[nodiscard]] Base const& operator[](std::size_t p_index) const
-    {
-        return *m_devices[p_index];
-    }
-
-    // -------------------------------------------------------------------------
-    /// @param p_index Index of the device.
-    /// @return The resource of the device.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] ResourceId resource(std::size_t p_index) const
-    {
-        return m_ids[p_index];
-    }
-
-    // -------------------------------------------------------------------------
-    /// @param p_index Index of the device.
-    /// @return False when the resource of the device has failed.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] bool available(std::size_t p_index) const
-    {
-        return m_resources.available(m_ids[p_index]);
-    }
+    DeviceSet(DeviceSet const&) = delete;
+    DeviceSet& operator=(DeviceSet const&) = delete;
 
     // -------------------------------------------------------------------------
     /// Finds a device by its name.
@@ -160,50 +142,50 @@ public:
         return nullptr;
     }
 
-protected:
-
-    /// @param p_resources Manager receiving one resource per device.
-    explicit DeviceList(ResourceManager& p_resources) : m_resources(p_resources)
+    // -------------------------------------------------------------------------
+    /// @param p_index Index of the device.
+    /// @return The resource of the device.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] ResourceId resource(std::size_t p_index) const
     {
+        return m_ids[p_index];
     }
 
-    /// Manager of the device resources.
-    ResourceManager& m_resources;
-    /// Devices, in insertion order.
-    std::vector<std::unique_ptr<Base>> m_devices;
-    /// Resource of each device, aligned with @ref m_devices.
-    std::vector<ResourceId> m_ids;
-};
-
-// ****************************************************************************
-/// Owns devices and declares each one as a resource of the same name.
-///
-/// So a skill that needs the camera reserves the resource @c wrist_camera,
-/// and a fault on @c wrist_camera stops the camera. Only the program that
-/// runs the robot adds devices (@ref RobotSession::sensors); a skill gets
-/// the @ref DeviceList.
-///
-/// @code
-/// auto& camera = session.sensors().add<robotik::Camera>("wrist_camera", config);
-/// auto* gripper = session.actuators().first<robotik::VacuumGripper>();
-/// bool ok = session.resources().available("wrist_camera");
-/// @endcode
-///
-/// @tparam Base @ref Sensor or @ref Actuator.
-// ****************************************************************************
-template <typename Base>
-class DeviceSet final: public DeviceList<Base>
-{
-public:
-
     // -------------------------------------------------------------------------
-    /// @param p_robot Robot carrying the devices (given to their @c bind).
-    /// @param p_resources Manager receiving one resource per device.
+    /// @param p_index Index of the device.
+    /// @return False when the resource of the device has failed.
     // -------------------------------------------------------------------------
-    DeviceSet(Robot& p_robot, ResourceManager& p_resources)
-        : DeviceList<Base>(p_resources), m_robot(p_robot)
+    [[nodiscard]] bool available(std::size_t p_index) const
     {
+        return m_resources.available(m_ids[p_index]);
     }
+
+    // -------------------------------------------------------------------------
+    /// @param p_index Index in insertion order, below @ref size.
+    /// @return The device.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Base& operator[](std::size_t p_index)
+    {
+        return *m_devices[p_index];
+    }
+
+    /// @copydoc operator[](std::size_t)
+    [[nodiscard]] Base const& operator[](std::size_t p_index) const
+    {
+        return *m_devices[p_index];
+    }
+
+    // -------------------------------------------------------------------------
+    /// @return The number of devices.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::size_t size() const
+    {
+        return m_devices.size();
+    }
+
+private:
+
+    friend class RobotRuntime;
 
     // -------------------------------------------------------------------------
     /// Builds a device in place and registers its resource. A device with a
@@ -217,28 +199,32 @@ public:
     T& add(Args&&... p_args)
     {
         auto device = std::make_unique<T>(std::forward<Args>(p_args)...);
-        if (this->find(device->name()) != nullptr)
+        if (find(device->name()) != nullptr)
         {
             throw std::invalid_argument("Duplicated device '" + device->name() +
                                         "'");
         }
         // The resource exists before bind: an actuator guards its joints
         // with it.
-        ResourceId const resource = this->m_resources.add(device->name());
+        ResourceId const resource = m_resources.add(device->name());
         if constexpr (requires { device->bind(m_robot); })
         {
             device->bind(m_robot);
         }
         T& added = *device;
-        this->m_ids.push_back(resource);
-        this->m_devices.push_back(std::move(device));
+        m_ids.push_back(resource);
+        m_devices.push_back(std::move(device));
         return added;
     }
 
-private:
-
     /// Robot carrying the devices.
     Robot& m_robot;
+    /// Manager of the device resources.
+    ResourceManager& m_resources;
+    /// Devices, in insertion order.
+    std::vector<std::unique_ptr<Base>> m_devices;
+    /// Resource of each device, aligned with @ref m_devices.
+    std::vector<ResourceId> m_ids;
 };
 
 } // namespace robotik

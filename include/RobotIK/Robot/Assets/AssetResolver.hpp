@@ -85,20 +85,26 @@ public:
     void addRoot(std::filesystem::path const& p_root);
 
     // -------------------------------------------------------------------------
-    /// @return Every pack found, in search order.
+    /// Gives the file of a model. The longest pack id prefixing @p_id wins,
+    /// so @c robotik.robots.abb.irb2400 picks the pack
+    /// @c robotik.robots.abb over @c robotik.robots.
+    /// @param p_id Model id, @c <pack-id>.<key>.
+    /// @return Absolute file of the model; fails when no pack provides it.
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::vector<AssetPack> const& packs() const
-    {
-        return m_packs;
-    }
+    [[nodiscard]] Result<std::filesystem::path>
+    model(std::string_view p_id) const;
 
     // -------------------------------------------------------------------------
-    /// @return Manifest errors and version conflicts met while scanning.
+    /// Gives the file named by a scenario field. A reference holding a slash
+    /// or ending in @c .urdf is a path; anything else is a model identifier
+    /// (see @ref model).
+    /// @param p_reference Path or model id written in the YAML.
+    /// @param p_base Folder a relative path starts from.
+    /// @return The file; fails when a model id is unknown.
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::vector<std::string> const& errors() const
-    {
-        return m_errors;
-    }
+    [[nodiscard]] Result<std::filesystem::path>
+    resolve(std::string const& p_reference,
+            std::filesystem::path const& p_base) const;
 
     // -------------------------------------------------------------------------
     /// Finds a pack by its id.
@@ -120,25 +126,20 @@ public:
                                            std::string& p_why) const;
 
     // -------------------------------------------------------------------------
-    /// Gives the file of a model. The longest pack id prefixing @p_id wins,
-    /// so @c robotik.robots.abb.irb2400 picks the pack
-    /// @c robotik.robots.abb over @c robotik.robots.
-    /// @param p_id Model id, @c <pack-id>.<key>.
-    /// @return Absolute file of the model; fails when no pack provides it.
+    /// @return Every pack found, in search order.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Result<std::filesystem::path> model(std::string_view p_id) const;
+    [[nodiscard]] std::vector<AssetPack> const& packs() const
+    {
+        return m_packs;
+    }
 
     // -------------------------------------------------------------------------
-    /// Gives the file named by a scenario field. A reference holding a slash
-    /// or ending in @c .urdf is a path; anything else is a model identifier
-    /// (see @ref model).
-    /// @param p_reference Path or model id written in the YAML.
-    /// @param p_base Folder a relative path starts from.
-    /// @return The file; fails when a model id is unknown.
+    /// @return Manifest errors and version conflicts met while scanning.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Result<std::filesystem::path>
-    resolve(std::string const& p_reference,
-            std::filesystem::path const& p_base) const;
+    [[nodiscard]] std::vector<std::string> const& errors() const
+    {
+        return m_errors;
+    }
 
 private:
 

@@ -27,7 +27,7 @@
 namespace robotik
 {
 
-class RobotSession;
+class RobotRuntime;
 
 // ****************************************************************************
 /// A named data source sampled at its own frequency.
@@ -45,7 +45,7 @@ class RobotSession;
 ///     channel, latency);
 /// @li the simulation: @ref sample, which measures the true value on the
 ///     robot and its backend, then degrades it. It gets the
-///     @ref RobotSession, not the @ref Robot of the skills: a sensor may
+///     @ref RobotRuntime, not the @ref Robot of the skills: a sensor may
 ///     read the simulator (the ECS world, the backend), a skill may not;
 /// @li the measurement: the reading, a @ref Measurement header plus typed
 ///     data, published once its latency has elapsed.
@@ -59,7 +59,7 @@ class RobotSession;
 ///     Thermometer() : Sensor("thermo", 10.0) {} // 10 Hz
 ///     double celsius = 0.0;
 /// protected:
-///     bool sample(robotik::RobotSession const&, Seconds) override
+///     bool sample(robotik::RobotRuntime const&, Seconds) override
 ///     {
 ///         celsius = 21.5; // read the hardware here
 ///         return true;
@@ -72,6 +72,44 @@ class Sensor
 public:
 
     virtual ~Sensor() = default;
+
+    // -------------------------------------------------------------------------
+    /// Samples the sensor if its period elapsed since the last sample, then
+    /// publishes what its latency lets through.
+    /// @param p_robot Robot carrying the sensor (kinematics for the mount).
+    /// @param p_now Robot clock.
+    // -------------------------------------------------------------------------
+    void update(RobotRuntime const& p_robot, Seconds p_now)
+    {
+        if (p_now >= m_due && sample(p_robot, p_now))
+        {
+            ++m_samples;
+            m_stamp = p_now;
+            m_due =
+                m_frequency > 0.0 ? p_now + Seconds(1.0 / m_frequency) : p_now;
+        }
+        deliver(p_now);
+    }
+
+    // -------------------------------------------------------------------------
+    /// The sensor resource failed: the published reading becomes invalid
+    /// until the next sample.
+    // -------------------------------------------------------------------------
+    virtual void invalidate()
+    {
+        // Nothing to do by default.
+    }
+
+    // -------------------------------------------------------------------------
+    /// Forgets the sampling history (episode reset).
+    // -------------------------------------------------------------------------
+    void rewind()
+    {
+        m_samples = 0;
+        m_stamp = Seconds(-1.0);
+        m_due = Seconds(0.0);
+        restart();
+    }
 
     // -------------------------------------------------------------------------
     /// @return Sensor name, also the name of its resource.
@@ -105,44 +143,6 @@ public:
         return m_stamp;
     }
 
-    // -------------------------------------------------------------------------
-    /// Samples the sensor if its period elapsed since the last sample, then
-    /// publishes what its latency lets through.
-    /// @param p_robot Robot carrying the sensor (kinematics for the mount).
-    /// @param p_now Robot clock.
-    // -------------------------------------------------------------------------
-    void update(RobotSession const& p_robot, Seconds p_now)
-    {
-        if (p_now >= m_due && sample(p_robot, p_now))
-        {
-            ++m_samples;
-            m_stamp = p_now;
-            m_due =
-                m_frequency > 0.0 ? p_now + Seconds(1.0 / m_frequency) : p_now;
-        }
-        deliver(p_now);
-    }
-
-    // -------------------------------------------------------------------------
-    /// The sensor resource failed: the published reading becomes invalid
-    /// until the next sample.
-    // -------------------------------------------------------------------------
-    virtual void invalidate()
-    {
-        // Nothing to do by default.
-    }
-
-    // -------------------------------------------------------------------------
-    /// Forgets the sampling history (episode reset).
-    // -------------------------------------------------------------------------
-    void rewind()
-    {
-        m_samples = 0;
-        m_stamp = Seconds(-1.0);
-        m_due = Seconds(0.0);
-        restart();
-    }
-
 protected:
 
     // -------------------------------------------------------------------------
@@ -163,7 +163,7 @@ protected:
     /// @param p_now Robot clock.
     /// @return False if no data was available (e.g. no source connected).
     // -------------------------------------------------------------------------
-    virtual bool sample(RobotSession const& p_robot, Seconds p_now) = 0;
+    virtual bool sample(RobotRuntime const& p_robot, Seconds p_now) = 0;
 
     // -------------------------------------------------------------------------
     /// Drops the state carried between samples (see @ref rewind).

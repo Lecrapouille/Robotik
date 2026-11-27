@@ -67,7 +67,7 @@ struct ImuConfig
 /// poses, like a real IMU integrated over its period.
 ///
 /// @code
-/// auto& imu = robot.sensors().add<robotik::Imu>(
+/// auto& imu = runtime.addSensor<robotik::Imu>(
 ///     "imu", robotik::ImuConfig{ .parent = "base_link" });
 /// double const heading = imu.reading().orientation.yaw().value();
 /// @endcode
@@ -81,22 +81,6 @@ public:
     /// @param p_config Mount, rate, latency and noise.
     // -------------------------------------------------------------------------
     Imu(std::string p_name, ImuConfig p_config = {});
-
-    // -------------------------------------------------------------------------
-    /// @return The configuration given at construction.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] ImuConfig const& config() const
-    {
-        return m_config;
-    }
-
-    // -------------------------------------------------------------------------
-    /// @return Last delivered reading. Check @c valid before use.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] ImuReading const& reading() const
-    {
-        return m_readings.current();
-    }
 
     // -------------------------------------------------------------------------
     /// Marks the current reading invalid (the sensor resource failed).
@@ -115,10 +99,26 @@ public:
         m_random = Random(p_seed);
     }
 
+    // -------------------------------------------------------------------------
+    /// @return Last delivered reading. Check @c valid before use.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] ImuReading const& reading() const
+    {
+        return m_readings.current();
+    }
+
+    // -------------------------------------------------------------------------
+    /// @return The configuration given at construction.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] ImuConfig const& config() const
+    {
+        return m_config;
+    }
+
 protected:
 
     /// Measures the motion of the IMU frame and adds the noise.
-    bool sample(RobotSession const& p_robot, Seconds p_now) override;
+    bool sample(RobotRuntime const& p_robot, Seconds p_now) override;
     /// Forgets the previous poses (the next sample reads the robot at rest).
     void restart() override;
     /// Publishes the readings whose latency has elapsed.

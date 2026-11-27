@@ -255,8 +255,9 @@ void SkillScheduler::cancel(RunId p_run)
         it != queued.end())
     {
         queued.erase(it);
-        m_ended[p_run.skill].push_back(
-            { p_run.generation, SkillState::Cancelled, SkillReason::Cancelled });
+        m_ended[p_run.skill].push_back({ p_run.generation,
+                                         SkillState::Cancelled,
+                                         SkillReason::Cancelled });
         return;
     }
     SkillState const state = m_states[p_run.skill];
@@ -395,7 +396,7 @@ RobotContext& SkillScheduler::contextOf(SkillId p_id) const
     }
     for (RobotContext& context : m_contexts)
     {
-        if (context.robot.id() == robot)
+        if (context.robot.getId() == robot)
         {
             return context;
         }
@@ -415,7 +416,8 @@ void SkillScheduler::stop(SkillId p_id,
     {
         if (p_at_once)
         {
-            finish(p_id, m_stop_states[p_id], m_stop_reasons[p_id], context.time);
+            finish(
+                p_id, m_stop_states[p_id], m_stop_reasons[p_id], context.time);
         }
         return;
     }

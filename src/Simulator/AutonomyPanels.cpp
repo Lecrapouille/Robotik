@@ -214,7 +214,7 @@ void perceptionPanel(App& p_app)
         "Detections of %s, frame #%llu",
         camera->name().c_str(),
         static_cast<unsigned long long>(camera->frame().sequence));
-    if (!simulation.cell().robot().resources().available(camera->name()))
+    if (!simulation.cell().robot().getResources().available(camera->name()))
     {
         ImGui::SameLine();
         badge("CAMERA FAULT", RED);

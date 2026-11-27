@@ -27,7 +27,8 @@ struct Outcome
 static Outcome run(robotik::Simulation& p_simulation, robotik::Seed p_seed)
 {
     p_simulation.reset(p_seed);
-    while (!p_simulation.finished() && p_simulation.time() < robotik::Seconds(60.0))
+    while (!p_simulation.finished() &&
+           p_simulation.time() < robotik::Seconds(60.0))
     {
         p_simulation.step(robotik::Seconds(0.01));
     }
@@ -94,28 +95,41 @@ TEST(Scenario, OverridesChangeTheWorldBeforeItIsRead)
 {
     robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
         "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
-    EXPECT_TRUE(robotik::overrideValue(source, "world.entities.red_cube.pose.position",
-                    robotik::ConfigNode::parse("[0.30, 0.10, 0.02]").take()));
-    EXPECT_TRUE(robotik::overrideValue(source, "world.entities.robot.sensors.wrist_camera.noise",
-                    robotik::ConfigNode("0.05")));
-    EXPECT_TRUE(robotik::overrideValue(source, "scenario.seed", robotik::ConfigNode("3")));
+    EXPECT_TRUE(robotik::overrideValue(
+        source,
+        "world.entities.red_cube.pose.position",
+        robotik::ConfigNode::parse("[0.30, 0.10, 0.02]").take()));
+    EXPECT_TRUE(robotik::overrideValue(
+        source,
+        "world.entities.robot.sensors.wrist_camera.noise",
+        robotik::ConfigNode("0.05")));
+    EXPECT_TRUE(robotik::overrideValue(
+        source, "scenario.seed", robotik::ConfigNode("3")));
     robotik::Scenario const scenario =
         robotik::readScenario(source, testAssets()).take();
     EXPECT_EQ(scenario.seed, 3U);
-    EXPECT_DOUBLE_EQ(robotik::findEntity(scenario.world, "red_cube")->pose.position.x, 0.30);
-    EXPECT_DOUBLE_EQ(robotik::firstRobot(scenario.world).sensors[0].camera.noise, 0.05);
-    EXPECT_FALSE(robotik::overrideValue(source, "world.entities.nobody.mass", robotik::ConfigNode("1")));
-    EXPECT_FALSE(robotik::overrideValue(source, "seed", robotik::ConfigNode("1")));
+    EXPECT_DOUBLE_EQ(
+        robotik::findEntity(scenario.world, "red_cube")->pose.position.x, 0.30);
+    EXPECT_DOUBLE_EQ(
+        robotik::firstRobot(scenario.world).sensors[0].camera.noise, 0.05);
+    EXPECT_FALSE(robotik::overrideValue(
+        source, "world.entities.nobody.mass", robotik::ConfigNode("1")));
+    EXPECT_FALSE(
+        robotik::overrideValue(source, "seed", robotik::ConfigNode("1")));
 }
 
 TEST(Scenario, WorldErrorsNameTheEntity)
 {
     robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
         "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
-    EXPECT_TRUE(robotik::overrideValue(source, "world.entities.box.type", robotik::ConfigNode("robot")));
-    robotik::Result<robotik::Scenario> const read = robotik::readScenario(source, testAssets());
+    EXPECT_TRUE(robotik::overrideValue(
+        source, "world.entities.box.type", robotik::ConfigNode("robot")));
+    robotik::Result<robotik::Scenario> const read =
+        robotik::readScenario(source, testAssets());
     ASSERT_FALSE(read) << "a second robot must be refused";
-    EXPECT_NE(read.error().find("pick_place_cell.world.yaml"), std::string::npos) << read.error();
+    EXPECT_NE(read.error().find("pick_place_cell.world.yaml"),
+              std::string::npos)
+        << read.error();
 }
 
 TEST(Simulation, AnotherToolBringsItsOwnActuators)
@@ -130,7 +144,8 @@ TEST(Simulation, AnotherToolBringsItsOwnActuators)
     PickPlaceLogic logic;
     compages::world::World world;
     robotik::Simulation simulation(world, std::move(scenario), nullptr, &logic);
-    EXPECT_EQ(simulation.cell().robot().actuators().find("gripper"), nullptr);
+    EXPECT_EQ(simulation.cell().robot().getActuators().find("gripper"),
+              nullptr);
     EXPECT_EQ(simulation.cell().requireQuery(
                   "(tool_is_attached fingers robot.flange)"),
               1.0);
@@ -208,7 +223,8 @@ TEST(Simulation, SurvivesACameraFailure)
         &logic);
     Outcome const outcome = run(simulation, robotik::Seed{ 7 });
     EXPECT_TRUE(outcome.passed);
-    EXPECT_FALSE(simulation.cell().robot().resources().available("wrist_camera"));
+    EXPECT_FALSE(
+        simulation.cell().robot().getResources().available("wrist_camera"));
 }
 
 TEST(Simulation, FailedAssertionDoesNotStopTheRun)

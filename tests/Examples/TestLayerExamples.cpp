@@ -39,9 +39,10 @@ TEST(LayerExamples, TaskRunsOneSkill)
     robotik::RoboticCell& cell = *opened.value();
     auto const raise = cell.skills().add<robotik::MoveJointSkill>(
         { .name = "Raise" }, "joint2", 0.5);
-    EXPECT_EQ(cell.run(raise, robotik::Seconds(10.0)), robotik::SkillState::Succeeded);
+    EXPECT_EQ(cell.run(raise, robotik::Seconds(10.0)),
+              robotik::SkillState::Succeeded);
 
-    robotik::JointSet const& joints = cell.robot().joints();
+    robotik::JointSet const& joints = cell.robot().getJoints();
     EXPECT_NEAR(
         joints.position(joints.requireRevolute("joint2")).value(), 0.5, 0.02);
     EXPECT_NEAR(
@@ -54,7 +55,8 @@ static robotik::Result<robotik::OpenedRoboticCell>
 pickAndPlace(PickPlaceLogic& p_logic)
 {
     auto scenario = robotik::loadScenario(
-        repoFile("demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
+        repoFile(
+            "demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
         testAssets());
     if (!scenario)
     {
@@ -69,7 +71,8 @@ pickAndPlace(PickPlaceLogic& p_logic)
 static robotik::PlannerSpec cubeInBox(std::string const& p_goal)
 {
     robotik::PlannerSpec spec;
-    spec.domain = repoFile("demos/PickAndPlace/scenarios/pick_and_place.domain.pddl");
+    spec.domain =
+        repoFile("demos/PickAndPlace/scenarios/pick_and_place.domain.pddl");
     spec.goal = { robotik::parseLiteral(p_goal).take() };
     return spec;
 }
@@ -109,7 +112,8 @@ public:
         m_ticks = 0;
     }
 
-    void act(robotik::RobotContext& /*p_context*/, robotik::Seconds /*p_dt*/) override
+    void act(robotik::RobotContext& /*p_context*/,
+             robotik::Seconds /*p_dt*/) override
     {
         ++m_ticks;
     }
@@ -123,8 +127,9 @@ public:
     [[nodiscard]] robotik::Status
     status(robotik::RobotContext const& p_context) const override
     {
-        return p_context.time >= robotik::Seconds(2.0) ? robotik::Status::SUCCESS
-                                                      : robotik::Status::RUNNING;
+        return p_context.time >= robotik::Seconds(2.0)
+                   ? robotik::Status::SUCCESS
+                   : robotik::Status::RUNNING;
     }
 
 private:
@@ -137,7 +142,8 @@ private:
 TEST(LayerExamples, PackageScenarioFile)
 {
     auto scenario = robotik::loadScenario(
-        repoFile("doc/tutorials/HelloWorld/scenarios/hello.scenario.yaml"), testAssets());
+        repoFile("doc/tutorials/HelloWorld/scenarios/hello.scenario.yaml"),
+        testAssets());
     ASSERT_TRUE(scenario) << scenario.error();
 
     HelloLogic logic;
@@ -149,5 +155,6 @@ TEST(LayerExamples, PackageScenarioFile)
     }
 
     EXPECT_TRUE(simulation.passed());
-    EXPECT_EQ(simulation.outcome(), robotik::Simulation::Outcome::ControllerSucceeded);
+    EXPECT_EQ(simulation.outcome(),
+              robotik::Simulation::Outcome::ControllerSucceeded);
 }

@@ -19,14 +19,14 @@ Read only what the task needs. Load a skill instead of reading the docs:
 | Write an app in C++ without YAML (Robot or Task layer) | — | doc/tutorials/02-three-programs.md |
 | Find a class or method | — | doc/reference/api.md |
 | A word you do not know | — | doc/reference/glossary.md |
-| Change the core | — | doc/concepts/06-architecture.md |
+| Change the core | — | doc/concepts/architecture/README.md |
 
 ## Layout
 
 Three layers, each usable without the ones above (`make check-layers`
 compiles every file alone where only the layers below exist, so an include
 upwards is "file not found"; `Task/Skills` and `Task/Planning` are compiled
-without `Task/RoboticCell.hpp` and `Robot/RobotSession.hpp`, so they cannot
+without `Task/RoboticCell.hpp` and `Robot/RobotRuntime.hpp`, so they cannot
 call the truth nor reach the simulator). Words:
 doc/reference/glossary.md.
 
@@ -34,7 +34,7 @@ doc/reference/glossary.md.
 include/RobotIK/<Layer>/...  public headers; src/RobotIK/<Layer>/... implementation
   Common/   Math (units, Pose, from Compages), Result (+ROBOTIK_TRY), Signal,
             Config (editable YAML tree), Random (Seed), File, Version
-  Robot/    one robot: Robot, RobotSession, openRobot, JointSet (SoA), LinkRef,
+  Robot/    one robot: Robot, RobotRuntime, openRobot, JointSet (SoA), LinkRef,
             Devices, Resources, Actuators, TeachPendant, Sensors/, Backends/
             (MuJoCo, Pinocchio, SceneView), Assets/ (packs, resolver),
             Components/ (ECS data on entities)
@@ -70,7 +70,7 @@ yet, see ROADMAP-HRI.md).
 make                         # core, hosts, the plugins of PLUGINS
 make <target>                # one plugin; stages build/linux-gcc-debug/lib/robotik/plugins/<Name>/
 make check                   # builds and runs build/linux-gcc-debug/bin/RobotIK-tests
-make check-layers            # compiler: no include upwards, no RoboticCell.hpp nor RobotSession.hpp in skills/planning
+make check-layers            # compiler: no include upwards, no RoboticCell.hpp nor RobotRuntime.hpp in skills/planning
 make check-links             # every relative link of the Markdown files resolves
 make check-asan              # tests with ASan (+UBSan if libubsan), then in a random order
 make check-valgrind          # tests under valgrind memcheck (values read before written)
@@ -97,15 +97,20 @@ sources. At run time the hosts find the built packages with
 
 - Skills see only `RobotContext` (robot API + `WorldModel` beliefs). Never
   give them ground truth (`RoboticCell::requirePose/requireQuery`); that is for metrics,
-  assertions, RL reward. The ECS world, the entities, the backend and the
-  writable kinematics are on `RobotSession` (own header), not on the
-  `Robot` of a skill; `Task/Skills` and `Task/Planning` are compiled
-  without `RobotSession.hpp`. A vacuum cup measures `holding()`; what it
-  holds is the `label` the grasp skill wrote (the entity is truth:
-  `RoboticCell::held`). What is measured is written by the session only
-  (`measureJoint`, `measureHolding`, `measureBase`, faults, `add`).
-  `Robot::base()` is the estimated base (`localization: truth` copies the
-  true one, a mock); sensors and truth queries use `trueBase()`. A scenario may choose to feed beliefs from the
+  assertions, RL reward. `RobotRuntime` (own header) owns the `Robot` of
+  the skills (composition, `friend`, not a base class) and alone holds the
+  ECS world, the entities, the backend, the `PhysicsWorld`, the true base
+  and the writable sensors and kinematics; the `Robot` does not store
+  them, its sensors are read only, `RobotContext::team` is `Robot const*`,
+  and `JointSet` knows no entity (checked in
+  `tests/Robot/TestSkillAccess.cpp`). `Task/Skills` and `Task/Planning`
+  are compiled without `RobotRuntime.hpp`. A vacuum cup measures
+  `holding()`; what it holds is the `label` the grasp skill wrote (the
+  entity is truth: `RoboticCell::held`). What is measured is written by
+  the runtime only (`measureJoint`, `measureHolding`, `measureBase`,
+  faults, `addSensor`, `addActuator`).
+  `Robot::getBase()` is the estimated base (`localization: truth` copies the
+  true one, a mock); sensors and truth queries use `getTrueBase()`. A scenario may choose to feed beliefs from the
   truth (`perception.fidelity: truth | noisy_truth`, per object): it is a
   mock of the detectors, done by the `RoboticCell` and written in the run report,
   never by a skill.
@@ -133,7 +138,9 @@ sources. At run time the hosts find the built packages with
   commands from the robot and its beliefs (no truth), `simulate(RoboticCell&)` is
   what the world does by itself (sim only, never commands a robot),
   `observe(RoboticCell const&)` reads the truth for metrics (a const cell commands
-  nothing: `skills()`, `robot()`, `robots()` are read only).
+  nothing: `skills()`, `robot()`, `robots()`, `runtime()`, `runtimes()`
+  are read only). `cell.robot()` is what a skill sees, `cell.runtime()`
+  what runs it (true base, backend, entities).
 - `ScenarioLogic::status` ends a run only when the scenario has no behavior tree
   and no planner.
 - Several robots in a world share one physics, one `ResourceManager`, one
@@ -141,6 +148,11 @@ sources. At run time the hosts find the built packages with
   `SkillDescription::robot` says which robot a skill drives; with several
   robots the beliefs are in the world frame (`RoboticCell::beliefFrame`), a
   robot alone keeps its base frame. `RoboticCell::robot()` is the first one.
+- `RobotBackend` is the hardware abstraction layer of one robot (`attach`,
+  `reset`, `step`, `time`, `getHealth`); what only a simulator does (rays,
+  contacts, body poses, welds) is `PhysicsWorld`, null on hardware
+  (`RobotRuntime::getPhysics`). A driver reports a lost link with
+  `getHealth()`, never an exception in `step`.
 - Plans run their independent steps together (`planner.parallel`, default
   true): the order comes from what each end of an action reads and changes,
   and from the resources of its skills. Do not add ordering in C++.
@@ -161,6 +173,12 @@ sources. At run time the hosts find the built packages with
   (`ROBOTIK_PLUGIN_LIBRARY`, `BuiltinPlugins.hpp`); no threads there.
 - The plugin does not own world entities; find them by id each time.
 - SI units, z up; typed handles (`Revolute`, `Prismatic`, `Seconds`, `Radians`).
+  A public API never takes nor returns a bare `double` for a physical
+  quantity: `Seconds`, `Length`, `Radians`, `Vector3m`, `Vector3rad`
+  (Common/Math.hpp), a `Revolute`/`Prismatic` handle when the unit depends
+  on the joint (two overloads, not one `double`). Callers write
+  `using namespace robotik::literals;` and `0.01_m`, `0.2_rad`, `2.0_s`.
+  Plain numbers stay inside the implementation (`.value()` once at the top).
 - Code must work headless (`SceneView*` null, no camera image; see
   `perception.blind`).
 - Errors from files and user input are a `Result` (`ROBOTIK_TRY`,
@@ -170,7 +188,7 @@ sources. At run time the hosts find the built packages with
   name says it: a lookup by a name written in C++ starts with `require`
   (`joints.requireRevolute("j")`, `robot.requireFramePose("tool0")`,
   `cell.requirePose("box")`, `cell.requireQuery(...)`); the handle version
-  found once does not throw while it is valid (`robot.worldPose(link)`); a
+  found once does not throw while it is valid (`robot.getWorldPose(link)`); a
   `LinkRef` used on another robot, or never found, throws
   `std::logic_error` (a mistake in the code, one integer compare). `add` refuses a
   duplicate name (`@throws`). `robotik::require(result)` takes a value
@@ -181,7 +199,7 @@ sources. At run time the hosts find the built packages with
   `Simulation::ended`), not polling.
 - Hot loops use handles found once (`JointId`, `LinkRef`, `ResourceId`),
   never a name. Measure before changing a storage
-  (doc/concepts/06-architecture.md, "Fast data").
+  (doc/concepts/architecture/02-robot.md, "Fast data").
 - Only `Task/Skills/SkillNodes.hpp` includes BlackThorn; other public
   headers name tree types with `TreeTypes.hpp` and answer `robotik::Status`
   (checked by the compiler in `tests/Common/TestHiddenBlackThorn.cpp`).
@@ -189,10 +207,35 @@ sources. At run time the hosts find the built packages with
   (`bt::Tree::clock`, set by `RoboticCell` and `PlanExecutor`). A tree built
   elsewhere keeps the wall clock unless you give it one.
 
+## At the end of each request
+
+Before the final answer, review what you changed against what was asked, then
+end the answer with a table, one row per point of the request:
+
+| | Point asked | What was done | What remains |
+|---|-------------|---------------|--------------|
+| ✅ | … | done and checked (how) | — |
+| ⚠️ | … | partly done, or done but not checked | … |
+| ❌ | … | not done, or done wrong | why, what to do |
+
+Judge whether each change goes the way the user asked, not only whether it
+builds. Say what was not checked (a test not run, the simulator not opened)
+instead of marking it ✅.
+
 ## Style
 
 - `.clang-format` (Google based, braces on their own line, 4 spaces).
 - Parameters `p_name`, members `m_name`, constants `UPPER_CASE`.
+- Method names: `getX()` reads a value, `setX(v)` writes it, `isX()` /
+  `hasX()` answer a bool, `countX()` gives a number of items; an action is
+  a verb (`record`, `play`, `jogTool`). One name is one meaning: no getter
+  and setter overloads with the same name. A data type used by one class
+  only is nested in it (`TeachPendant::Waypoint`). The older headers still
+  use bare names (`JointSet::position()`, `Sensor::name()`): ROADMAP.md lists the migration;
+  new and changed code follows the rule.
+- Order of the public part of a class: types, constants and constructors
+  first, then the methods from the most used to the least used (the main
+  actions, then the rare ones), then the getters and setters last.
 - Doxygen `///` comments (`///<` on the same line); class banners `// ****...`, method banners `// ----...`. File-local functions are `static`, with a `///` comment.
 - A public class answers why / when / how / guarantees / limits / why this
   choice, with an `@code` example from a test or a demo; docs follow the

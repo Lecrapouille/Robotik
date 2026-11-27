@@ -84,22 +84,23 @@ void TrayLogic::setup(robotik::RoboticCell& p_cell,
         }
     }
     // An arm with a cup carries; an arm without one drills.
-    for (std::unique_ptr<robotik::RobotSession> const& robot :
-         p_cell.robots())
+    for (std::unique_ptr<robotik::RobotRuntime> const& runtime :
+         p_cell.runtimes())
     {
-        robotik::JointSet& joints = robot->joints();
+        robotik::Robot& robot = runtime->robot();
+        robotik::JointSet& joints = robot.getJoints();
         for (robotik::JointId id = 0; id < joints.size(); ++id)
         {
             joints.gains(id).kp = STIFF_KP;
             joints.gains(id).kd = STIFF_KD;
         }
-        if (cupOf(*robot) != nullptr)
+        if (cupOf(robot) != nullptr)
         {
-            addCarrierSkills(p_cell, *robot);
+            addCarrierSkills(p_cell, robot);
         }
         else
         {
-            addDrillSkills(p_cell, *robot);
+            addDrillSkills(p_cell, robot);
         }
     }
     addPlanning(p_cell);
@@ -108,9 +109,9 @@ void TrayLogic::setup(robotik::RoboticCell& p_cell,
 void TrayLogic::addCarrierSkills(robotik::RoboticCell& p_cell,
                                  robotik::Robot const& p_robot)
 {
-    robotik::ResourceManager const& resources = p_robot.resources();
+    robotik::ResourceManager const& resources = p_robot.getResources();
     std::vector<robotik::ResourceRequirement> arm;
-    if (auto const* group = p_robot.actuators().first<robotik::JointGroup>())
+    if (auto const* group = p_robot.getActuators().first<robotik::JointGroup>())
     {
         arm.push_back(resources.require(group->name()));
     }
@@ -119,7 +120,7 @@ void TrayLogic::addCarrierSkills(robotik::RoboticCell& p_cell,
 
     // The cup points up: it slides under the tray between the rails, at the
     // height it waits at, then rises to its bottom face.
-    std::string const& id = p_robot.id();
+    std::string const& id = p_robot.getId();
     std::string const scope = id + ".";
     robotik::SkillScheduler& skills = p_cell.skills();
     for (std::string const& tray : m_trays)
@@ -159,9 +160,9 @@ void TrayLogic::addDrillSkills(robotik::RoboticCell& p_cell,
                                robotik::Robot const& p_robot)
 {
     std::vector<robotik::ResourceRequirement> arm;
-    if (auto const* group = p_robot.actuators().first<robotik::JointGroup>())
+    if (auto const* group = p_robot.getActuators().first<robotik::JointGroup>())
     {
-        arm.push_back(p_robot.resources().require(group->name()));
+        arm.push_back(p_robot.getResources().require(group->name()));
     }
     // The path is a trajectory of the scenario, drawn in the frame of the tray.
     auto const& trajectories = p_cell.description().trajectories;
@@ -176,7 +177,7 @@ void TrayLogic::addDrillSkills(robotik::RoboticCell& p_cell,
     {
         path.push_back(point.position);
     }
-    std::string const& id = p_robot.id();
+    std::string const& id = p_robot.getId();
     for (std::string const& tray : m_trays)
     {
         p_cell.skills().add<TraceSkill>(
@@ -302,10 +303,10 @@ void TrayLogic::observe(robotik::RoboticCell const& p_cell,
     robotik::SkillScheduler const& skills = p_cell.skills();
     for (std::string const& tray : m_trays)
     {
-        for (robotik::RobotSession const* robot : p_cell.robots())
+        for (robotik::Robot const* robot : p_cell.robots())
         {
             robotik::SkillId const trace =
-                skills.find(robot->id() + ".Trace(" + tray + ")");
+                skills.find(robot->getId() + ".Trace(" + tray + ")");
             if (trace != robotik::NO_SKILL &&
                 skills.state(trace) == robotik::SkillState::Succeeded)
             {

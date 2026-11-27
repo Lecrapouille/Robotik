@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "RobotIK/Robot/SceneView.hpp"
 #include "RobotIK/Robot/Robot.hpp"
 #include "RobotIK/Robot/Sensors/Camera.hpp"
 

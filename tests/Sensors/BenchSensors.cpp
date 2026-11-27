@@ -22,22 +22,25 @@ TEST(SensorBench, DISABLED_ManySensorsOnOneRobot)
 {
     robotik::RobotOptions options;
     options.physics = false; // measure the sensors, not MuJoCo
-    auto arm = robotik::openRobot(repoFile("data/packs/robotik.robots/robot_6axis.urdf").string(),
-                                  options);
+    auto arm = robotik::openRobot(
+        repoFile("data/packs/robotik.robots/robot_6axis.urdf").string(),
+        options);
     ASSERT_TRUE(arm) << arm.error();
     for (int i = 0; i < 64; ++i)
     {
         robotik::ImuConfig config;
         config.parent = "link6";
         config.frequency = 0.0; // every step
-        (void)arm.value()->sensors().add<robotik::Imu>("imu" + std::to_string(i), config);
+        (void)arm.value()->addSensor<robotik::Imu>(
+            "imu" + std::to_string(i), config);
     }
     for (int i = 0; i < 8; ++i)
     {
         robotik::RangeScannerConfig config;
         config.beams = 32;
         config.frequency = 0.0;
-        (void)arm.value()->sensors().add<robotik::RangeScanner>("lidar" + std::to_string(i), config);
+        (void)arm.value()->addSensor<robotik::RangeScanner>(
+            "lidar" + std::to_string(i), config);
     }
     int constexpr STEPS = 2000;
     auto const start = std::chrono::steady_clock::now();
@@ -45,6 +48,9 @@ TEST(SensorBench, DISABLED_ManySensorsOnOneRobot)
     {
         arm.value()->step(robotik::Seconds(0.001));
     }
-    double const us = std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count();
-    std::cout << "[BENCH] 64 IMU + 8 lidars: " << us / STEPS << " us per step\n";
+    double const us = std::chrono::duration<double, std::micro>(
+                          std::chrono::steady_clock::now() - start)
+                          .count();
+    std::cout << "[BENCH] 64 IMU + 8 lidars: " << us / STEPS
+              << " us per step\n";
 }

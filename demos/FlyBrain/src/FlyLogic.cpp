@@ -8,9 +8,9 @@
 #include "FlyLogic.hpp"
 
 #include "RobotIK/Robot/Assets/AssetResolver.hpp"
-#include "RobotIK/Robot/Backends/SceneView.hpp"
+#include "RobotIK/Robot/SceneView.hpp"
 #include "RobotIK/Robot/Components/Objects.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 #include "RobotIK/Robot/Sensors/Image.hpp"
 #include "RobotIK/Task/RoboticCell.hpp"
 
@@ -39,14 +39,16 @@ static compages::Quatf toFloat(robotik::Quaternion const& p_q)
 }
 
 /// Writes a measured angle on a named joint when it exists.
-static void poseJoint(robotik::RobotSession& p_robot,
+static void poseJoint(robotik::RobotRuntime& p_robot,
                       std::string const& p_name,
-                      double p_angle)
+                      robotik::Radians p_angle)
 {
-    robotik::JointId const id = p_robot.joints().find(p_name);
+    robotik::JointId const id = p_robot.robot().getJoints().find(p_name);
     if (id != robotik::NO_JOINT)
     {
-        p_robot.measureJoint(id, p_angle, 0.0);
+        p_robot.measureJoint(p_robot.robot().getJoints().requireRevolute(id),
+                             p_angle,
+                             robotik::AngularVelocity(0.0));
     }
 }
 
@@ -57,7 +59,9 @@ static robotik::ecs::Shape decoration(std::string p_name,
 {
     robotik::ecs::Shape object;
     object.name = std::move(p_name);
-    object.size = { robotik::Length(p_size.x), robotik::Length(p_size.y), robotik::Length(p_size.z) };
+    object.size = { robotik::Length(p_size.x),
+                    robotik::Length(p_size.y),
+                    robotik::Length(p_size.z) };
     object.color = p_color;
     return object;
 }
@@ -77,12 +81,12 @@ void FlyBackend::restart()
     m_done = false;
 }
 
-void FlyBackend::reset(robotik::RobotSession& p_robot)
+void FlyBackend::reset(robotik::RobotRuntime& p_robot)
 {
     pose(p_robot);
 }
 
-void FlyBackend::step(robotik::RobotSession& p_robot, robotik::Seconds p_dt)
+void FlyBackend::step(robotik::RobotRuntime& p_robot, robotik::Seconds p_dt)
 {
     double const dt = m_environment.dt();
     m_lag += p_dt.value();
@@ -100,7 +104,7 @@ void FlyBackend::step(robotik::RobotSession& p_robot, robotik::Seconds p_dt)
     pose(p_robot);
 }
 
-void FlyBackend::pose(robotik::RobotSession& p_robot) const
+void FlyBackend::pose(robotik::RobotRuntime& p_robot) const
 {
     FlySnapshot const& snapshot = m_environment.snapshot();
     FlyPosture const& posture = snapshot.posture;
@@ -109,33 +113,49 @@ void FlyBackend::pose(robotik::RobotSession& p_robot) const
     for (char const* leg : FLY_LEG_NAMES)
     {
         std::string const name(leg);
-        poseJoint(p_robot, name + "_coxa_pitch", posture.coxa_pitch);
-        poseJoint(p_robot, name + "_coxa_roll", 0.0);
-        poseJoint(p_robot, name + "_coxa_yaw", 0.0);
-        poseJoint(p_robot, name + "_femur_pitch", posture.femur_pitch);
-        poseJoint(p_robot, name + "_femur_roll", 0.0);
-        poseJoint(p_robot, name + "_tibia_pitch", posture.tibia_pitch);
-        poseJoint(p_robot, name + "_tarsus_pitch", posture.tarsus_pitch);
+        poseJoint(p_robot,
+                  name + "_coxa_pitch",
+                  robotik::Radians(posture.coxa_pitch));
+        poseJoint(p_robot, name + "_coxa_roll", robotik::Radians(0.0));
+        poseJoint(p_robot, name + "_coxa_yaw", robotik::Radians(0.0));
+        poseJoint(p_robot,
+                  name + "_femur_pitch",
+                  robotik::Radians(posture.femur_pitch));
+        poseJoint(p_robot, name + "_femur_roll", robotik::Radians(0.0));
+        poseJoint(p_robot,
+                  name + "_tibia_pitch",
+                  robotik::Radians(posture.tibia_pitch));
+        poseJoint(p_robot,
+                  name + "_tarsus_pitch",
+                  robotik::Radians(posture.tarsus_pitch));
     }
     for (char const* side : { "L", "R" })
     {
         std::string const wing = std::string("wing_") + side;
-        poseJoint(p_robot, wing + "_sweep", posture.wing_sweep);
-        poseJoint(p_robot, wing + "_deviation", posture.wing_deviation);
-        poseJoint(p_robot, wing + "_pitch", posture.wing_pitch);
         poseJoint(
-            p_robot, std::string("haltere_") + side + "_flap", posture.haltere);
+            p_robot, wing + "_sweep", robotik::Radians(posture.wing_sweep));
+        poseJoint(p_robot,
+                  wing + "_deviation",
+                  robotik::Radians(posture.wing_deviation));
+        poseJoint(
+            p_robot, wing + "_pitch", robotik::Radians(posture.wing_pitch));
+        poseJoint(p_robot,
+                  std::string("haltere_") + side + "_flap",
+                  robotik::Radians(posture.haltere));
     }
-    poseJoint(p_robot, "neck_yaw", posture.neck_yaw);
-    poseJoint(p_robot, "neck_pitch", posture.neck_pitch);
-    poseJoint(p_robot, "neck_roll", 0.0);
-    poseJoint(p_robot, "abdomen_pitch", posture.abdomen_pitch);
+    poseJoint(p_robot, "neck_yaw", robotik::Radians(posture.neck_yaw));
+    poseJoint(p_robot, "neck_pitch", robotik::Radians(posture.neck_pitch));
+    poseJoint(p_robot, "neck_roll", robotik::Radians(0.0));
+    poseJoint(
+        p_robot, "abdomen_pitch", robotik::Radians(posture.abdomen_pitch));
 
     robotik::Pose pose;
     pose.position =
         robotik::Vector3(snapshot.plant.x, snapshot.plant.y, snapshot.plant.z);
     pose.rotation =
-        robotik::Quaternion::fromRpy(robotik::Radians(0.0), robotik::Radians(0.0), robotik::Radians(snapshot.plant.yaw));
+        robotik::Quaternion::fromRpy(robotik::Radians(0.0),
+                                     robotik::Radians(0.0),
+                                     robotik::Radians(snapshot.plant.yaw));
     p_robot.measureBase(robotik::BaseState{ pose, {} });
 }
 
@@ -161,7 +181,7 @@ void FlyLogic::setup(robotik::RoboticCell& p_cell, robotik::SceneView* p_view)
 
     auto backend = std::make_unique<FlyBackend>(*m_environment);
     m_backend = backend.get();
-    p_cell.robot().connect(std::move(backend));
+    p_cell.runtime().connect(std::move(backend));
 
     if (p_view == nullptr)
     {
@@ -225,9 +245,11 @@ void FlyLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed)
     // Puts the body where the episode starts, then the first decision: the
     // first step flies with it, as in the standalone loop.
     FlyPlant const& plant = m_environment->snapshot().plant;
-    p_cell.robot().startPose(robotik::Pose{
+    p_cell.runtime().setStartPose(robotik::Pose{
         robotik::Vector3(plant.x, plant.y, plant.z),
-        robotik::Quaternion::fromRpy(robotik::Radians(0.0), robotik::Radians(0.0), robotik::Radians(plant.yaw)) });
+        robotik::Quaternion::fromRpy(robotik::Radians(0.0),
+                                     robotik::Radians(0.0),
+                                     robotik::Radians(plant.yaw)) });
     decide();
     drawBeamsAndTrail();
 }
@@ -284,10 +306,12 @@ void FlyLogic::drawBeamsAndTrail()
         double const angle = std::acos(std::clamp(along.x, -1.0, 1.0));
         robotik::Quaternion const turn =
             robotik::norm(axis) < 1e-9
-                ? (along.x > 0.0
-                       ? robotik::Quaternion{}
-                       : robotik::Quaternion::fromAngleAxis(robotik::Radians(3.14159265358979323846), robotik::Vector3(0.0, 0.0, 1.0)))
-                : robotik::Quaternion::fromAngleAxis(robotik::Radians(angle), axis);
+                ? (along.x > 0.0 ? robotik::Quaternion{}
+                                 : robotik::Quaternion::fromAngleAxis(
+                                       robotik::Radians(3.14159265358979323846),
+                                       robotik::Vector3(0.0, 0.0, 1.0)))
+                : robotik::Quaternion::fromAngleAxis(robotik::Radians(angle),
+                                                     axis);
         beam.position(toFloat(from + span * 0.5))
             .rotation(toFloat(turn))
             .scale(static_cast<float>(length), 1.0F, 1.0F);

@@ -21,7 +21,7 @@ static robotik::OpenedRobot armWithCup()
     robotik::OpenedRobot robot = robotik::require(robotik::openRobot(
         repoFile("data/packs/robotik.robots/robot_6axis.urdf").string(),
         options));
-    robot->actuators().add<robotik::VacuumGripper>("vacuum");
+    robot->addActuator<robotik::VacuumGripper>("vacuum");
     return robot;
 }
 
@@ -29,7 +29,8 @@ static robotik::OpenedRobot armWithCup()
 TEST(GripperLabel, TheVacuumIsMeasuredTheEntityStaysInTheCell)
 {
     robotik::OpenedRobot robot = armWithCup();
-    auto& cup = *robot->actuators().find<robotik::VacuumGripper>("vacuum");
+    auto& cup =
+        *robot->robot().getActuators().find<robotik::VacuumGripper>("vacuum");
     compages::world::EntityId const cube = robot.world->entity("cube").id();
     robotik::HeldObjects held;
 
@@ -50,7 +51,8 @@ TEST(GripperLabel, TheVacuumIsMeasuredTheEntityStaysInTheCell)
 TEST(GripperLabel, LosingTheVacuumForgetsTheLabel)
 {
     robotik::OpenedRobot robot = armWithCup();
-    auto& cup = *robot->actuators().find<robotik::VacuumGripper>("vacuum");
+    auto& cup =
+        *robot->robot().getActuators().find<robotik::VacuumGripper>("vacuum");
     robot->measureHolding(cup, true);
     cup.label("red_cube");
     EXPECT_EQ(cup.label(), "red_cube");

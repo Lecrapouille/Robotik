@@ -16,7 +16,7 @@ void WaveLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 {
     // Find the joint once: act() runs at each step and uses the handle.
     // A typed handle: its angle is in radians, the compiler checks it.
-    m_base = p_cell.robot().joints().requireRevolute("joint1");
+    m_base = p_cell.robot().getJoints().requireRevolute("joint1");
     m_swing = 0.0;
     m_tool_y = 0.0;
 }
@@ -24,7 +24,7 @@ void WaveLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 void WaveLogic::act(robotik::RobotContext& p_context, robotik::Seconds /*p_dt*/)
 {
     robotik::Robot& robot = p_context.robot;
-    robotik::JointSet& joints = robot.joints();
+    robotik::JointSet& joints = robot.getJoints();
 
     // Command: a target angle. The joint controller moves toward it.
     robotik::Radians const home = joints.home(m_base);
@@ -35,7 +35,7 @@ void WaveLogic::act(robotik::RobotContext& p_context, robotik::Seconds /*p_dt*/)
     // in the robot base frame).
     m_swing =
         std::max(m_swing, std::abs((joints.position(m_base) - home).value()));
-    m_tool_y = robot.requireFramePose(robot.tool()).position.y;
+    m_tool_y = robot.requireFramePose(robot.getTool()).position.y;
 }
 
 void WaveLogic::measure(robotik::RoboticCell const& /*p_cell*/,

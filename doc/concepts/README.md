@@ -11,4 +11,5 @@ The pages are numbered in reading order. Each page uses the words of the pages b
 3. [Tools and frames](03-tools-and-frames.md): flange, `tool0`, `tool_mount`, TCP, and why the robot and the tool stay two files.
 4. [Skills, the scheduler and behavior trees](04-skills-and-behavior-trees.md): who decides what to do, who decides if it can run now, and who knows how.
 5. [The PDDL planner](05-pddl-planner.md): a goal instead of a behavior tree, how a plan runs, and its limits.
-6. [Architecture](06-architecture.md): the layers, one step of the simulation, the backends, and who owns which state. For people who change RobotIK itself.
+6. [Architecture](architecture/README.md): the layers, one step of the simulation, the robot and what runs it, resources, truth and beliefs, hosts and plugins. Six short pages for people who change RobotIK itself.
+7. [The teach pendant](07-teach-pendant.md): move a robot by hand, save positions (waypoints) and replay them with a smooth move.

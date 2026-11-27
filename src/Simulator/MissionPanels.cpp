@@ -130,7 +130,7 @@ static void expireFaults(App& p_app)
 {
     double const now = p_app.simulation->time().value();
     robotik::ResourceManager& resources =
-        p_app.simulation->cell().robot().resources();
+        p_app.simulation->cell().runtime().getResources();
     std::vector<ManualFault>& faults = p_app.ui.manual_faults;
     // A replay rewinds the clock: the faults of the old run are forgotten.
     std::erase_if(faults,
@@ -154,7 +154,8 @@ static void expireFaults(App& p_app)
 static void resourceTable(App& p_app)
 {
     robotik::Simulation& simulation = *p_app.simulation;
-    robotik::ResourceManager& resources = simulation.cell().robot().resources();
+    robotik::ResourceManager& resources =
+        simulation.cell().runtime().getResources();
     robotik::SkillScheduler const& skills = simulation.cell().skills();
     std::vector<ManualFault>& manual = p_app.ui.manual_faults;
     std::vector<bool>& picked = p_app.ui.fault_pick;
@@ -248,7 +249,8 @@ static void resourceTable(App& p_app)
 static void faultForm(App& p_app)
 {
     robotik::Simulation& simulation = *p_app.simulation;
-    robotik::ResourceManager& resources = simulation.cell().robot().resources();
+    robotik::ResourceManager& resources =
+        simulation.cell().runtime().getResources();
     std::vector<ManualFault>& manual = p_app.ui.manual_faults;
     std::vector<bool>& picked = p_app.ui.fault_pick;
     picked.resize(resources.size(), false);

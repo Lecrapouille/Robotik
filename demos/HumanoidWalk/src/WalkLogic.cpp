@@ -10,7 +10,7 @@
 
 #include "RobotIK/Common/Config.hpp"
 #include "RobotIK/Robot/Backends/MujocoBackend.hpp"
-#include "RobotIK/Robot/Backends/SceneView.hpp"
+#include "RobotIK/Robot/SceneView.hpp"
 #include "RobotIK/Robot/Sensors/Image.hpp"
 #include "RobotIK/Task/Metrics.hpp"
 #include "RobotIK/Task/RoboticCell.hpp"
@@ -43,7 +43,8 @@ void WalkLogic::setup(robotik::RoboticCell& p_cell, robotik::SceneView* p_view)
 {
     robotik::RoboticCellDescription const& scenario = p_cell.description();
     m_base = robotik::firstRobot(scenario.world).id + "." + BASE_LINK;
-    std::filesystem::path const& urdf = robotik::firstRobot(scenario.world).model;
+    std::filesystem::path const& urdf =
+        robotik::firstRobot(scenario.world).model;
     WalkContract contract =
         WalkContract::load(urdf.parent_path() / "walk.yaml");
 
@@ -60,12 +61,12 @@ void WalkLogic::setup(robotik::RoboticCell& p_cell, robotik::SceneView* p_view)
     }
     auto physics = std::make_unique<robotik::MujocoBackend>(std::move(options));
     (void)physics->load(urdf);
-    robotik::RobotSession& robot = p_cell.robot();
+    robotik::RobotRuntime& robot = p_cell.runtime();
     robot.connect(std::move(physics));
 
     // The PD gains of the policy, no slew: the policy targets are smooth.
     WalkBody body{ {}, IMU_NAME };
-    robotik::JointSet& joints = robot.joints();
+    robotik::JointSet& joints = robot.robot().getJoints();
     for (std::size_t i = 0; i < contract.joints.size(); ++i)
     {
         robotik::JointId const id = joints.require(contract.joints[i]);
@@ -94,7 +95,7 @@ void WalkLogic::setup(robotik::RoboticCell& p_cell, robotik::SceneView* p_view)
 
     robotik::SkillDescription describe;
     describe.priority = SKILL_PRIORITY;
-    describe.resources = { robot.resources().require("body") };
+    describe.resources = { robot.getResources().require("body") };
     describe.name = "Stand";
     p_cell.skills().add<StandSkill>(describe, body, posture, stand);
     describe.name = "Walk";

@@ -7,7 +7,7 @@
 
 #include "FlyDraw.hpp"
 
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 
 #include "Compages/Renderer/Scene/Scene.hpp"
 #include "Compages/World/Components/Camera.hpp"
@@ -26,14 +26,15 @@ static float lengthOf(compages::Vector3f const& p_vector)
 
 /// Places one joint when the URDF has it. A missing name is skipped,
 /// so a shorter model still draws.
-static void poseJoint(robotik::RobotSession& p_robot,
+static void poseJoint(robotik::RobotRuntime& p_robot,
                       std::string const& p_name,
-                      double p_angle)
+                      robotik::Radians p_angle)
 {
-    robotik::JointId const id = p_robot.joints().find(p_name);
+    robotik::JointId const id = p_robot.robot().getJoints().find(p_name);
     if (id != robotik::NO_JOINT)
     {
-        p_robot.placeJoint(id, p_angle);
+        p_robot.placeJoint(p_robot.robot().getJoints().requireRevolute(id),
+                           p_angle);
     }
 }
 
@@ -44,7 +45,7 @@ compages::Vector3f flyToView(robotik::Vector3 const& p_z_up)
              static_cast<float>(-p_z_up.y) };
 }
 
-void poseFlyBody(robotik::RobotSession& p_robot, FlySnapshot const& p_snapshot)
+void poseFlyBody(robotik::RobotRuntime& p_robot, FlySnapshot const& p_snapshot)
 {
     FlyPosture const& posture = p_snapshot.posture;
 
@@ -53,36 +54,52 @@ void poseFlyBody(robotik::RobotSession& p_robot, FlySnapshot const& p_snapshot)
     for (char const* leg : FLY_LEG_NAMES)
     {
         std::string const name(leg);
-        poseJoint(p_robot, name + "_coxa_pitch", posture.coxa_pitch);
-        poseJoint(p_robot, name + "_coxa_roll", 0.0);
-        poseJoint(p_robot, name + "_coxa_yaw", 0.0);
-        poseJoint(p_robot, name + "_femur_pitch", posture.femur_pitch);
-        poseJoint(p_robot, name + "_femur_roll", 0.0);
-        poseJoint(p_robot, name + "_tibia_pitch", posture.tibia_pitch);
-        poseJoint(p_robot, name + "_tarsus_pitch", posture.tarsus_pitch);
+        poseJoint(p_robot,
+                  name + "_coxa_pitch",
+                  robotik::Radians(posture.coxa_pitch));
+        poseJoint(p_robot, name + "_coxa_roll", robotik::Radians(0.0));
+        poseJoint(p_robot, name + "_coxa_yaw", robotik::Radians(0.0));
+        poseJoint(p_robot,
+                  name + "_femur_pitch",
+                  robotik::Radians(posture.femur_pitch));
+        poseJoint(p_robot, name + "_femur_roll", robotik::Radians(0.0));
+        poseJoint(p_robot,
+                  name + "_tibia_pitch",
+                  robotik::Radians(posture.tibia_pitch));
+        poseJoint(p_robot,
+                  name + "_tarsus_pitch",
+                  robotik::Radians(posture.tarsus_pitch));
     }
 
     // Left and right share the posture: the URDF mirrors the signs.
     for (char const* side : { "L", "R" })
     {
         std::string const wing = std::string("wing_") + side;
-        poseJoint(p_robot, wing + "_sweep", posture.wing_sweep);
-        poseJoint(p_robot, wing + "_deviation", posture.wing_deviation);
-        poseJoint(p_robot, wing + "_pitch", posture.wing_pitch);
         poseJoint(
-            p_robot, std::string("haltere_") + side + "_flap", posture.haltere);
+            p_robot, wing + "_sweep", robotik::Radians(posture.wing_sweep));
+        poseJoint(p_robot,
+                  wing + "_deviation",
+                  robotik::Radians(posture.wing_deviation));
+        poseJoint(
+            p_robot, wing + "_pitch", robotik::Radians(posture.wing_pitch));
+        poseJoint(p_robot,
+                  std::string("haltere_") + side + "_flap",
+                  robotik::Radians(posture.haltere));
     }
-    poseJoint(p_robot, "neck_yaw", posture.neck_yaw);
-    poseJoint(p_robot, "neck_pitch", posture.neck_pitch);
-    poseJoint(p_robot, "neck_roll", 0.0);
-    poseJoint(p_robot, "abdomen_pitch", posture.abdomen_pitch);
+    poseJoint(p_robot, "neck_yaw", robotik::Radians(posture.neck_yaw));
+    poseJoint(p_robot, "neck_pitch", robotik::Radians(posture.neck_pitch));
+    poseJoint(p_robot, "neck_roll", robotik::Radians(0.0));
+    poseJoint(
+        p_robot, "abdomen_pitch", robotik::Radians(posture.abdomen_pitch));
 
     // Measure the base pose.
     robotik::Pose pose;
     pose.position = robotik::Vector3(
         p_snapshot.plant.x, p_snapshot.plant.y, p_snapshot.plant.z);
     pose.rotation =
-        robotik::Quaternion::fromRpy(robotik::Radians(0.0), robotik::Radians(0.0), robotik::Radians(p_snapshot.plant.yaw));
+        robotik::Quaternion::fromRpy(robotik::Radians(0.0),
+                                     robotik::Radians(0.0),
+                                     robotik::Radians(p_snapshot.plant.yaw));
     p_robot.measureBase(robotik::BaseState{ pose, {} });
 }
 
@@ -145,11 +162,11 @@ void aimFlyBeam(compages::world::Entity p_beam,
 }
 
 compages::world::Entity mountFlyEye(compages::renderer::Scene& p_scene,
-                                    robotik::RobotSession& p_robot,
+                                    robotik::RobotRuntime& p_robot,
                                     std::string_view p_link,
                                     std::string_view p_name)
 {
-    compages::world::Entity const link = p_robot.link(p_link);
+    compages::world::Entity const link = p_robot.getLink(p_link);
     if (!link)
     {
         return {};
@@ -158,7 +175,9 @@ compages::world::Entity mountFlyEye(compages::renderer::Scene& p_scene,
     // Columns are the camera axes in the eye frame: +X image-right, +Y up,
     // +Z opposite the look direction. -Z then falls on the optical +X.
     robotik::Quaternion const lens =
-        robotik::Quaternion::fromBasis(robotik::Vector3(0.0, -1.0, 0.0), robotik::Vector3(0.0, 0.0, 1.0), robotik::Vector3(-1.0, 0.0, 0.0));
+        robotik::Quaternion::fromBasis(robotik::Vector3(0.0, -1.0, 0.0),
+                                       robotik::Vector3(0.0, 0.0, 1.0),
+                                       robotik::Vector3(-1.0, 0.0, 0.0));
 
     // Create the camera.
     compages::world::Entity camera =

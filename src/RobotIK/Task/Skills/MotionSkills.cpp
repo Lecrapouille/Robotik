@@ -20,13 +20,14 @@ static std::vector<JointId> jointsOf(Robot const& p_robot,
 {
     if (!p_group.empty())
     {
-        if (auto const* group = p_robot.actuators().find<JointGroup>(p_group))
+        if (auto const* group =
+                p_robot.getActuators().find<JointGroup>(p_group))
         {
             return { group->joints().begin(), group->joints().end() };
         }
         return {};
     }
-    std::vector<JointId> joints(p_robot.joints().size());
+    std::vector<JointId> joints(p_robot.getJoints().size());
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         joints[i] = static_cast<JointId>(i);
@@ -54,7 +55,7 @@ void HomeSkill::reset()
 
 Status HomeSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
 {
-    JointSet& joints = p_context.robot.joints();
+    JointSet& joints = p_context.robot.getJoints();
     if (!m_bound)
     {
         m_joints = jointsOf(p_context.robot, m_group);
@@ -77,7 +78,7 @@ Status HomeSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
 
 void HomeSkill::cancel(RobotContext& p_context)
 {
-    holdJoints(p_context.robot.joints(), m_joints);
+    holdJoints(p_context.robot.getJoints(), m_joints);
 }
 
 MoveJointSkill::MoveJointSkill(std::string p_joint,
@@ -98,7 +99,7 @@ void MoveJointSkill::reset()
 
 Status MoveJointSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
 {
-    JointSet& joints = p_context.robot.joints();
+    JointSet& joints = p_context.robot.getJoints();
     if (m_joint == NO_JOINT)
     {
         m_joint = joints.find(m_name);
@@ -116,7 +117,7 @@ void MoveJointSkill::cancel(RobotContext& p_context)
 {
     if (m_joint != NO_JOINT)
     {
-        p_context.robot.joints().hold(m_joint);
+        p_context.robot.getJoints().hold(m_joint);
     }
 }
 
@@ -137,7 +138,7 @@ void MoveJointsSkill::reset()
 
 Status MoveJointsSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
 {
-    JointSet& joints = p_context.robot.joints();
+    JointSet& joints = p_context.robot.getJoints();
     if (m_joints.empty())
     {
         for (auto const& [name, goal] : m_targets)
@@ -166,7 +167,7 @@ Status MoveJointsSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
 
 void MoveJointsSkill::cancel(RobotContext& p_context)
 {
-    holdJoints(p_context.robot.joints(), m_joints);
+    holdJoints(p_context.robot.getJoints(), m_joints);
 }
 
 MoveTCPSkill::MoveTCPSkill(std::string p_frame,
@@ -196,7 +197,7 @@ Status MoveTCPSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
     Robot& robot = p_context.robot;
     if (!m_planned)
     {
-        std::string const& frame = m_frame.empty() ? robot.tool() : m_frame;
+        std::string const& frame = m_frame.empty() ? robot.getTool() : m_frame;
         auto solution = robot.inverseKinematics(frame, m_target);
         if (!solution)
         {
@@ -207,7 +208,7 @@ Status MoveTCPSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
         m_planned = true;
     }
 
-    JointSet& joints = robot.joints();
+    JointSet& joints = robot.getJoints();
     bool reached = true;
     for (JointId id = 0; id < joints.size(); ++id)
     {
@@ -219,14 +220,14 @@ Status MoveTCPSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
 
 void MoveTCPSkill::cancel(RobotContext& p_context)
 {
-    p_context.robot.joints().hold();
+    p_context.robot.getJoints().hold();
 }
 
 Status StopSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
 {
     if (!m_held)
     {
-        p_context.robot.joints().hold();
+        p_context.robot.getJoints().hold();
         m_held = true;
     }
     return Status::RUNNING;

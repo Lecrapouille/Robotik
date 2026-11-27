@@ -82,7 +82,7 @@ static std::string robotOf(robotik::RoboticCell const& p_cell,
     {
         return robot;
     }
-    return p_cell.robots().front()->id();
+    return p_cell.robots().front()->getId();
 }
 
 /// Top of every view: the kind in small grey capitals with Pin and
@@ -228,7 +228,7 @@ static void skillView(App& p_app, robotik::SkillId p_id)
     robotik::Simulation const& simulation = *p_app.simulation;
     robotik::RoboticCell const& cell = simulation.cell();
     robotik::SkillScheduler const& skills = cell.skills();
-    robotik::ResourceManager const& resources = cell.robot().resources();
+    robotik::ResourceManager const& resources = cell.robot().getResources();
     robotik::SkillDescription const& description = skills.description(p_id);
     robotik::SkillState const state = skills.state(p_id);
     double const now = simulation.time().value();
@@ -265,7 +265,8 @@ static void skillView(App& p_app, robotik::SkillId p_id)
             sentence(ORANGE, "Waiting. " + why);
             break;
         case robotik::SkillState::Stopping:
-            sentence(ORANGE, "Stopping: it keeps its resources until it is safe.");
+            sentence(ORANGE,
+                     "Stopping: it keeps its resources until it is safe.");
             break;
         case robotik::SkillState::Failed:
             sentence(RED, "Failed. " + why);
@@ -445,7 +446,7 @@ static void resourceView(App& p_app, robotik::ResourceId p_id)
 {
     robotik::RoboticCell const& cell = p_app.simulation->cell();
     robotik::SkillScheduler const& skills = cell.skills();
-    robotik::ResourceManager const& resources = cell.robot().resources();
+    robotik::ResourceManager const& resources = cell.robot().getResources();
 
     ImVec4 color;
     char const* word = resourceState(resources, p_id, color);
@@ -538,7 +539,7 @@ static void resourceView(App& p_app, robotik::ResourceId p_id)
 // --- Robot ------------------------------------------------------------------
 
 /// Everything about one robot: who drives it, its joints, its skills.
-static void robotView(App& p_app, robotik::RobotSession const& p_robot)
+static void robotView(App& p_app, robotik::RobotRuntime const& p_robot)
 {
     robotik::RoboticCell const& cell = p_app.simulation->cell();
     robotik::SkillScheduler const& skills = cell.skills();
@@ -546,14 +547,14 @@ static void robotView(App& p_app, robotik::RobotSession const& p_robot)
     bool const manual = p_app.teach.manual;
     header(p_app,
            "ROBOT",
-           p_robot.id(),
+           p_robot.robot().getId(),
            manual ? "MANUAL" : "MISSION",
            manual ? ORANGE : BLUE);
 
     std::vector<robotik::SkillId> active;
     for (robotik::SkillId id = 0; id < skills.size(); ++id)
     {
-        if (robotOf(cell, id) == p_robot.id() &&
+        if (robotOf(cell, id) == p_robot.robot().getId() &&
             (skills.state(id) == robotik::SkillState::Running ||
              skills.state(id) == robotik::SkillState::Waiting))
         {
@@ -575,11 +576,11 @@ static void robotView(App& p_app, robotik::RobotSession const& p_robot)
     if (beginFacts("robot"))
     {
         factName("Model");
-        ImGui::TextUnformatted(p_robot.name().c_str());
-        if (!p_robot.tool().empty())
+        ImGui::TextUnformatted(p_robot.robot().getName().c_str());
+        if (!p_robot.robot().getTool().empty())
         {
             factName("Tool");
-            ImGui::TextUnformatted(p_robot.tool().c_str());
+            ImGui::TextUnformatted(p_robot.robot().getTool().c_str());
         }
         factName("Skills now");
         skillLinks(p_app, active);
@@ -588,7 +589,7 @@ static void robotView(App& p_app, robotik::RobotSession const& p_robot)
 
     // One row per joint: name, value, where it is between its limits.
     ImGui::SeparatorText("Joints");
-    robotik::JointSet const& joints = p_robot.joints();
+    robotik::JointSet const& joints = p_robot.robot().getJoints();
     if (beginTable("joints", 3, ImGuiTableFlags_SizingFixedFit))
     {
         ImGui::TableSetupColumn("##joint", ImGuiTableColumnFlags_WidthFixed);
@@ -791,7 +792,7 @@ static void overview(App& p_app)
 {
     robotik::RoboticCell const& cell = p_app.simulation->cell();
     robotik::SkillScheduler const& skills = cell.skills();
-    robotik::ResourceManager const& resources = cell.robot().resources();
+    robotik::ResourceManager const& resources = cell.robot().getResources();
     header(p_app,
            "RUN",
            p_app.scenario_title.empty() ? std::string("Run")
@@ -836,7 +837,7 @@ static void overview(App& p_app)
         {
             ImGui::SameLine();
         }
-        itemLink(p_app, SelectionKind::Robot, robot->id());
+        itemLink(p_app, SelectionKind::Robot, robot->getId());
     }
     factName("Running");
     skillLinks(p_app, running);
@@ -936,7 +937,7 @@ void inspectorPanel(App& p_app, char const* p_key)
         case SelectionKind::Resource:
         {
             robotik::ResourceManager const& resources =
-                cell.robot().resources();
+                cell.robot().getResources();
             robotik::ResourceId const id = resources.find(shown.name);
             if (id == robotik::NO_RESOURCE)
             {
@@ -948,7 +949,7 @@ void inspectorPanel(App& p_app, char const* p_key)
         }
         case SelectionKind::Robot:
         {
-            robotik::RobotSession const* robot = cell.robot(shown.name);
+            robotik::RobotRuntime const* robot = cell.runtime(shown.name);
             if (robot == nullptr)
             {
                 emptyState("This robot is not in the loaded scenario.");

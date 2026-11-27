@@ -5,13 +5,15 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/// @file PinocchioBackend.hpp
+/// @file Kinematics.hpp
 /// The geometry of one robot: where each link is for given joint angles
 /// (kinematics), and which joint angles put a link at a wanted pose (inverse
 /// kinematics, IK).
 ///
 /// It uses the Pinocchio library and knows nothing of physics: it gives the
-/// same answer in simulation and on a real robot.
+/// same answer in simulation and on a real robot. It is not a
+/// @ref robotik::RobotBackend: it moves nothing, it computes. Every robot
+/// owns one, on its measured joints (@ref robotik::Robot::getKinematics).
 ///
 /// @par Contract
 /// - Promises: frame poses are in the robot base frame, after
@@ -80,7 +82,7 @@ enum class IkGoal : std::uint8_t
 ///
 /// @par Example
 /// @code
-/// robotik::PinocchioBackend kin("arm.urdf");
+/// robotik::Kinematics kin("arm.urdf");
 /// std::ranges::copy(seed_q, kin.configuration().begin());
 /// kin.updateKinematics();
 /// robotik::Pose tcp = kin.requireFramePose("link6");
@@ -88,12 +90,12 @@ enum class IkGoal : std::uint8_t
 ///     applyJointTargets(*q);
 /// @endcode
 // ****************************************************************************
-class PinocchioBackend
+class Kinematics
 {
 public:
 
-    PinocchioBackend(PinocchioBackend const&) = delete;
-    PinocchioBackend& operator=(PinocchioBackend const&) = delete;
+    Kinematics(Kinematics const&) = delete;
+    Kinematics& operator=(Kinematics const&) = delete;
 
     // -------------------------------------------------------------------------
     /// Builds the Pinocchio model from URDF.
@@ -101,41 +103,13 @@ public:
     /// @param p_tool Tool URDF attached at the @c flange frame, or empty.
     /// @throws std::runtime_error if Pinocchio cannot parse the file.
     // -------------------------------------------------------------------------
-    explicit PinocchioBackend(std::filesystem::path const& p_urdf,
+    explicit Kinematics(std::filesystem::path const& p_urdf,
                               std::filesystem::path const& p_tool = {});
 
     // -------------------------------------------------------------------------
     /// Releases model and data.
     // -------------------------------------------------------------------------
-    ~PinocchioBackend();
-
-    // -------------------------------------------------------------------------
-    /// @return Number of generalized coordinates (@c model.nq).
-    // -------------------------------------------------------------------------
-    [[nodiscard]] std::size_t nq() const;
-
-    // -------------------------------------------------------------------------
-    /// @return Number of velocity DoFs (@c model.nv).
-    // -------------------------------------------------------------------------
-    [[nodiscard]] std::size_t nv() const;
-
-    // -------------------------------------------------------------------------
-    /// Internal @b q, written in place before @ref updateKinematics.
-    /// @return The @ref nq entries.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] std::span<double> configuration();
-
-    /// @copydoc configuration()
-    [[nodiscard]] std::span<double const> configuration() const;
-
-    // -------------------------------------------------------------------------
-    /// Internal @b v.
-    /// @return The @ref nv entries.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] std::span<double> velocity();
-
-    /// @copydoc velocity()
-    [[nodiscard]] std::span<double const> velocity() const;
+    ~Kinematics();
 
     // -------------------------------------------------------------------------
     /// Runs forward kinematics and updates frame placements. Call it after
@@ -144,10 +118,80 @@ public:
     void updateKinematics();
 
     // -------------------------------------------------------------------------
+    /// Damped least-squares IK: moves @b q step by step until the frame
+    /// reaches the target.
+    /// @param p_frame Link or frame name (e.g. tool link).
+    /// @param p_target Desired pose in the robot base frame.
+    /// @param p_seed Initial @b q; if size mismatches @ref nq, internal @b q is
+    ///   used.
+    /// @return Joint vector on success, or empty if iteration did not converge.
+    // -------------------------------------------------------------------------
+    /// @param p_goal What to place: the whole pose, or a part of it (the
+    ///   other part of @p_target is ignored). A part goal returns the
+    ///   closest reachable one when the target is out of reach.
+    [[nodiscard]] std::optional<std::vector<double>>
+    solveIK(std::string const& p_frame,
+            Pose const& p_target,
+            std::span<double const> p_seed,
+            IkGoal p_goal = IkGoal::Whole) const;
+
+    // -------------------------------------------------------------------------
+    /// Reads the pose of a frame after @ref updateKinematics.
+    /// @param p_frame Link or operational frame name.
+    /// @return The pose in the robot base frame.
+    /// @throws std::invalid_argument if the frame is unknown.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Pose requireFramePose(std::string const& p_frame) const;
+
+    // -------------------------------------------------------------------------
+    /// Same as @ref requireFramePose, with no search by
+    /// name.
+    /// @param p_frame Frame index from @ref frameId.
+    /// @return The pose in the robot base frame.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Pose framePose(std::size_t p_frame) const;
+
+    // -------------------------------------------------------------------------
+    /// Directions in which a frame can move now, from the current @b q: a
+    /// direction is movable when its joints can produce it (it lies in the
+    /// span of the frame Jacobian). Axes of the base frame, about the frame
+    /// origin: X, Y, Z translations then X, Y, Z rotations.
+    /// @param p_frame Link or frame name.
+    /// @param p_goal @c Whole: a move keeps the rest of the pose (a
+    ///   translation keeps the orientation). @c Position or @c Orientation:
+    ///   a translation frees the orientation, a rotation frees the position.
+    /// @return One flag per axis.
+    /// @throws std::invalid_argument for an unknown frame.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::array<bool, 6>
+    requireMovableAxes(std::string const& p_frame, IkGoal p_goal) const;
+
+    // -------------------------------------------------------------------------
+    /// Degrees of freedom of the joints between the base and a frame: six
+    /// or more can place its whole pose, none cannot move it.
+    /// @param p_frame Link or frame name.
+    /// @return The count; 0 for the base and the links fixed to it.
+    /// @throws std::invalid_argument for an unknown frame.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::size_t
+    requireChainDofs(std::string const& p_frame) const;
+
+    // -------------------------------------------------------------------------
+    /// @return Names of the link frames, in model order (the root excluded).
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::vector<std::string> linkFrames() const;
+
+    // -------------------------------------------------------------------------
     /// @param p_name Joint name from the URDF.
     /// @return True if @p_name is a Pinocchio joint in the model.
     // -------------------------------------------------------------------------
     [[nodiscard]] bool hasJoint(std::string const& p_name) const;
+
+    // -------------------------------------------------------------------------
+    /// @param p_name Frame name.
+    /// @return True if @p_name is a frame (link) in the model.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] bool hasFrame(std::string const& p_name) const;
 
     // -------------------------------------------------------------------------
     /// @param p_name Joint name.
@@ -169,79 +213,37 @@ public:
 
     // -------------------------------------------------------------------------
     /// @param p_name Frame name.
-    /// @return True if @p_name is a frame (link) in the model.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] bool hasFrame(std::string const& p_name) const;
-
-    // -------------------------------------------------------------------------
-    /// @return Names of the link frames, in model order (the root excluded).
-    // -------------------------------------------------------------------------
-    [[nodiscard]] std::vector<std::string> linkFrames() const;
-
-    // -------------------------------------------------------------------------
-    /// @param p_name Frame name.
     /// @return Pinocchio frame index.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::size_t frameId(std::string const& p_name) const;
 
     // -------------------------------------------------------------------------
-    /// Reads the pose of a frame after @ref updateKinematics.
-    /// @param p_frame Link or operational frame name.
-    /// @return The pose in the robot base frame.
-    /// @throws std::invalid_argument if the frame is unknown.
+    /// Internal @b q, written in place before @ref updateKinematics.
+    /// @return The @ref nq entries.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Pose requireFramePose(std::string const& p_frame) const;
+    [[nodiscard]] std::span<double> configuration();
+
+    /// @copydoc configuration()
+    [[nodiscard]] std::span<double const> configuration() const;
 
     // -------------------------------------------------------------------------
-    /// Same as @ref requireFramePose, with no search by
-    /// name.
-    /// @param p_frame Frame index from @ref frameId.
-    /// @return The pose in the robot base frame.
+    /// Internal @b v.
+    /// @return The @ref nv entries.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Pose framePose(std::size_t p_frame) const;
+    [[nodiscard]] std::span<double> velocity();
+
+    /// @copydoc velocity()
+    [[nodiscard]] std::span<double const> velocity() const;
 
     // -------------------------------------------------------------------------
-    /// Damped least-squares IK: moves @b q step by step until the frame
-    /// reaches the target.
-    /// @param p_frame Link or frame name (e.g. tool link).
-    /// @param p_target Desired pose in the robot base frame.
-    /// @param p_seed Initial @b q; if size mismatches @ref nq, internal @b q is
-    ///   used.
-    /// @return Joint vector on success, or empty if iteration did not converge.
+    /// @return Number of generalized coordinates (@c model.nq).
     // -------------------------------------------------------------------------
-    /// @param p_goal What to place: the whole pose, or a part of it (the
-    ///   other part of @p_target is ignored). A part goal returns the
-    ///   closest reachable one when the target is out of reach.
-    [[nodiscard]] std::optional<std::vector<double>>
-    solveIK(std::string const& p_frame,
-            Pose const& p_target,
-            std::span<double const> p_seed,
-            IkGoal p_goal = IkGoal::Whole) const;
+    [[nodiscard]] std::size_t nq() const;
 
     // -------------------------------------------------------------------------
-    /// Degrees of freedom of the joints between the base and a frame: six
-    /// or more can place its whole pose, none cannot move it.
-    /// @param p_frame Link or frame name.
-    /// @return The count; 0 for the base and the links fixed to it.
-    /// @throws std::invalid_argument for an unknown frame.
+    /// @return Number of velocity DoFs (@c model.nv).
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::size_t
-    requireChainDofs(std::string const& p_frame) const;
-
-    // -------------------------------------------------------------------------
-    /// Directions in which a frame can move now, from the current @b q: a
-    /// direction is movable when its joints can produce it (it lies in the
-    /// span of the frame Jacobian). Axes of the base frame, about the frame
-    /// origin: X, Y, Z translations then X, Y, Z rotations.
-    /// @param p_frame Link or frame name.
-    /// @param p_goal @c Whole: a move keeps the rest of the pose (a
-    ///   translation keeps the orientation). @c Position or @c Orientation:
-    ///   a translation frees the orientation, a rotation frees the position.
-    /// @return One flag per axis.
-    /// @throws std::invalid_argument for an unknown frame.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] std::array<bool, 6>
-    requireMovableAxes(std::string const& p_frame, IkGoal p_goal) const;
+    [[nodiscard]] std::size_t nv() const;
 
 private:
 

@@ -26,13 +26,13 @@ void ReachLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
     robotik::Robot& robot = p_cell.robot();
 
     // The tool frame is "tcp" when a tool is mounted, "tool0" otherwise.
-    robotik::Pose const start = robot.requireFramePose(robot.tool());
+    robotik::Pose const start = robot.requireFramePose(robot.getTool());
     m_target = start;
     m_target.position.x += 0.03;
 
     // Inverse kinematics: no answer when the pose is out of reach.
     std::optional<std::vector<double>> const solution =
-        robot.inverseKinematics(robot.tool(), m_target);
+        robot.inverseKinematics(robot.getTool(), m_target);
     m_solution = solution ? *solution : std::vector<double>{};
     m_error = distance(start, m_target);
 }
@@ -41,13 +41,13 @@ void ReachLogic::act(robotik::RobotContext& p_context,
                      robotik::Seconds /*p_dt*/)
 {
     robotik::Robot& robot = p_context.robot;
-    robotik::JointSet& joints = robot.joints();
+    robotik::JointSet& joints = robot.getJoints();
     for (robotik::JointId id = 0; id < joints.size() && id < m_solution.size();
          ++id)
     {
         joints.moveTo(id, m_solution[id]);
     }
-    m_error = distance(robot.requireFramePose(robot.tool()), m_target);
+    m_error = distance(robot.requireFramePose(robot.getTool()), m_target);
 }
 
 void ReachLogic::measure(robotik::RoboticCell const& /*p_cell*/,

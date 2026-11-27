@@ -120,7 +120,7 @@ static std::string const& robotOf(robotik::RoboticCell const& p_cell,
     {
         return robot.empty() ? none : robot;
     }
-    return p_cell.robots().front()->id();
+    return p_cell.robots().front()->getId();
 }
 
 /// True when @p_folded lists @p_robot.
@@ -236,7 +236,7 @@ static std::string phaseSentence(robotik::Simulation const& p_simulation,
 {
     robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     robotik::ResourceManager const& resources =
-        p_simulation.cell().robot().resources();
+        p_simulation.cell().robot().getResources();
     robotik::SkillRun const& run = skills.trace()[p_index];
     std::string text = skills.name(run.skill);
     text += " · ";
@@ -278,7 +278,7 @@ static std::string momentSentence(robotik::Simulation const& p_simulation,
 {
     robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     robotik::ResourceManager const& resources =
-        p_simulation.cell().robot().resources();
+        p_simulation.cell().robot().getResources();
     std::string running;
     std::string waiting;
     double const eps = 1e-6;
@@ -333,7 +333,8 @@ static void timeWindow(TimelineView const& p_view,
     else if (p_view.follow)
     {
         // Keep early actions readable instead of reserving empty future time.
-        double const width = std::min(p_view.window_s, std::max(1.0, p_now + 1.0));
+        double const width =
+            std::min(p_view.window_s, std::max(1.0, p_now + 1.0));
         p_t1 = std::max(width, p_now + LEAD * width);
         p_t0 = p_t1 - width;
     }
@@ -349,7 +350,7 @@ static std::vector<Row> rowsOf(App const& p_app)
 {
     robotik::RoboticCell const& cell = p_app.simulation->cell();
     robotik::SkillScheduler const& skills = cell.skills();
-    robotik::ResourceManager const& resources = cell.robot().resources();
+    robotik::ResourceManager const& resources = cell.robot().getResources();
     TimelineView const& view = p_app.ui.timeline;
     std::vector<Row> rows;
     std::vector<TreeFailure> const& failures =
@@ -400,7 +401,8 @@ static std::vector<Row> rowsOf(App const& p_app)
         {
             for (robotik::ResourceId id = 0; id < resources.size(); ++id)
             {
-                rows.push_back({ RowKind::Resource, id, resources.name(id), {} });
+                rows.push_back(
+                    { RowKind::Resource, id, resources.name(id), {} });
             }
         }
     }
@@ -432,7 +434,8 @@ static float indentOf(Row const& p_row, bool p_robot_headers)
 }
 
 /// Fill and outline of a phase of state @p_state.
-static void phaseColors(robotik::SkillState p_state, ImU32& p_fill, ImU32& p_line)
+static void
+phaseColors(robotik::SkillState p_state, ImU32& p_fill, ImU32& p_line)
 {
     ImVec4 color = ::colorOf(p_state);
     p_line = ImGui::GetColorU32(color);
@@ -514,8 +517,9 @@ static void toolbar(TimelineView& p_view, double p_now)
     {
         if (p_on)
         {
-            ImGui::PushStyleColor(ImGuiCol_Button,
-                                  ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+            ImGui::PushStyleColor(
+                ImGuiCol_Button,
+                ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
         }
         bool const pressed = ImGui::SmallButton(p_label);
         if (p_on)
@@ -539,11 +543,12 @@ static void toolbar(TimelineView& p_view, double p_now)
     }
     ImGui::SetItemTooltip("From 0 to the present.");
     ImGui::SameLine();
-    ImGui::TextDisabled("%s", p_view.whole_run
-                                  ? formatTime(std::max(p_now, 1.0), 1.0).c_str()
-                                  : formatTime(p_view.window_s,
-                                               p_view.window_s < 10.0 ? 0.5 : 1.0)
-                                        .c_str());
+    ImGui::TextDisabled(
+        "%s",
+        p_view.whole_run
+            ? formatTime(std::max(p_now, 1.0), 1.0).c_str()
+            : formatTime(p_view.window_s, p_view.window_s < 10.0 ? 0.5 : 1.0)
+                  .c_str());
     ImGui::SameLine(0.0F, 16.0F);
     ImGui::Checkbox("Hide unused", &p_view.active_only);
     ImGui::SetItemTooltip("Hide the skills never requested since the start.");
@@ -567,8 +572,22 @@ static void ruler(TimeAxis const& p_axis,
     ImDrawList* draw = ImGui::GetWindowDrawList();
     double const span = p_axis.t1 - p_axis.t0;
     p_step = 3600.0;
-    for (double const step : { 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0,
-                               30.0, 60.0, 120.0, 300.0, 600.0, 1800.0, 3600.0 })
+    for (double const step : { 0.05,
+                               0.1,
+                               0.2,
+                               0.5,
+                               1.0,
+                               2.0,
+                               5.0,
+                               10.0,
+                               15.0,
+                               30.0,
+                               60.0,
+                               120.0,
+                               300.0,
+                               600.0,
+                               1800.0,
+                               3600.0 })
     {
         if (static_cast<double>(p_axis.width) * step / span >= TICK_PX)
         {
@@ -696,7 +715,7 @@ void sampleTimeline(App& p_app)
 
     // Resource faults: the manager knows only the present.
     robotik::ResourceManager const& resources =
-        simulation.cell().robot().resources();
+        simulation.cell().robot().getResources();
     for (robotik::ResourceId id = 0; id < resources.size(); ++id)
     {
         auto open = std::ranges::find_if(
@@ -749,7 +768,8 @@ void sampleTimeline(App& p_app)
                 { now,
                   memory.plans,
                   i + 1U,
-                  robotik::toString(robotik::Atom{ plan[i].name, plan[i].args }),
+                  robotik::toString(
+                      robotik::Atom{ plan[i].name, plan[i].args }),
                   status[i] == robotik::StepStatus::Skipped,
                   status[i] == robotik::StepStatus::Failed });
         }
@@ -838,7 +858,7 @@ void timelineView(App& p_app)
     robotik::Simulation const& simulation = *p_app.simulation;
     robotik::RoboticCell const& cell = simulation.cell();
     robotik::SkillScheduler const& skills = cell.skills();
-    robotik::ResourceManager const& resources = cell.robot().resources();
+    robotik::ResourceManager const& resources = cell.robot().getResources();
     std::span<robotik::SkillRun const> const trace = skills.trace();
     TimelineView& view = p_app.ui.timeline;
     TimelineMemory& memory = p_app.ui.timeline_memory;
@@ -874,7 +894,8 @@ void timelineView(App& p_app)
     double hover_t = -1.0;
     ImGuiID const rows_id = ImGui::GetID("rows");
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows) &&
-        mouse.y >= ImGui::GetCursorScreenPos().y && mouse.x >= axis.x && mouse.x <= axis.x + axis.width)
+        mouse.y >= ImGui::GetCursorScreenPos().y && mouse.x >= axis.x &&
+        mouse.x <= axis.x + axis.width)
     {
         hover_t = std::max(timeAt(axis, mouse.x), 0.0);
     }
@@ -938,7 +959,8 @@ void timelineView(App& p_app)
                 draw->AddRectFilled(a, b, ImGui::GetColorU32(ImGuiCol_Header));
             }
             float indent = indentOf(row, robot_headers);
-            float const text_y = y + (row_h - ImGui::GetTextLineHeight()) * 0.5F;
+            float const text_y =
+                y + (row_h - ImGui::GetTextLineHeight()) * 0.5F;
             ImU32 color = text;
             if (row.kind == RowKind::TreeFailure)
             {
@@ -946,8 +968,8 @@ void timelineView(App& p_app)
             }
             else if (row.kind == RowKind::Skill)
             {
-                color = ImGui::GetColorU32(
-                    ::colorOf(skills.state(static_cast<robotik::SkillId>(row.index))));
+                color = ImGui::GetColorU32(::colorOf(
+                    skills.state(static_cast<robotik::SkillId>(row.index))));
             }
             else if (row.kind == RowKind::Resource &&
                      !resources.available(
@@ -1061,7 +1083,8 @@ void timelineView(App& p_app)
         auto hit = [&](float p_x0, float p_x1, float p_y)
         {
             return lanes_hovered && mouse.y >= p_y && mouse.y < p_y + row_h &&
-                   mouse.x >= p_x0 - 2.0F && mouse.x <= std::max(p_x1, p_x0 + 3.0F) + 2.0F;
+                   mouse.x >= p_x0 - 2.0F &&
+                   mouse.x <= std::max(p_x1, p_x0 + 3.0F) + 2.0F;
         };
 
         // Tree failures: from the first sight to the present.
@@ -1137,7 +1160,8 @@ void timelineView(App& p_app)
                 double const end =
                     phaseEnd(skills, run, last[run.skill] == i, now);
                 if (run.state == robotik::SkillState::Waiting ||
-                    end <= run.start.value() || !visible(run.start.value(), end))
+                    end <= run.start.value() ||
+                    !visible(run.start.value(), end))
                 {
                     continue;
                 }
@@ -1198,10 +1222,12 @@ void timelineView(App& p_app)
         if (resources_y >= 0.0F && !view.resources_open)
         {
             std::string const line = holdersLine(skills, resources);
-            draw->AddText(ImVec2(axis.x + 6.0F,
-                                 resources_y +
-                                     (row_h - ImGui::GetTextLineHeight()) * 0.5F),
-                          muted, line.c_str());
+            draw->AddText(
+                ImVec2(axis.x + 6.0F,
+                       resources_y +
+                           (row_h - ImGui::GetTextLineHeight()) * 0.5F),
+                muted,
+                line.c_str());
         }
 
         // The present, and the time under the mouse.
@@ -1248,14 +1274,16 @@ void timelineView(App& p_app)
                 view.window_s = next;
             }
         }
-        float const pan_px = io.KeyShift ? io.MouseWheel * 60.0F + io.MouseWheelH * 60.0F
-                                         : io.MouseWheelH * 60.0F;
+        float const pan_px =
+            io.KeyShift ? io.MouseWheel * 60.0F + io.MouseWheelH * 60.0F
+                        : io.MouseWheelH * 60.0F;
         if (lanes_hovered && pan_px != 0.0F)
         {
             freeze();
             view.start_s -= static_cast<double>(pan_px) * per_px;
         }
-        if (lanes_active && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 3.0F) &&
+        if (lanes_active &&
+            ImGui::IsMouseDragging(ImGuiMouseButton_Left, 3.0F) &&
             io.MouseDelta.x != 0.0F)
         {
             freeze();
@@ -1266,7 +1294,8 @@ void timelineView(App& p_app)
             view.start_s = std::clamp(view.start_s, -0.5 * view.window_s,
                                       std::max(now, 0.0));
         }
-        if (released && io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] < 9.0F)
+        if (released &&
+            io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] < 9.0F)
         {
             memory.selected = hovered;
             if (hovered != NO_PHASE)
@@ -1283,7 +1312,8 @@ void timelineView(App& p_app)
         // Wheel over the names scrolls the rows.
         if (ImGui::IsWindowHovered() && !lanes_hovered && io.MouseWheel != 0.0F)
         {
-            ImGui::SetScrollY(ImGui::GetScrollY() - io.MouseWheel * row_h * 3.0F);
+            ImGui::SetScrollY(ImGui::GetScrollY() -
+                              io.MouseWheel * row_h * 3.0F);
         }
         ImGui::SetCursorScreenPos(origin);
         ImGui::Dummy(ImVec2(full_w - ImGui::GetStyle().ScrollbarSize, height));

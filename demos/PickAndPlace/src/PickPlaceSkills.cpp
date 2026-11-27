@@ -79,15 +79,15 @@ tcpHeightOverOpenBox(ecs::Shape const& p_box,
 
 VacuumGripper* findGripper(Robot& p_robot, std::string const& p_name)
 {
-    return p_name.empty() ? p_robot.actuators().first<VacuumGripper>()
-                          : p_robot.actuators().find<VacuumGripper>(p_name);
+    return p_name.empty() ? p_robot.getActuators().first<VacuumGripper>()
+                          : p_robot.getActuators().find<VacuumGripper>(p_name);
 }
 
 VacuumGripper const* findGripper(Robot const& p_robot,
                                  std::string const& p_name)
 {
-    return p_name.empty() ? p_robot.actuators().first<VacuumGripper>()
-                          : p_robot.actuators().find<VacuumGripper>(p_name);
+    return p_name.empty() ? p_robot.getActuators().first<VacuumGripper>()
+                          : p_robot.getActuators().find<VacuumGripper>(p_name);
 }
 
 ApproachSkill::ApproachSkill(std::string p_object,
@@ -127,7 +127,8 @@ Status ApproachSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
         // Default target: hover above the object's reported top + clearance.
         Vector3 at = object->position;
         double const yaw = std::atan2(at.y, at.x);
-        robotik::Length height = robotik::Length(top(*object)) + m_clearance + gripper->length();
+        robotik::Length height =
+            robotik::Length(top(*object)) + m_clearance + gripper->length();
 
         // If the object is a box, calculate the TCP height above the inner
         // floor.

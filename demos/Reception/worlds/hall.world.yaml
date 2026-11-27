@@ -28,14 +28,19 @@ world:
         right_shoulder_yaw_joint: 0.2
         right_elbow_joint: -0.2
       sensors:
-        # The eyes: faces must be large enough for a face detector.
+        # The eyes: the Intel RealSense D435 of the real head, at the pose of
+        # head_camera_joint in the LimX URDF (commented out there). Its
+        # colour image: 69 x 42 degrees, 1280 x 720 at 30 Hz; the depth is
+        # aligned to it. rpy turns the link frame (x forward, z up) into the
+        # optical frame (z forward, x right, y down).
         head_camera:
-          type: camera
+          type: rgbd
           parent: head_pitch_link
-          position: [0.1, 0.0, 0.05]
-          fov: 70
+          position: [0.07453, 0.0175, 0.065]
+          rpy: [-1.5708, 0.0, -1.5708]
+          fov: 42                   # vertical
           resolution: [1280, 720]
-          frequency: 10
+          frequency: 30
       actuators:
         body: { type: joint_group }
     - id: desk

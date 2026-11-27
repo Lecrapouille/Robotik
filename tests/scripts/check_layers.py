@@ -24,7 +24,7 @@ forgets an include) is found the same way.
 The second rule keeps the ground truth away from the robot's decisions:
 Task/Skills and Task/Planning are compiled without Task/RoboticCell.hpp, so
 they cannot call the truth (RoboticCell::requirePose,
-RoboticCell::requireQuery), and without Robot/RobotSession.hpp, so they
+RoboticCell::requireQuery), and without Robot/RobotRuntime.hpp, so they
 cannot cast their Robot to the session and reach the simulator (ECS world,
 backend, writable kinematics): without the definition of the class there
 is nothing to call.
@@ -41,8 +41,8 @@ from concurrent.futures import ThreadPoolExecutor
 LAYERS = ["Common", "Robot", "Task", "Package"]
 # Parts of a layer that must not see some files of their own layer.
 HIDDEN = {
-    "Task/Skills": ["Task/RoboticCell.hpp", "Robot/RobotSession.hpp"],
-    "Task/Planning": ["Task/RoboticCell.hpp", "Robot/RobotSession.hpp"],
+    "Task/Skills": ["Task/RoboticCell.hpp", "Robot/RobotRuntime.hpp"],
+    "Task/Planning": ["Task/RoboticCell.hpp", "Robot/RobotRuntime.hpp"],
 }
 
 

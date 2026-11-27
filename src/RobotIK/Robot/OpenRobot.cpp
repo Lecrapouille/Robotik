@@ -16,7 +16,8 @@ namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-Result<OpenedRobot> openRobot(std::string const& p_model, RobotOptions const& p_options)
+Result<OpenedRobot> openRobot(std::string const& p_model,
+                              RobotOptions const& p_options)
 {
     // The URDF and MuJoCo loaders report a bad file by throwing: this is the
     // border where it becomes a message.
@@ -25,7 +26,8 @@ Result<OpenedRobot> openRobot(std::string const& p_model, RobotOptions const& p_
         std::filesystem::path urdf = p_model;
         if (!std::filesystem::exists(urdf))
         {
-            Result<std::filesystem::path> resolved = AssetResolver::standard().resolve(p_model, ".");
+            Result<std::filesystem::path> resolved =
+                AssetResolver::standard().resolve(p_model, ".");
             if (!resolved)
             {
                 return failure(p_model + ": " + resolved.error());
@@ -34,7 +36,8 @@ Result<OpenedRobot> openRobot(std::string const& p_model, RobotOptions const& p_
         }
         OpenedRobot opened;
         opened.world = std::make_unique<compages::world::World>();
-        opened.robot = std::make_unique<RobotSession>(*opened.world, urdf, nullptr, p_options.tool);
+        opened.robot = std::make_unique<RobotRuntime>(
+            *opened.world, urdf, nullptr, p_options.tool);
         if (p_options.physics)
         {
             MujocoOptions physics;
@@ -44,7 +47,8 @@ Result<OpenedRobot> openRobot(std::string const& p_model, RobotOptions const& p_
             std::string const arm = backend->load(urdf);
             if (!p_options.tool.empty())
             {
-                backend->attach(arm, "flange", backend->load(p_options.tool), "tool_mount");
+                backend->attach(
+                    arm, "flange", backend->load(p_options.tool), "tool_mount");
             }
             opened.robot->connect(std::move(backend));
         }

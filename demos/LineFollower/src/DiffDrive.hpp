@@ -8,7 +8,7 @@
 #pragma once
 
 #include "RobotIK/Common/Math.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 
 #include <string>
 
@@ -59,9 +59,9 @@ public:
                      std::string p_right,
                      DriveGeometry p_geometry = {});
 
-    void attach(robotik::RobotSession& p_robot) override;
-    void reset(robotik::RobotSession& p_robot) override;
-    void step(robotik::RobotSession& p_robot, robotik::Seconds p_dt) override;
+    void attach(robotik::RobotRuntime& p_robot) override;
+    void reset(robotik::RobotRuntime& p_robot) override;
+    void step(robotik::RobotRuntime& p_robot, robotik::Seconds p_dt) override;
 
     void start(Pose2 const& p_pose)
     {
@@ -86,8 +86,8 @@ private:
     std::string m_left_name;
     std::string m_right_name;
     DriveGeometry m_geometry;
-    robotik::JointId m_left = robotik::NO_JOINT;
-    robotik::JointId m_right = robotik::NO_JOINT;
+    robotik::Revolute m_left;
+    robotik::Revolute m_right;
     double m_speeds[2] = { 0.0, 0.0 };
     Pose2 m_start;
     Pose2 m_truth;

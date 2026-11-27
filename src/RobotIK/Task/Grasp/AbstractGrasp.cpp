@@ -8,7 +8,7 @@
 #include "RobotIK/Task/Grasp/GraspModel.hpp"
 
 #include "RobotIK/Robot/Components/Objects.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 #include "RobotIK/Task/Grasp/ContainerBounds.hpp"
 
 #include "Compages/World/World.hpp"
@@ -140,7 +140,7 @@ static compages::world::EntityId touched(compages::world::World& p_world,
     return found;
 }
 
-void HeldObjects::hold(RobotSession& p_robot,
+void HeldObjects::hold(RobotRuntime& p_robot,
                        VacuumGripper& p_gripper,
                        compages::world::EntityId p_object)
 {
@@ -153,16 +153,16 @@ void HeldObjects::hold(RobotSession& p_robot,
     p_robot.measureHolding(p_gripper, true);
 }
 
-void HeldObjects::drop(RobotSession& p_robot, VacuumGripper& p_gripper)
+void HeldObjects::drop(RobotRuntime& p_robot, VacuumGripper& p_gripper)
 {
     m_held.erase(&p_gripper);
     p_robot.measureHolding(p_gripper, false);
 }
 
-void AbstractGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
+void AbstractGrasp::update(RobotRuntime& p_robot, HeldObjects& p_held)
 {
-    compages::world::World& world = p_robot.world();
-    ActuatorSet& actuators = p_robot.actuators();
+    compages::world::World& world = p_robot.getWorld();
+    ActuatorSet& actuators = p_robot.robot().getActuators();
     for (std::size_t i = 0; i < actuators.size(); ++i)
     {
         auto* gripper = dynamic_cast<VacuumGripper*>(&actuators[i]);
@@ -185,8 +185,9 @@ void AbstractGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
 
         if (gripper->suction() && !held_id.valid())
         {
-            held_id =
-                touched(world, p_robot.trueBase().pose * gripper->tip(p_robot));
+            held_id = touched(world,
+                              p_robot.getTrueBase().pose *
+                                  gripper->tip(p_robot.robot()));
             p_held.hold(p_robot, *gripper, held_id);
         }
         else if (!gripper->suction() && held_id.valid())
@@ -210,8 +211,8 @@ void AbstractGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
                 continue;
             }
             Length const half = shape->size[2] * 0.5;
-            Vector3 const center =
-                p_robot.trueBase().pose * gripper->tip(p_robot, half);
+            Vector3 const center = p_robot.getTrueBase().pose *
+                                   gripper->tip(p_robot.robot(), half);
             held.position(static_cast<float>(center.x),
                           static_cast<float>(center.y),
                           static_cast<float>(center.z));

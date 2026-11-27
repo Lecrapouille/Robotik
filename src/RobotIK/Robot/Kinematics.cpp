@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "RobotIK/Robot/Backends/PinocchioBackend.hpp"
+#include "RobotIK/Robot/Kinematics.hpp"
 
 // Pinocchio's joint variant has more alternatives than Boost.MPL's default
 // list. These have to be set before any Boost header.
@@ -54,7 +54,7 @@
 namespace robotik
 {
 
-struct PinocchioBackend::Impl
+struct Kinematics::Impl
 {
     pinocchio::Model model;
     std::unique_ptr<pinocchio::Data> data;
@@ -86,7 +86,7 @@ static pinocchio::SE3 tcpInMount(std::filesystem::path const& p_tool)
            data.oMf[tool.getFrameId("tcp")];
 }
 
-PinocchioBackend::PinocchioBackend(std::filesystem::path const& p_urdf,
+Kinematics::Kinematics(std::filesystem::path const& p_urdf,
                                    std::filesystem::path const& p_tool)
     : m_impl(std::make_unique<Impl>())
 {
@@ -115,56 +115,56 @@ PinocchioBackend::PinocchioBackend(std::filesystem::path const& p_urdf,
     updateKinematics();
 }
 
-PinocchioBackend::~PinocchioBackend() = default;
+Kinematics::~Kinematics() = default;
 
-std::size_t PinocchioBackend::nq() const
+std::size_t Kinematics::nq() const
 {
     return static_cast<std::size_t>(m_impl->model.nq);
 }
 
-std::size_t PinocchioBackend::nv() const
+std::size_t Kinematics::nv() const
 {
     return static_cast<std::size_t>(m_impl->model.nv);
 }
 
-std::span<double> PinocchioBackend::configuration()
+std::span<double> Kinematics::configuration()
 {
     return { m_impl->q.data(), static_cast<std::size_t>(m_impl->q.size()) };
 }
 
-std::span<double const> PinocchioBackend::configuration() const
+std::span<double const> Kinematics::configuration() const
 {
     return { m_impl->q.data(), static_cast<std::size_t>(m_impl->q.size()) };
 }
 
-std::span<double> PinocchioBackend::velocity()
+std::span<double> Kinematics::velocity()
 {
     return { m_impl->v.data(), static_cast<std::size_t>(m_impl->v.size()) };
 }
 
-std::span<double const> PinocchioBackend::velocity() const
+std::span<double const> Kinematics::velocity() const
 {
     return { m_impl->v.data(), static_cast<std::size_t>(m_impl->v.size()) };
 }
 
-void PinocchioBackend::updateKinematics()
+void Kinematics::updateKinematics()
 {
     pinocchio::forwardKinematics(
         m_impl->model, *m_impl->data, m_impl->q, m_impl->v);
     pinocchio::updateFramePlacements(m_impl->model, *m_impl->data);
 }
 
-bool PinocchioBackend::hasJoint(std::string const& p_name) const
+bool Kinematics::hasJoint(std::string const& p_name) const
 {
     return m_impl->model.existJointName(p_name);
 }
 
-std::size_t PinocchioBackend::jointId(std::string const& p_name) const
+std::size_t Kinematics::jointId(std::string const& p_name) const
 {
     return static_cast<std::size_t>(m_impl->model.getJointId(p_name));
 }
 
-int PinocchioBackend::qIndex(std::string const& p_name) const
+int Kinematics::qIndex(std::string const& p_name) const
 {
     if (!hasJoint(p_name))
     {
@@ -178,7 +178,7 @@ int PinocchioBackend::qIndex(std::string const& p_name) const
     return m_impl->model.idx_qs[id];
 }
 
-int PinocchioBackend::vIndex(std::string const& p_name) const
+int Kinematics::vIndex(std::string const& p_name) const
 {
     if (!hasJoint(p_name))
     {
@@ -192,12 +192,12 @@ int PinocchioBackend::vIndex(std::string const& p_name) const
     return m_impl->model.idx_vs[id];
 }
 
-bool PinocchioBackend::hasFrame(std::string const& p_name) const
+bool Kinematics::hasFrame(std::string const& p_name) const
 {
     return m_impl->model.existFrame(p_name);
 }
 
-std::vector<std::string> PinocchioBackend::linkFrames() const
+std::vector<std::string> Kinematics::linkFrames() const
 {
     std::vector<std::string> names;
     for (pinocchio::Frame const& frame : m_impl->model.frames)
@@ -210,12 +210,12 @@ std::vector<std::string> PinocchioBackend::linkFrames() const
     return names;
 }
 
-std::size_t PinocchioBackend::frameId(std::string const& p_name) const
+std::size_t Kinematics::frameId(std::string const& p_name) const
 {
     return static_cast<std::size_t>(m_impl->model.getFrameId(p_name));
 }
 
-Pose PinocchioBackend::requireFramePose(std::string const& p_frame) const
+Pose Kinematics::requireFramePose(std::string const& p_frame) const
 {
     if (!hasFrame(p_frame))
     {
@@ -225,7 +225,7 @@ Pose PinocchioBackend::requireFramePose(std::string const& p_frame) const
         static_cast<std::size_t>(m_impl->model.getFrameId(p_frame)));
 }
 
-Pose PinocchioBackend::framePose(std::size_t p_frame) const
+Pose Kinematics::framePose(std::size_t p_frame) const
 {
     pinocchio::SE3 const& placement = m_impl->data->oMf[p_frame];
     Eigen::Quaterniond const rotation(placement.rotation());
@@ -236,7 +236,7 @@ Pose PinocchioBackend::framePose(std::size_t p_frame) const
 }
 
 std::optional<std::vector<double>>
-PinocchioBackend::solveIK(std::string const& p_frame,
+Kinematics::solveIK(std::string const& p_frame,
                           Pose const& p_target,
                           std::span<double const> p_seed,
                           IkGoal p_goal) const
@@ -376,7 +376,7 @@ static Eigen::MatrixXd alignedJacobian(pinocchio::Model const& p_model,
     return jacobian;
 }
 
-std::size_t PinocchioBackend::requireChainDofs(std::string const& p_frame) const
+std::size_t Kinematics::requireChainDofs(std::string const& p_frame) const
 {
     if (!hasFrame(p_frame))
     {
@@ -413,7 +413,7 @@ static double producedShare(Eigen::MatrixXd const& p_rows, Eigen::Index p_axis)
 }
 
 std::array<bool, 6>
-PinocchioBackend::requireMovableAxes(std::string const& p_frame,
+Kinematics::requireMovableAxes(std::string const& p_frame,
                                      IkGoal p_goal) const
 {
     if (!hasFrame(p_frame))

@@ -8,38 +8,36 @@
 /// @file Robot.hpp
 /// The robot: its joints, sensors, actuators and kinematics, in one object.
 ///
-/// There are two views of it. Skills see @ref robotik::Robot — they read the
-/// joints and the sensors and send commands, nothing more. The program that
-/// runs the robot owns a @ref robotik::RobotSession (RobotSession.hpp) — it
-/// steps the physics and the sensors, and it alone reaches the ECS world and
-/// the backend. So a skill cannot step the world nor read its truth by
-/// mistake, and the same skill drives a simulated arm or a real one (see
-/// doc/reference/glossary.md: "Backend").
+/// A skill gets a @ref robotik::Robot: it reads the joints and the sensors and
+/// sends commands, nothing more. The program that runs the robot owns a
+/// @ref robotik::RobotRuntime (RobotRuntime.hpp), which owns the
+/// @ref robotik::Robot and lends it to the skills. The runtime alone holds
+/// the ECS world, the drawn entities, the backend and the true base; the
+/// @ref robotik::Robot does not even store them. So a skill cannot step the
+/// world nor read its truth, and the same skill drives a simulated arm or a
+/// real one (see doc/reference/glossary.md: "Backend").
 ///
 /// @par Contract
 /// - Promises: a skill sees the same @ref robotik::Robot API in simulation and
-///   on a real robot; only the @ref robotik::RobotBackend of the session
-///   changes.
-/// - Expects: one @ref robotik::RobotSession::step per control period; names of
+///   on a real robot; only the @ref robotik::RobotBackend of the runtime
+///   changes. The sensors are read only from here.
+/// - Expects: one @ref robotik::RobotRuntime::step per control period; names of
 ///   joints and frames that exist in the URDF.
 /// - Errors: an unknown joint or frame name is a programming error and throws
 ///   @c std::invalid_argument. Opening a robot from a file is done by
 ///   @ref robotik::openRobot, which returns a @c Result.
 #pragma once
 
-#include "RobotIK/Robot/Backends/PinocchioBackend.hpp"
-#include "RobotIK/Robot/Backends/RobotBackend.hpp"
-#include "RobotIK/Robot/Backends/SceneView.hpp"
 #include "RobotIK/Common/Math.hpp"
 #include "RobotIK/Robot/Actuators.hpp"
 #include "RobotIK/Robot/Devices.hpp"
 #include "RobotIK/Robot/Joints.hpp"
+#include "RobotIK/Robot/Kinematics.hpp"
 #include "RobotIK/Robot/LinkRef.hpp"
 #include "RobotIK/Robot/Resources.hpp"
+#include "RobotIK/Robot/RobotModel.hpp"
 #include "RobotIK/Robot/Sensors/Measurements.hpp"
 #include "RobotIK/Robot/Sensors/Sensor.hpp"
-
-#include "Compages/World/Entity.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -48,25 +46,16 @@
 #include <unordered_map>
 #include <vector>
 
-namespace compages::world
-{
-class World;
-}
-
 namespace robotik
 {
 
-/// Sensors of a robot (the session adds them).
+/// Sensors of a robot (the runtime adds them).
 using SensorSet = DeviceSet<Sensor>;
-/// Actuators of a robot (the session adds them).
+/// Actuators of a robot (the runtime adds them).
 using ActuatorSet = DeviceSet<Actuator>;
-/// Sensors of a robot, as a skill sees them (no add).
-using SensorList = DeviceList<Sensor>;
-/// Actuators of a robot, as a skill sees them (no add).
-using ActuatorList = DeviceList<Actuator>;
 
 // ****************************************************************************
-/// Where the base pose a skill reads comes from (@ref Robot::base).
+/// Where the base pose a skill reads comes from (@ref Robot::getBase).
 ///
 /// The true pose of a mobile base is known in simulation only. A real robot
 /// estimates it (odometry, landmarks, a calibration). As for the perception
@@ -76,7 +65,7 @@ enum class LocalizationFidelity
 {
     /// A mock: the estimate is the true base, copied at each step.
     Truth,
-    /// An algorithm of the plugin writes it (RobotSession::estimateBase).
+    /// An algorithm of the plugin writes it (RobotRuntime::estimateBase).
     Plugin,
 };
 
@@ -96,10 +85,16 @@ using JointPosture = std::unordered_map<std::string, double>;
 ///
 /// A skill must not advance time, swap the physics or read the truth of the
 /// simulator: if it could, the same skill would behave differently in a test
-/// and on hardware. So this class has no @c step, no backend, no ECS world
-/// and a read-only kinematics. It cannot be built directly: an
-/// application builds a @ref RobotSession (or calls @ref openRobot), and a
-/// skill receives this view through @ref RobotContext.
+/// and on hardware. So this class has no @c step, no backend, no ECS world,
+/// no entity, no true base, read-only sensors and a read-only kinematics:
+/// it does not store them. It cannot be built directly: an application
+/// builds a @ref RobotRuntime (or calls @ref openRobot), which owns this
+/// object and lends it with @ref RobotRuntime::robot; a skill receives it
+/// through @ref RobotContext.
+///
+/// Why owned and not a base class: the runtime is not a kind of robot, it
+/// runs one. Owning the @ref Robot keeps the truth out of its storage, and a
+/// skill cannot cast its @ref Robot to the runtime.
 ///
 /// The kinematics (@ref requireFramePose, @ref inverseKinematics) use Pinocchio on
 /// the measured joints, not the true pose of the simulator, so they are
@@ -111,104 +106,29 @@ using JointPosture = std::unordered_map<std::string, double>;
 ///
 /// @code
 /// robotik::Robot& robot = p_context.robot;
-/// robotik::Pose const tool = robot.requireFramePose(robot.tool());     // base frame
-/// robotik::Pose const in_world = robot.requireWorldPose(robot.tool()); // world frame
-/// if (auto const q = robot.inverseKinematics(robot.tool(), goal))
+/// robotik::Pose const tool = robot.requireFramePose(robot.getTool());     // base frame
+/// robotik::Pose const in_world = robot.requireWorldPose(robot.getTool()); // world frame
+/// if (auto const q = robot.inverseKinematics(robot.getTool(), goal))
 ///     for (robotik::JointId id = 0; id < q->size(); ++id)
-///         robot.joints().moveTo(id, (*q)[id]);
+///         robot.getJoints().moveTo(id, (*q)[id]);
 /// @endcode
 // ****************************************************************************
-class Robot
+class Robot final
 {
 public:
 
     Robot(Robot const&) = delete;
     Robot& operator=(Robot const&) = delete;
-    virtual ~Robot();
-
-    /// @return Name of the URDF robot.
-    [[nodiscard]] std::string const& name() const
-    {
-        return m_name;
-    }
+    ~Robot();
 
     // -------------------------------------------------------------------------
-    /// @return Id of the robot in its world (the entity id of the world
-    ///   file); the URDF name until @ref identify. Two copies of a model
-    ///   share the name, not the id.
+    /// Pose of a link in the world frame, with no search by name.
+    /// @param p_link Link found by @ref requireLink on this robot.
+    /// @return The pose.
+    /// @throws std::logic_error if @p_link comes from another robot or was
+    ///   never found (a mistake in the code, see @ref LinkRef).
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::string const& id() const
-    {
-        return m_id;
-    }
-
-    /// @return Work frame: @c tcp when a tool is mounted, otherwise
-    ///   @c tool0, @c end_effector, or the last moving link.
-    [[nodiscard]] std::string const& tool() const
-    {
-        return m_tool;
-    }
-
-    /// @return The joints: state, commands and limits.
-    [[nodiscard]] JointSet& joints()
-    {
-        return m_joints;
-    }
-
-    /// @copydoc joints()
-    [[nodiscard]] JointSet const& joints() const
-    {
-        return m_joints;
-    }
-
-    /// @return The sensors (to add one: @ref RobotSession::sensors).
-    [[nodiscard]] SensorList& sensors()
-    {
-        return m_sensors;
-    }
-
-    /// @copydoc sensors()
-    [[nodiscard]] SensorList const& sensors() const
-    {
-        return m_sensors;
-    }
-
-    /// @return The actuators (to add one: @ref RobotSession::actuators).
-    [[nodiscard]] ActuatorList& actuators()
-    {
-        return m_actuators;
-    }
-
-    /// @copydoc actuators()
-    [[nodiscard]] ActuatorList const& actuators() const
-    {
-        return m_actuators;
-    }
-
-    /// @return Resources of the robot, read only; shared with the other
-    ///   robots of a world. The scheduler reserves them; faults and devices
-    ///   change them through @ref RobotSession::resources.
-    [[nodiscard]] ResourceManager const& resources() const
-    {
-        return *m_resources;
-    }
-
-    /// @return Robot clock (time since the last reset).
-    [[nodiscard]] Seconds time() const
-    {
-        return m_time;
-    }
-
-    // -------------------------------------------------------------------------
-    /// @return Estimated base pose and velocity in the world (see
-    ///   @ref LocalizationFidelity): the true base with @c localization: @c truth,
-    ///   what the localization of the plugin wrote otherwise. A robot bolted
-    ///   to a table keeps its start pose.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] BaseState const& base() const
-    {
-        return m_base;
-    }
+    [[nodiscard]] Pose getWorldPose(LinkRef const& p_link) const;
 
     // -------------------------------------------------------------------------
     /// Pose of a link in the robot base frame (measured joints).
@@ -219,7 +139,7 @@ public:
     [[nodiscard]] Pose requireFramePose(std::string const& p_frame) const;
 
     // -------------------------------------------------------------------------
-    /// Pose of a link in the world frame (estimated @ref base times
+    /// Pose of a link in the world frame (estimated @ref getBase times
     /// @ref requireFramePose).
     /// @param p_frame Link name; empty for the base itself.
     /// @return The pose.
@@ -237,15 +157,6 @@ public:
     [[nodiscard]] LinkRef requireLink(std::string const& p_name) const;
 
     // -------------------------------------------------------------------------
-    /// Pose of a link in the world frame, with no search by name.
-    /// @param p_link Link found by @ref requireLink on this robot.
-    /// @return The pose.
-    /// @throws std::logic_error if @p_link comes from another robot or was
-    ///   never found (a mistake in the code, see @ref LinkRef).
-    // -------------------------------------------------------------------------
-    [[nodiscard]] Pose worldPose(LinkRef const& p_link) const;
-
-    // -------------------------------------------------------------------------
     /// Solves the inverse kinematics from the measured joints.
     /// @param p_frame Link to place.
     /// @param p_target Pose wanted, in the robot base frame.
@@ -259,53 +170,132 @@ public:
                       Pose const& p_target,
                       IkGoal p_goal = IkGoal::Whole) const;
 
+    /// @return The joints: state, commands and limits.
+    [[nodiscard]] JointSet& getJoints()
+    {
+        return m_joints;
+    }
+
+    /// @copydoc getJoints()
+    [[nodiscard]] JointSet const& getJoints() const
+    {
+        return m_joints;
+    }
+
+    // -------------------------------------------------------------------------
+    /// @return The sensors, read only: a skill reads them, it cannot change
+    ///   their source, their noise seed nor their reading (the runtime
+    ///   does, @ref RobotRuntime::getSensors). A command to a sensor
+    ///   (trigger a capture, pan a camera) is an actuator.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] SensorSet const& getSensors() const
+    {
+        return m_sensors;
+    }
+
+    /// @return The actuators: a skill commands them (to add one:
+    ///   @ref RobotRuntime::addActuator).
+    [[nodiscard]] ActuatorSet& getActuators()
+    {
+        return m_actuators;
+    }
+
+    /// @copydoc getActuators()
+    [[nodiscard]] ActuatorSet const& getActuators() const
+    {
+        return m_actuators;
+    }
+
+    /// @return Resources of the robot, read only; shared with the other
+    ///   robots of a world. The scheduler reserves them; faults and devices
+    ///   change them through @ref RobotRuntime::getResources.
+    [[nodiscard]] ResourceManager const& getResources() const
+    {
+        return *m_resources;
+    }
+
+    // -------------------------------------------------------------------------
+    /// @return Estimated base pose and velocity in the world (see
+    ///   @ref LocalizationFidelity): the true base with @c localization: @c truth,
+    ///   what the localization of the plugin wrote otherwise. A robot bolted
+    ///   to a table keeps its start pose.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] BaseState const& getBase() const
+    {
+        return m_base;
+    }
+
+    /// @return Robot clock (time since the last reset).
+    [[nodiscard]] Seconds getTime() const
+    {
+        return m_time;
+    }
+
     /// @return Analytical model (Pinocchio), read only.
-    [[nodiscard]] PinocchioBackend const& kinematics() const
+    [[nodiscard]] Kinematics const& getKinematics() const
     {
         return *m_kinematics;
     }
 
-protected:
+    /// @return What does not change: name, URDF, work frame, joint names.
+    [[nodiscard]] RobotModel const& getModel() const
+    {
+        return *m_model;
+    }
+
+    /// @return Name of the URDF robot.
+    [[nodiscard]] std::string const& getName() const
+    {
+        return m_model->name;
+    }
 
     // -------------------------------------------------------------------------
-    /// Loads the URDF into the world, the kinematics and the joints.
-    /// @param p_world ECS world receiving the entities.
+    /// @return Id of the robot in its world (the entity id of the world
+    ///   file); the URDF name until @ref setId. Two copies of a model
+    ///   share the name, not the id.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::string const& getId() const
+    {
+        return m_id;
+    }
+
+    /// @return Work frame: @c tcp when a tool is mounted, otherwise
+    ///   @c tool0, @c end_effector, or the last moving link.
+    [[nodiscard]] std::string const& getTool() const
+    {
+        return m_model->tool;
+    }
+
+private:
+
+    // The runtime builds the robot, writes what is measured, adds devices.
+    friend class RobotRuntime;
+
+    // -------------------------------------------------------------------------
+    /// Builds the kinematics; @ref RobotRuntime then adds the joints and the
+    /// model.
     /// @param p_urdf URDF of the robot.
-    /// @param p_view Rendering hooks, or null for a headless robot.
     /// @param p_tool URDF of a tool on the flange, or empty.
     /// @param p_resources Shared with other robots, or null for its own.
     // -------------------------------------------------------------------------
-    Robot(compages::world::World& p_world,
-          std::filesystem::path const& p_urdf,
-          SceneView* p_view,
-          std::filesystem::path const& p_tool = {},
-          std::shared_ptr<ResourceManager> p_resources = {});
+    Robot(std::filesystem::path const& p_urdf,
+          std::filesystem::path const& p_tool,
+          std::shared_ptr<ResourceManager> p_resources);
 
-    /// Copies the joints and the base to the kinematics, then to the
-    /// rendered entities (at the true base).
-    void propagate();
+    /// Copies the measured joints to the kinematics.
+    void updateKinematics();
 
     /// Pose of @p_link in the world from @p_base (estimated or true).
     /// @throws std::logic_error if @p_link comes from another robot.
     [[nodiscard]] Pose poseFrom(BaseState const& p_base,
                                 LinkRef const& p_link) const;
 
-protected:
-
-    /// ECS world holding the entities.
-    compages::world::World& m_world;
-    /// Analytical model for FK and IK.
-    std::unique_ptr<PinocchioBackend> m_kinematics;
-    /// Backend moving the robot, or null.
-    std::unique_ptr<RobotBackend> m_backend;
-    /// URDF robot name.
-    std::string m_name;
+    /// What does not change (set by the runtime once the joints are known).
+    std::shared_ptr<RobotModel const> m_model;
+    /// Analytical model for FK and IK, on the measured joints.
+    std::unique_ptr<Kinematics> m_kinematics;
     /// Id in the world.
     std::string m_id;
-    /// Work frame.
-    std::string m_tool;
-    /// Root entity.
-    compages::world::Entity m_root;
     /// Joints.
     JointSet m_joints;
     /// Resources, maybe shared with other robots.
@@ -316,16 +306,6 @@ protected:
     ActuatorSet m_actuators;
     /// Estimated base: what the skills read.
     BaseState m_base;
-    /// True base, written by the backend (the simulator side reads it).
-    BaseState m_true_base;
-    /// Compages is Y-up; URDF / Pinocchio / MuJoCo stay Z-up. The loader
-    /// hangs the robot under this rotation; @ref propagate composes it with
-    /// the measured base instead of overwriting it.
-    compages::Quatf m_world_from_urdf{};
-    /// Pinocchio q index of each joint (-1 when not modeled).
-    std::vector<int> m_q_indices;
-    /// Pinocchio v index of each joint (-1 when not modeled).
-    std::vector<int> m_v_indices;
     /// Robot clock.
     Seconds m_time{};
     /// Serial number, unique in the process: the owner of its @ref LinkRef.

@@ -33,11 +33,11 @@ static Selection ownerOf(App& p_app, compages::world::EntityId p_id)
         {
             return { SelectionKind::Object, shape->name };
         }
-        for (auto const& robot : p_app.simulation->cell().robots())
+        for (auto const& robot : p_app.simulation->cell().runtimes())
         {
-            if (robot->root().id() == entity.id())
+            if (robot->getRoot().id() == entity.id())
             {
-                return { SelectionKind::Robot, robot->id() };
+                return { SelectionKind::Robot, robot->robot().getId() };
             }
         }
         entity = entity.parent();

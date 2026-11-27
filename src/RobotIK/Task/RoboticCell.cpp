@@ -9,7 +9,7 @@
 #include "ShapeOf.hpp"
 
 #include "RobotIK/Robot/Backends/MujocoBackend.hpp"
-#include "RobotIK/Robot/Backends/PinocchioBackend.hpp"
+#include "RobotIK/Robot/Kinematics.hpp"
 #include "RobotIK/Robot/Components/Objects.hpp"
 #include "RobotIK/Robot/Actuators.hpp"
 #include "RobotIK/Task/Grasp/ContainerBounds.hpp"
@@ -115,7 +115,7 @@ static Vector3 boxInertia(double p_mass, Vector3 const& p_size)
 
 /// While the vacuum holds a prop, flag wall penetration (counts as a robot
 /// collision). Sticky until @ref RoboticCell::reset.
-static void trackPropPenetration(RobotSession& p_robot,
+static void trackPropPenetration(RobotRuntime& p_robot,
                                  HeldObjects const& p_held,
                                  bool& p_flag)
 {
@@ -123,12 +123,13 @@ static void trackPropPenetration(RobotSession& p_robot,
     {
         return;
     }
-    VacuumGripper const* gripper = p_robot.actuators().first<VacuumGripper>();
+    VacuumGripper const* gripper =
+        p_robot.robot().getActuators().first<VacuumGripper>();
     if (gripper == nullptr || !gripper->holding())
     {
         return;
     }
-    compages::world::World& world = p_robot.world();
+    compages::world::World& world = p_robot.getWorld();
     compages::world::EntityId const held_id = p_held.of(*gripper);
     if (!world.alive(held_id))
     {
@@ -175,18 +176,18 @@ RoboticCell::RoboticCell(compages::world::World& p_world,
               // Before any robot: an empty world would leave no first one.
               robotik::require(validate(m_description));
               WorldDescription const& world = m_description.world;
-              std::vector<std::unique_ptr<RobotSession>> robots;
+              std::vector<std::unique_ptr<RobotRuntime>> robots;
               for (EntitySpec const* spec : robotsOf(world))
               {
                   EntitySpec const* tool = mountedTool(world, spec->id);
-                  robots.push_back(std::make_unique<RobotSession>(
+                  robots.push_back(std::make_unique<RobotRuntime>(
                       p_world,
                       spec->model,
                       p_view,
                       tool != nullptr ? tool->model : std::filesystem::path{},
                       m_resources));
-                  robots.back()->identify(spec->id);
-                  robots.back()->localization(m_description.localization);
+                  robots.back()->setId(spec->id);
+                  robots.back()->setLocalization(m_description.localization);
               }
               return robots;
           }()),
@@ -196,21 +197,19 @@ RoboticCell::RoboticCell(compages::world::World& p_world,
       m_factory(std::make_unique<bt::NodeFactory>())
 {
     m_queries = builtinQueries();
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
-        m_robot_views.push_back(robot.get());
+        m_runtime_views.push_back(robot.get());
+        m_robot_views.push_back(&robot->robot());
     }
     if (m_robots.size() > 1U)
     {
-        for (std::unique_ptr<RobotSession> const& robot : m_robots)
-        {
-            m_team.push_back(robot.get());
-        }
+        m_team = m_robot_views;
     }
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
         m_contexts.push_back(
-            RobotContext{ *robot, m_world_model, {}, {}, m_team });
+            RobotContext{ robot->robot(), m_world_model, {}, {}, m_team });
     }
 
     // Robot devices, props and bodies of the world file.
@@ -224,8 +223,8 @@ RoboticCell::RoboticCell(compages::world::World& p_world,
     }
     bool const plugged =
         std::ranges::any_of(m_robots,
-                            [](std::unique_ptr<RobotSession> const& p_robot)
-                            { return p_robot->backend() != nullptr; });
+                            [](std::unique_ptr<RobotRuntime> const& p_robot)
+                            { return p_robot->getBackend() != nullptr; });
     if (!plugged)
     {
         connectBackend();
@@ -234,7 +233,7 @@ RoboticCell::RoboticCell(compages::world::World& p_world,
     // Hold the home position, now with the backend.
     for (EntitySpec const* spec : robotsOf(m_description.world))
     {
-        robot(spec->id)->hold(spec->home);
+        runtime(spec->id)->hold(spec->home);
     }
     if (m_any_sensed)
     {
@@ -248,14 +247,16 @@ RoboticCell::RoboticCell(compages::world::World& p_world,
         achieve(*m_description.controller.planner);
     }
     // After the scenario logic: the story may name its metrics and queries.
-    bool const actors = std::ranges::any_of(m_description.world.entities,
-                                            [](EntitySpec const& p_entity)
-                                            { return p_entity.type == EntitySpec::Type::Actor; });
+    bool const actors = std::ranges::any_of(
+        m_description.world.entities,
+        [](EntitySpec const& p_entity)
+        { return p_entity.type == EntitySpec::Type::Actor; });
     if (actors || !m_description.story.events.empty())
     {
         m_story = std::make_unique<Story>(m_description.story,
                                           m_description.world,
-                                          [this](std::string_view p_text) { return compile(p_text); });
+                                          [this](std::string_view p_text)
+                                          { return compile(p_text); });
     }
     reset();
 }
@@ -264,9 +265,9 @@ void RoboticCell::achieve(PlannerSpec p_spec)
 {
     if (!m_description.controller.behavior_tree.empty())
     {
-        throw std::runtime_error(
-            "achieve: the controller is a behavior tree; give a tree or a goal, "
-            "not both");
+        throw std::runtime_error("achieve: the controller is a behavior tree; "
+                                 "give a tree or a goal, "
+                                 "not both");
     }
     auto executor = std::make_unique<PlanExecutor>(p_spec,
                                                    m_description.world,
@@ -338,14 +339,14 @@ void RoboticCell::build(SceneView* p_view)
     bool blind = true;
     for (EntitySpec const* robot_spec : robotsOf(world))
     {
-        RobotSession& robot = *this->robot(robot_spec->id);
+        RobotRuntime& robot = *runtime(robot_spec->id);
         EntitySpec const* tool = mountedTool(world, robot_spec->id);
         buildDevices(robot, *robot_spec, tool, p_view, blind);
     }
 
     // --- Entities: one record each, in file order. ---------------------------
     m_frame = m_world.entity(WORLD_FRAME_ENTITY);
-    m_frame.rotation(m_robot->urdfFrame());
+    m_frame.rotation(m_robot->getUrdfFrame());
     m_records.reserve(world.entities.size());
     for (EntitySpec const& spec : world.entities)
     {
@@ -361,31 +362,34 @@ void RoboticCell::build(SceneView* p_view)
     // --- Where the beliefs about each prop come from. -----------------------
     m_oracle = false;
     // Beliefs a scenario logic adds itself follow the default level.
-    m_any_sensed = fidelityOf(m_description.perception, "", blind) == PerceptionFidelity::Sensed;
+    m_any_sensed = fidelityOf(m_description.perception, "", blind) ==
+                   PerceptionFidelity::Sensed;
     for (Record& record : m_records)
     {
         if (record.spec->type != EntitySpec::Type::Prop)
         {
             continue;
         }
-        record.perception = fidelityOf(m_description.perception, record.spec->id, blind);
+        record.perception =
+            fidelityOf(m_description.perception, record.spec->id, blind);
         m_oracle = m_oracle || record.perception != PerceptionFidelity::Sensed;
-        m_any_sensed = m_any_sensed || record.perception == PerceptionFidelity::Sensed;
+        m_any_sensed =
+            m_any_sensed || record.perception == PerceptionFidelity::Sensed;
     }
 }
 
-void RoboticCell::buildDevices(RobotSession& p_robot,
+void RoboticCell::buildDevices(RobotRuntime& p_robot,
                                EntitySpec const& p_spec,
                                EntitySpec const* p_tool,
                                SceneView* p_view,
                                bool& p_blind)
 {
-    p_robot.startPose(p_spec.pose);
+    p_robot.setStartPose(p_spec.pose);
     // Robot frames of the attachments are taken at home.
     p_robot.hold(p_spec.home);
 
     // --- Actuators: the robot's, then those of the mounted tool. ------------
-    ActuatorSet& actuators = p_robot.actuators();
+    ActuatorSet& actuators = p_robot.robot().getActuators();
     std::vector<ActuatorSpec> specs = p_spec.actuators;
     if (p_tool != nullptr)
     {
@@ -397,13 +401,14 @@ void RoboticCell::buildDevices(RobotSession& p_robot,
         switch (actuator.type)
         {
             case ActuatorSpec::Type::JointGroup:
-                actuators.add<JointGroup>(actuator.name, actuator.joints);
+                p_robot.addActuator<JointGroup>(actuator.name, actuator.joints);
                 break;
             case ActuatorSpec::Type::Motor:
-                actuators.add<Motor>(actuator.name, actuator.joints.front());
+                p_robot.addActuator<Motor>(actuator.name,
+                                           actuator.joints.front());
                 break;
             case ActuatorSpec::Type::Vacuum:
-                actuators.add<VacuumGripper>(
+                p_robot.addActuator<VacuumGripper>(
                     actuator.name, actuator.link, actuator.length);
                 break;
         }
@@ -419,7 +424,7 @@ void RoboticCell::buildDevices(RobotSession& p_robot,
     auto requireFrame =
         [&p_robot](SensorSpec const& p_sensor, std::string const& p_frame)
     {
-        if (!p_frame.empty() && !p_robot.link(p_frame))
+        if (!p_frame.empty() && !p_robot.getLink(p_frame))
         {
             throw std::runtime_error("Sensor '" + p_sensor.name +
                                      "': unknown link '" + p_frame + "'");
@@ -431,25 +436,26 @@ void RoboticCell::buildDevices(RobotSession& p_robot,
         {
             case SensorSpec::Type::Imu:
                 requireFrame(spec, spec.imu.parent);
-                p_robot.sensors().add<Imu>(spec.name, spec.imu);
+                p_robot.addSensor<Imu>(spec.name, spec.imu);
                 continue;
             case SensorSpec::Type::Range:
                 requireFrame(spec, spec.range.parent);
-                p_robot.sensors().add<RangeScanner>(spec.name, spec.range);
+                p_robot.addSensor<RangeScanner>(spec.name, spec.range);
                 continue;
             case SensorSpec::Type::ForceTorque:
                 requireFrame(spec, spec.force_torque.link);
-                p_robot.sensors().add<ForceTorqueSensor>(spec.name,
-                                                         spec.force_torque);
+                p_robot.addSensor<ForceTorqueSensor>(spec.name,
+                                                            spec.force_torque);
                 continue;
             case SensorSpec::Type::Camera:
                 break;
         }
         requireFrame(spec, spec.camera.parent);
-        Camera& camera = p_robot.sensors().add<Camera>(spec.name, spec.camera);
-        compages::world::Entity link = spec.camera.parent.empty()
-                                           ? p_robot.root()
-                                           : p_robot.link(spec.camera.parent);
+        Camera& camera =
+            p_robot.addSensor<Camera>(spec.name, spec.camera);
+        compages::world::Entity link =
+            spec.camera.parent.empty() ? p_robot.getRoot()
+                                       : p_robot.getLink(spec.camera.parent);
         if (p_view != nullptr)
         {
             camera.source(p_view->camera(camera, link));
@@ -466,7 +472,7 @@ void RoboticCell::buildDevices(RobotSession& p_robot,
                 }
                 // Shared beliefs live in the world frame.
                 Detections lifted = detections;
-                lifted.camera = p_robot.base().pose * lifted.camera;
+                lifted.camera = p_robot.robot().getBase().pose * lifted.camera;
                 m_world_model.update(lifted);
             });
     }
@@ -481,15 +487,15 @@ void RoboticCell::buildRecord(Record& p_record, SceneView* p_view)
         case EntitySpec::Type::Tool:
         {
             // Names of the physics backend: the robot prefix in a shared world.
-            RobotSession const& owner = ownerOf(spec);
-            std::string const prefix = prefixOf(owner.id());
+            RobotRuntime const& owner = ownerOf(spec);
+            std::string const prefix = prefixOf(owner.robot().getId());
             for (std::string const& link : readLinks(spec.model).names)
             {
                 p_record.links.insert(prefix + link);
             }
             if (spec.type == EntitySpec::Type::Robot)
             {
-                p_record.entity = owner.root();
+                p_record.entity = owner.getRoot();
                 p_record.nominal = spec.pose;
             }
             return;
@@ -576,7 +582,7 @@ void RoboticCell::buildRecord(Record& p_record, SceneView* p_view)
     {
         p_record.links.insert(prefix + link);
     }
-    p_record.frames = std::make_shared<PinocchioBackend>(spec.model);
+    p_record.frames = std::make_shared<Kinematics>(spec.model);
     if (p_view != nullptr)
     {
         p_record.entity = p_view->model(m_world, spec.model);
@@ -679,9 +685,10 @@ void RoboticCell::connectBackend()
     }
     addRigidProps(*physics);
     // One physics for the cell; each robot reaches it through its names.
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
-        robot->connect(MujocoBackend::member(physics, prefixOf(robot->id())));
+        robot->connect(
+            MujocoBackend::member(physics, prefixOf(robot->robot().getId())));
     }
 }
 
@@ -704,8 +711,9 @@ bool RoboticCell::rigidProp(EntitySpec const& p_prop) const
         for (ActuatorSpec const& actuator : entity.actuators)
         {
             rigid_gripper =
-                rigid_gripper || (actuator.type == ActuatorSpec::Type::Vacuum &&
-                                  fidelityOf(physics, actuator.name) == Fidelity::Rigid);
+                rigid_gripper ||
+                (actuator.type == ActuatorSpec::Type::Vacuum &&
+                 fidelityOf(physics, actuator.name) == Fidelity::Rigid);
         }
         rigid_box = rigid_box ||
                     (entity.type == EntitySpec::Type::Prop && entity.shape &&
@@ -794,10 +802,11 @@ void RoboticCell::addRigidProps(MujocoBackend& p_physics)
             {
                 continue;
             }
-            RobotSession const& owner = ownerOf(entity);
+            RobotRuntime const& owner = ownerOf(entity);
             std::string const link =
-                prefixOf(owner.id()) +
-                (actuator.link.empty() ? owner.tool() : actuator.link);
+                prefixOf(owner.robot().getId()) + (actuator.link.empty()
+                                                       ? owner.robot().getTool()
+                                                       : actuator.link);
             std::vector<std::string> tool_links;
             for (Record const& record : m_records)
             {
@@ -842,12 +851,12 @@ void RoboticCell::addSkills()
 
     // Home and Stop of each robot; "left.Home" when the world has several.
     SkillScheduler& skills = *m_scheduler;
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
-        ResourceManager const& resources = robot->resources();
-        ActuatorList const& actuators = robot->actuators();
+        ResourceManager const& resources = robot->getResources();
+        ActuatorSet const& actuators = robot->robot().getActuators();
         std::string const scope =
-            m_robots.size() > 1U ? robot->id() + "." : std::string();
+            m_robots.size() > 1U ? robot->robot().getId() + "." : std::string();
 
         std::vector<ResourceRequirement> arm;
         if (auto const* group = actuators.first<JointGroup>())
@@ -862,7 +871,7 @@ void RoboticCell::addSkills()
         if (!arm.empty())
         {
             SkillDescription home = describe(scope + "Home", arm);
-            home.robot = robot->id();
+            home.robot = robot->robot().getId();
             skills.add<HomeSkill>(std::move(home));
         }
         if (!everything.empty())
@@ -870,7 +879,7 @@ void RoboticCell::addSkills()
             SkillDescription stop = describe(scope + "Stop", everything);
             stop.priority = STOP_PRIORITY;
             stop.urgent = true;
-            stop.robot = robot->id();
+            stop.robot = robot->robot().getId();
             skills.add<StopSkill>(std::move(stop));
         }
     }
@@ -878,38 +887,50 @@ void RoboticCell::addSkills()
 
 Pose RoboticCell::beliefFrame() const
 {
-    return m_robots.size() == 1U ? m_robot->base().pose
+    return m_robots.size() == 1U ? m_robot->robot().getBase().pose
                                  : Pose{ Vector3::ZERO, Quaternion{} };
 }
 
 Pose RoboticCell::trueBeliefFrame() const
 {
-    return m_robots.size() == 1U ? m_robot->trueBase().pose
+    return m_robots.size() == 1U ? m_robot->getTrueBase().pose
                                  : Pose{ Vector3::ZERO, Quaternion{} };
 }
 
-RobotSession const* RoboticCell::robot(std::string_view p_id) const
+RobotRuntime const* RoboticCell::runtime(std::string_view p_id) const
 {
-    return const_cast<RoboticCell*>(this)->robot(p_id);
+    return const_cast<RoboticCell*>(this)->runtime(p_id);
 }
 
-RobotSession* RoboticCell::robot(std::string_view p_id)
+RobotRuntime* RoboticCell::runtime(std::string_view p_id)
 {
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& runtime : m_robots)
     {
-        if (robot->id() == p_id)
+        if (runtime->robot().getId() == p_id)
         {
-            return robot.get();
+            return runtime.get();
         }
     }
     return nullptr;
+}
+
+Robot const* RoboticCell::robot(std::string_view p_id) const
+{
+    RobotRuntime const* found = runtime(p_id);
+    return found != nullptr ? &found->robot() : nullptr;
+}
+
+Robot* RoboticCell::robot(std::string_view p_id)
+{
+    RobotRuntime* found = runtime(p_id);
+    return found != nullptr ? &found->robot() : nullptr;
 }
 
 RobotContext& RoboticCell::requireContext(std::string_view p_id)
 {
     for (RobotContext& context : m_contexts)
     {
-        if (context.robot.id() == p_id)
+        if (context.robot.getId() == p_id)
         {
             return context;
         }
@@ -918,20 +939,21 @@ RobotContext& RoboticCell::requireContext(std::string_view p_id)
                                 "'");
 }
 
-RobotSession const& RoboticCell::ownerOf(EntitySpec const& p_spec) const
+RobotRuntime const& RoboticCell::ownerOf(EntitySpec const& p_spec) const
 {
     std::string_view const id =
         p_spec.type == EntitySpec::Type::Robot ? std::string_view(p_spec.id)
         : p_spec.type == EntitySpec::Type::Tool && p_spec.attach
             ? std::string_view(p_spec.attach->parent)
             : std::string_view();
-    RobotSession const* const found = id.empty() ? nullptr : robot(id);
+    RobotRuntime const* const found = id.empty() ? nullptr : runtime(id);
     return found != nullptr ? *found : *m_robot;
 }
 
 std::string RoboticCell::prefixOf(std::string_view p_id) const
 {
-    return p_id == m_robot->id() ? std::string() : std::string(p_id) + "/";
+    return p_id == m_robot->robot().getId() ? std::string()
+                                            : std::string(p_id) + "/";
 }
 
 void RoboticCell::loadTree()
@@ -970,7 +992,8 @@ TreeClock RoboticCell::simulatedClock() const
     // pause, speed and the step, and a run is reproducible.
     return [this]
     {
-        std::chrono::duration<double> const elapsed(m_robot->time().value());
+        std::chrono::duration<double> const elapsed(
+            m_robot->robot().getTime().value());
         return std::chrono::steady_clock::time_point(
             std::chrono::duration_cast<std::chrono::steady_clock::duration>(
                 elapsed));
@@ -992,9 +1015,9 @@ void RoboticCell::reset(Seed p_seed)
     m_faults.reset(p_seed.derive("faults"));
     m_perception_random = Random(p_seed.derive("perception"));
 
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
-        ActuatorSet& actuators = robot->actuators();
+        ActuatorSet& actuators = robot->robot().getActuators();
         for (std::size_t i = 0; i < actuators.size(); ++i)
         {
             if (auto* vacuum = dynamic_cast<VacuumGripper*>(&actuators[i]))
@@ -1005,9 +1028,9 @@ void RoboticCell::reset(Seed p_seed)
         }
     }
 
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
-        SensorSet& sensors = robot->sensors();
+        SensorSet& sensors = robot->getSensors();
         for (std::size_t i = 0; i < sensors.size(); ++i)
         {
             if (auto* camera = dynamic_cast<Camera*>(&sensors[i]))
@@ -1030,7 +1053,7 @@ void RoboticCell::reset(Seed p_seed)
         }
     }
 
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
         robot->reset();
     }
@@ -1053,9 +1076,9 @@ void RoboticCell::reset(Seed p_seed)
         at.y += random.uniform(spec.randomize[1][0], spec.randomize[1][1]);
         at.z += random.uniform(spec.randomize[2][0], spec.randomize[2][1]);
         // A rigid box is a free body: the backend moves it, syncBodies copies.
-        RobotBackend* backend = m_robot->backend();
-        if (record.body.empty() || backend == nullptr ||
-            !backend->placeBody(record.body,
+        PhysicsWorld* physics = m_robot->getPhysics();
+        if (record.body.empty() || physics == nullptr ||
+            !physics->placeBody(record.body,
                                 Pose{ at, record.nominal.rotation }))
         {
             record.entity.position(toFloat(at))
@@ -1076,7 +1099,8 @@ void RoboticCell::reset(Seed p_seed)
         at.x += random.uniform(spec.randomize[0][0], spec.randomize[0][1]);
         at.y += random.uniform(spec.randomize[1][0], spec.randomize[1][1]);
         at.z += random.uniform(spec.randomize[2][0], spec.randomize[2][1]);
-        record.entity.position(toFloat(at)).rotation(toFloat(record.nominal.rotation));
+        record.entity.position(toFloat(at))
+            .rotation(toFloat(record.nominal.rotation));
     }
     syncBodies();
     m_world.update();
@@ -1107,9 +1131,9 @@ Camera const* RoboticCell::camera() const
 
 Camera* RoboticCell::camera()
 {
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
-        if (Camera* camera = robot->sensors().first<Camera>())
+        if (Camera* camera = robot->getSensors().first<Camera>())
         {
             return camera;
         }
@@ -1122,9 +1146,9 @@ void RoboticCell::observe()
     // No sensor at all, or one of some robot still works.
     bool any = false;
     bool sees = false;
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
-        SensorList const& sensors = robot->sensors();
+        SensorSet const& sensors = robot->getSensors();
         for (std::size_t i = 0; i < sensors.size(); ++i)
         {
             any = true;
@@ -1143,7 +1167,7 @@ void RoboticCell::observe()
         {
             m_world_model.place(record.spec->id,
                                 to_base * positionOf(record.entity),
-                                m_robot->time());
+                                m_robot->robot().getTime());
         }
     }
 }
@@ -1153,9 +1177,9 @@ void RoboticCell::perceiveTruth()
     // Same rule as the cameras: something must still be able to see.
     bool any = false;
     bool sees = false;
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
-        SensorList const& sensors = robot->sensors();
+        SensorSet const& sensors = robot->getSensors();
         for (std::size_t i = 0; i < sensors.size(); ++i)
         {
             any = true;
@@ -1178,16 +1202,18 @@ void RoboticCell::perceiveTruth()
         Vector3 truth = positionOf(record.entity);
         if (record.perception == PerceptionFidelity::Truth)
         {
-            m_world_model.place(record.spec->id, to_base * truth, m_robot->time(),
+            m_world_model.place(record.spec->id,
+                                to_base * truth,
+                                m_robot->robot().getTime(),
                                 BeliefSource::Truth);
             continue;
         }
         // Noisy truth: in range of a robot, not missed, with noise.
         bool near = false;
-        for (std::unique_ptr<RobotSession> const& robot : m_robots)
+        for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
         {
-            near = near ||
-                   norm(truth - robot->trueBase().pose.position) <= noise.range;
+            near = near || norm(truth - robot->getTrueBase().pose.position) <=
+                               noise.range;
         }
         if (!near || m_perception_random.chance(noise.dropout))
         {
@@ -1196,7 +1222,9 @@ void RoboticCell::perceiveTruth()
         truth.x = m_perception_random.normal(truth.x, noise.sigma);
         truth.y = m_perception_random.normal(truth.y, noise.sigma);
         truth.z = m_perception_random.normal(truth.z, noise.sigma);
-        m_world_model.place(record.spec->id, to_base * truth, m_robot->time(),
+        m_world_model.place(record.spec->id,
+                            to_base * truth,
+                            m_robot->robot().getTime(),
                             BeliefSource::NoisyTruth);
     }
 }
@@ -1231,7 +1259,8 @@ std::string RoboticCell::perceptionSummary() const
     std::string text = toString(main);
     for (Record const& record : m_records)
     {
-        if (record.spec->type == EntitySpec::Type::Prop && record.perception != main)
+        if (record.spec->type == EntitySpec::Type::Prop &&
+            record.perception != main)
         {
             text += ", " + record.spec->id + ": " + toString(record.perception);
         }
@@ -1241,8 +1270,8 @@ std::string RoboticCell::perceptionSummary() const
 
 void RoboticCell::syncBodies()
 {
-    RobotBackend const* backend = m_robot->backend();
-    compages::Quatf const& up = m_robot->urdfFrame();
+    PhysicsWorld const* physics = m_robot->getPhysics();
+    compages::Quatf const& up = m_robot->getUrdfFrame();
     for (Record const& record : m_records)
     {
         if (record.body.empty() || !record.entity)
@@ -1250,7 +1279,7 @@ void RoboticCell::syncBodies()
             continue;
         }
         std::optional<Pose> const at =
-            backend != nullptr ? backend->bodyPose(record.body) : std::nullopt;
+            physics != nullptr ? physics->bodyPose(record.body) : std::nullopt;
         Pose const pose = at ? *at : record.nominal;
         compages::world::Entity entity = record.entity;
         if (record.spec->shape)
@@ -1270,13 +1299,13 @@ void RoboticCell::syncBodies()
 
 void RoboticCell::track()
 {
-    RobotBackend const* backend = m_robot->backend();
-    if (backend == nullptr)
+    PhysicsWorld const* physics = m_robot->getPhysics();
+    if (physics == nullptr)
     {
         return;
     }
-    m_max_contacts = std::max(m_max_contacts, backend->contacts());
-    std::vector<Contact> const contacts = backend->contactList();
+    m_max_contacts = std::max(m_max_contacts, physics->contacts());
+    std::vector<Contact> const contacts = physics->contactList();
     for (Record& record : m_records)
     {
         if (!record.links.empty())
@@ -1297,7 +1326,7 @@ void RoboticCell::step(Seconds p_dt)
     // The clock comes from the robot (its backend). The decision side gets
     // the time measured since its last tick: the asked dt in a simulation,
     // the true one on hardware. A clock that did not move skips the tick.
-    Seconds const before = m_robot->time();
+    Seconds const before = m_robot->robot().getTime();
     Seconds const elapsed = m_ticked ? before - m_last_tick : p_dt;
     bool const stalled = !(elapsed.value() > 0.0);
     if (stalled)
@@ -1314,7 +1343,7 @@ void RoboticCell::step(Seconds p_dt)
         m_faults.update(*m_resources, before, elapsed);
         for (RobotContext& context : m_contexts)
         {
-            context.time = context.robot.time();
+            context.time = context.robot.getTime();
             context.dt = elapsed;
         }
         if (m_executor && !m_controller_stopped)
@@ -1330,32 +1359,32 @@ void RoboticCell::step(Seconds p_dt)
 
     // MuJoCo arms and rigid bodies (one step for all), then what the grippers
     // hold.
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
         robot->prepare(p_dt);
     }
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
         robot->advance(p_dt);
     }
     // One time for all: the entities take the bodies of this physics step
     // before the sensors, the grippers and the truth beliefs read them.
     syncBodies();
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
         robot->sense();
     }
-    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    for (std::unique_ptr<RobotRuntime> const& robot : m_robots)
     {
         for (std::unique_ptr<GraspModel> const& grasp : m_grasps)
         {
             grasp->update(*robot, m_held);
         }
-        bool through = m_prop_penetration.contains(robot->id());
+        bool through = m_prop_penetration.contains(robot->robot().getId());
         trackPropPenetration(*robot, m_held, through);
         if (through)
         {
-            m_prop_penetration.insert(robot->id());
+            m_prop_penetration.insert(robot->robot().getId());
         }
     }
     if (m_oracle)
@@ -1379,8 +1408,8 @@ void RoboticCell::step(Seconds p_dt)
         // and the duration of that step as the clock measured it.
         for (RobotContext& context : m_contexts)
         {
-            context.time = context.robot.time();
-            context.dt = m_robot->time() - before;
+            context.time = context.robot.getTime();
+            context.dt = m_robot->robot().getTime() - before;
         }
         m_logic->act(m_contexts.front(), p_dt);
         m_logic->simulate(*this, p_dt);

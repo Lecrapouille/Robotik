@@ -47,7 +47,7 @@ class WorldModel;
 ///     if (box == nullptr)
 ///         return Status::FAILURE;
 ///     auto const q = p_context.robot.inverseKinematics("tool", target(*box));
-///     // ... command p_context.robot.joints() toward q
+///     // ... command p_context.robot.getJoints() toward q
 ///     return Status::RUNNING;
 /// }
 /// @endcode
@@ -64,8 +64,10 @@ struct RobotContext
     Seconds dt{};
     /// Every robot of the world, @ref robot included, in world file order:
     /// what they measure of themselves (joints, base, sensors), as a real
-    /// cell shares it on its network. Empty for a robot alone.
-    std::span<Robot* const> team{};
+    /// cell shares it on its network. Empty for a robot alone. Read only:
+    /// a skill commands its own @ref robot, never another one (the
+    /// scheduler leases would not see it).
+    std::span<Robot const* const> team{};
 };
 
 } // namespace robotik

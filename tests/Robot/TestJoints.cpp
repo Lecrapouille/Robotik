@@ -8,7 +8,7 @@
 #include "main.hpp"
 
 #include "RobotIK/Robot/Joints.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 #include "RobotIK/Robot/Backends/RobotBackend.hpp"
 
 #include <limits>
@@ -47,14 +47,18 @@ TEST(Joints, ReachedNeedsTheJointToBeSlow)
 {
     // A joint passing through its target at speed has not arrived.
     compages::world::World world;
-    robotik::RobotSession robot(
+    robotik::RobotRuntime robot(
         world, assetFile("robotik.robots.simple_revolute_robot"));
-    robotik::JointSet& joints = robot.joints();
+    robotik::JointSet& joints = robot.robot().getJoints();
     joints.moveTo(0, 0.5);
-    robot.measureJoint(0, 0.5, 1.0);
+    robot.measureJoint(robot.robot().getJoints().requireRevolute(0),
+                       robotik::Radians(0.5),
+                       robotik::AngularVelocity(1.0));
     EXPECT_FALSE(joints.reached(0, 0.01));
     EXPECT_TRUE(joints.reached(0, 0.01, 2.0));
-    robot.measureJoint(0, 0.5, 0.01);
+    robot.measureJoint(robot.robot().getJoints().requireRevolute(0),
+                       robotik::Radians(0.5),
+                       robotik::AngularVelocity(0.01));
     EXPECT_TRUE(joints.reached(0, 0.01));
 }
 
@@ -65,12 +69,13 @@ class OwnClock final: public robotik::RobotBackend
 public:
 
     explicit OwnClock(double p_rate) : m_rate(p_rate) {}
-    void attach(robotik::RobotSession& /*p_robot*/) override {}
-    void reset(robotik::RobotSession& /*p_robot*/) override
+    void attach(robotik::RobotRuntime& /*p_robot*/) override {}
+    void reset(robotik::RobotRuntime& /*p_robot*/) override
     {
         m_time = 0.0;
     }
-    void step(robotik::RobotSession& /*p_robot*/, robotik::Seconds p_dt) override
+    void step(robotik::RobotRuntime& /*p_robot*/,
+              robotik::Seconds p_dt) override
     {
         m_time += m_rate * p_dt.value();
     }
@@ -88,20 +93,20 @@ private:
 TEST(Clock, ComesFromTheBackend)
 {
     compages::world::World world;
-    robotik::RobotSession robot(
+    robotik::RobotRuntime robot(
         world, assetFile("robotik.robots.simple_revolute_robot"));
     robot.connect(std::make_unique<OwnClock>(2.0));
     robot.step(robotik::Seconds(0.01));
     robot.step(robotik::Seconds(0.01));
-    EXPECT_NEAR(robot.time().value(), 0.04, 1e-12);
+    EXPECT_NEAR(robot.robot().getTime().value(), 0.04, 1e-12);
 }
 
 TEST(Clock, CountsTheStepsWithoutABackendClock)
 {
     compages::world::World world;
-    robotik::RobotSession robot(
+    robotik::RobotRuntime robot(
         world, assetFile("robotik.robots.simple_revolute_robot"));
     robot.step(robotik::Seconds(0.01));
     robot.step(robotik::Seconds(0.01));
-    EXPECT_NEAR(robot.time().value(), 0.02, 1e-12);
+    EXPECT_NEAR(robot.robot().getTime().value(), 0.02, 1e-12);
 }

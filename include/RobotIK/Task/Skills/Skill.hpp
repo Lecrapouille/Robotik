@@ -164,12 +164,12 @@ struct SkillDescription
 /// public:
 ///     robotik::Status tick(robotik::RobotContext& p_context, Seconds) override
 ///     {
-///         // command joints through p_context.robot.joints() ...
+///         // command joints through p_context.robot.getJoints() ...
 ///         return robotik::Status::RUNNING;
 ///     }
 ///     void cancel(robotik::RobotContext& p_context) override
 ///     {
-///         p_context.robot.joints().hold(); // stop where we are
+///         p_context.robot.getJoints().hold(); // stop where we are
 ///     }
 /// };
 /// @endcode

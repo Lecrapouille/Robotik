@@ -116,6 +116,39 @@ RobotIK syntax (`///`, `@param`, `@return`, `@ref`), the same plain English
 as the pages, and the file banner: `@file` (what it is for, in everyday
 words) then `@par Contract`.
 
+Write the comments for a reader who is not a robotics engineer:
+
+- Every robotics word (jog, waypoint, quintic, IK, TCP...) is in
+  doc/reference/glossary.md, or the comment links a page that explains it.
+  A new word adds its glossary line in the same change. A tool or idea that
+  needs more than three sentences gets its own concept page (example:
+  doc/concepts/07-teach-pendant.md).
+- Prefer the everyday word: "the value of every joint" or "the position of
+  the arm", not "configuration"; "smooth move that starts and ends at zero
+  speed", not "rest-to-rest quintic". Keep the technical word once, in
+  brackets, so that an expert finds it.
+- A method comment never rephrases the name. It says what the reader cannot
+  guess: usual values (the unit is in the type: a public API takes
+  `Seconds`, `Length`, `Radians`, `Vector3m`, `Vector3rad`, never a bare
+  `double`, so no "(s)" or "(m)" in the comment; see AGENTS.md), what happens to the other state (a running
+  replay stops), when to call it (each step), the failure cases and why.
+  A getter one-liner says what the value is for, not "@return the X".
+- No sentence that only says what a class is not ("stateless with respect
+  to the simulator") without the consequence for the user ("pause the
+  mission first, or it writes other targets and the arm does not obey").
+- The `@code` example tells a short story: one comment per step says what
+  the user does and why. A test runs the same code.
+
+Bad, then good:
+
+```cpp
+/// @return The recorded waypoints, in order.
+std::span<Waypoint const> getWaypoints() const;
+
+/// @return The saved positions, in the order of replay.
+std::span<Waypoint const> getWaypoints() const;
+```
+
 ## Checks before a commit
 
 - Every tutorial step and every quoted output is run for real

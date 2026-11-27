@@ -36,7 +36,7 @@ void WaveLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 {
     // Find the joint once: act() runs at each step and uses the handle.
     // A typed handle: its angle is in radians, the compiler checks it.
-    m_base = p_cell.robot().joints().requireRevolute("joint1");
+    m_base = p_cell.robot().getJoints().requireRevolute("joint1");
     m_swing = 0.0;
     m_tool_y = 0.0;
 }
@@ -52,7 +52,7 @@ At each step, `act` gives a new target to the joint and measures the result:
 void WaveLogic::act(robotik::RobotContext& p_context, robotik::Seconds /*p_dt*/)
 {
     robotik::Robot& robot = p_context.robot;
-    robotik::JointSet& joints = robot.joints();
+    robotik::JointSet& joints = robot.getJoints();
 
     // Command: a target angle. The joint controller moves toward it.
     robotik::Radians const home = joints.home(m_base);
@@ -63,13 +63,13 @@ void WaveLogic::act(robotik::RobotContext& p_context, robotik::Seconds /*p_dt*/)
     // in the robot base frame).
     m_swing =
         std::max(m_swing, std::abs((joints.position(m_base) - home).value()));
-    m_tool_y = robot.requireFramePose(robot.tool()).position.y;
+    m_tool_y = robot.requireFramePose(robot.getTool()).position.y;
 }
 ```
 
 `moveTo` gives a target to the motor of the joint. The joint does not jump to the target: the physics engine (MuJoCo) moves it at the speed of the motor. For this reason, the code reads the angle that the joint reached with `joints.position`, and not the angle that it commanded. `home` is the angle at the start of the run, written in the world file.
 
-`robot.tool()` is the name of the work frame of the robot: `tcp` (the tip of the tool) when a tool is mounted, `tool0` (the end of the arm) when no tool is mounted. The HelloWorld arm has no tool, so it is `tool0`. `requireFramePose` gives the pose of this frame from the joint angles: this computation is forward kinematics.
+`robot.getTool()` is the name of the work frame of the robot: `tcp` (the tip of the tool) when a tool is mounted, `tool0` (the end of the arm) when no tool is mounted. The HelloWorld arm has no tool, so it is `tool0`. `requireFramePose` gives the pose of this frame from the joint angles: this computation is forward kinematics.
 
 `measure` publishes `wave.swing` (the largest angle reached) and `wave.tool_y`. The scenario file judges them:
 
@@ -117,13 +117,13 @@ void ReachLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
     robotik::Robot& robot = p_cell.robot();
 
     // The tool frame is "tcp" when a tool is mounted, "tool0" otherwise.
-    robotik::Pose const start = robot.requireFramePose(robot.tool());
+    robotik::Pose const start = robot.requireFramePose(robot.getTool());
     m_target = start;
     m_target.position.x += 0.03;
 
     // Inverse kinematics: no answer when the pose is out of reach.
     std::optional<std::vector<double>> const solution =
-        robot.inverseKinematics(robot.tool(), m_target);
+        robot.inverseKinematics(robot.getTool(), m_target);
     m_solution = solution ? *solution : std::vector<double>{};
     m_error = distance(start, m_target);
 }
@@ -138,13 +138,13 @@ void ReachLogic::act(robotik::RobotContext& p_context,
                      robotik::Seconds /*p_dt*/)
 {
     robotik::Robot& robot = p_context.robot;
-    robotik::JointSet& joints = robot.joints();
+    robotik::JointSet& joints = robot.getJoints();
     for (robotik::JointId id = 0; id < joints.size() && id < m_solution.size();
          ++id)
     {
         joints.moveTo(id, m_solution[id]);
     }
-    m_error = distance(robot.requireFramePose(robot.tool()), m_target);
+    m_error = distance(robot.requireFramePose(robot.getTool()), m_target);
 }
 ```
 

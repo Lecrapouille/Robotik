@@ -73,16 +73,16 @@ public:
     /// Starts over (the environment was reset by the scenario logic).
     void restart();
 
-    void attach(robotik::RobotSession& /*p_robot*/) override
+    void attach(robotik::RobotRuntime& /*p_robot*/) override
     {
         // Nothing to attach: the fly has no device.
     }
-    void reset(robotik::RobotSession& p_robot) override;
-    void step(robotik::RobotSession& p_robot, robotik::Seconds p_dt) override;
+    void reset(robotik::RobotRuntime& p_robot) override;
+    void step(robotik::RobotRuntime& p_robot, robotik::Seconds p_dt) override;
 
 private:
 
-    void pose(robotik::RobotSession& p_robot) const;
+    void pose(robotik::RobotRuntime& p_robot) const;
 
     FlyEnvironment& m_environment;
     std::array<float, FlyObservation::SIZE> m_observation{};

@@ -94,7 +94,7 @@ static void printTrace(robotik::Simulation const& p_simulation)
     }
     robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     robotik::ResourceManager const& resources =
-        p_simulation.cell().robot().resources();
+        p_simulation.cell().robot().getResources();
     for (robotik::SkillRun const& run : skills.trace())
     {
         std::cout << "  " << run.start << "  " << skills.name(run.skill) << "  "
@@ -274,7 +274,8 @@ int main(int argc, char** argv)
                         robotik::scenarioOf(experiment, item, session.assets());
                     if (!scenario)
                     {
-                        std::cerr << item.id << ": " << scenario.error() << '\n';
+                        std::cerr << item.id << ": " << scenario.error()
+                                  << '\n';
                         return 1;
                     }
                     report.runs.push_back(run(session,

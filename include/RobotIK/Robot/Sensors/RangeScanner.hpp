@@ -68,7 +68,7 @@ struct RangeScannerConfig
 /// (@ref RobotBackend::raycast) and against the scene objects of the world.
 ///
 /// @code
-/// auto& lidar = robot.sensors().add<robotik::RangeScanner>(
+/// auto& lidar = runtime.addSensor<robotik::RangeScanner>(
 ///     "lidar", robotik::RangeScannerConfig{ .parent = "base_link" });
 /// float const front = lidar.scan().ranges[lidar.scan().ranges.size() / 2];
 /// @endcode
@@ -82,22 +82,6 @@ public:
     /// @param p_config Mount, beams, range, rate and noise.
     // -------------------------------------------------------------------------
     RangeScanner(std::string p_name, RangeScannerConfig p_config = {});
-
-    // -------------------------------------------------------------------------
-    /// @return The configuration given at construction.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] RangeScannerConfig const& config() const
-    {
-        return m_config;
-    }
-
-    // -------------------------------------------------------------------------
-    /// @return Last delivered scan. Check @c valid before use.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] RangeScan const& scan() const
-    {
-        return m_scans.current();
-    }
 
     // -------------------------------------------------------------------------
     /// Marks the current scan invalid (the sensor resource failed).
@@ -116,10 +100,26 @@ public:
         m_random = Random(p_seed);
     }
 
+    // -------------------------------------------------------------------------
+    /// @return Last delivered scan. Check @c valid before use.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] RangeScan const& scan() const
+    {
+        return m_scans.current();
+    }
+
+    // -------------------------------------------------------------------------
+    /// @return The configuration given at construction.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] RangeScannerConfig const& config() const
+    {
+        return m_config;
+    }
+
 protected:
 
     /// Casts every beam and adds the noise.
-    bool sample(RobotSession const& p_robot, Seconds p_now) override;
+    bool sample(RobotRuntime const& p_robot, Seconds p_now) override;
     /// Clears the scans waiting for their latency.
     void restart() override;
     /// Publishes the scans whose latency has elapsed.

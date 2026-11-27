@@ -193,9 +193,9 @@ struct RunEnd
 /// arrays indexed by @ref SkillId, found once by name with @ref find.
 ///
 /// @code
-/// robotik::SkillScheduler skills(robot.resources());
+/// robotik::SkillScheduler skills(robot.getResources());
 /// auto const home = skills.add<robotik::HomeSkill>(
-///     { .name = "Home", .resources = { robot.resources().require("arm") } });
+///     { .name = "Home", .resources = { robot.getResources().require("arm") } });
 /// skills.request(home);
 /// while (running) {
 ///     skills.update(context);   // admit, preempt, tick

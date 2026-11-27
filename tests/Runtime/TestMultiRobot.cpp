@@ -65,8 +65,9 @@ TEST(World, SeveralRobotsEachWithItsTool)
 
     // Robots share one resource manager: a device name is used once.
     robotik::ConfigNode bad = robotik::ConfigNode::parse(TWO_ARMS).take();
-    EXPECT_TRUE(bad.set("entities.right_cup.actuators",
-            robotik::ConfigNode::parse("left_gripper: { type: vacuum }").take()));
+    EXPECT_TRUE(bad.set(
+        "entities.right_cup.actuators",
+        robotik::ConfigNode::parse("left_gripper: { type: vacuum }").take()));
     EXPECT_FALSE(robotik::readWorld(bad, ".", testAssets()));
 }
 
@@ -84,7 +85,8 @@ TEST(World, ToolTouchesItsWorkpiece)
 
     // Only a tool touches, and only another entity of the world.
     robotik::ConfigNode robot = robotik::ConfigNode::parse(TWO_ARMS).take();
-    EXPECT_TRUE(robot.set("entities.right.touches", robotik::ConfigNode::parse("[left]").take()));
+    EXPECT_TRUE(robot.set("entities.right.touches",
+                          robotik::ConfigNode::parse("[left]").take()));
     EXPECT_FALSE(robotik::readWorld(robot, ".", testAssets()));
     robotik::ConfigNode unknown = robotik::ConfigNode::parse(TWO_ARMS).take();
     EXPECT_TRUE(unknown.set("entities.right_cup.touches",
@@ -122,17 +124,18 @@ TEST(Simulation, TwoRobotsShareOnePhysics)
     compages::world::World world;
     robotik::Simulation simulation(world, twoArms());
     ASSERT_EQ(simulation.cell().robots().size(), 2U);
-    robotik::RobotSession* left = simulation.cell().robot("left");
-    robotik::RobotSession* right = simulation.cell().robot("right");
+    robotik::RobotRuntime* left = simulation.cell().runtime("left");
+    robotik::RobotRuntime* right = simulation.cell().runtime("right");
     ASSERT_NE(left, nullptr);
     ASSERT_NE(right, nullptr);
-    EXPECT_EQ(&simulation.cell().robot(), left);
-    EXPECT_EQ(&simulation.cell().requireContext("right").robot, right);
+    EXPECT_EQ(&simulation.cell().runtime(), left);
+    EXPECT_EQ(&simulation.cell().requireContext("right").robot,
+              &right->robot());
     EXPECT_EQ(simulation.cell().requireContext("right").team.size(), 2U);
 
     // Each robot keeps its own joint names and its own skills.
-    EXPECT_NE(left->joints().find("joint1"), robotik::NO_JOINT);
-    EXPECT_NE(right->joints().find("joint1"), robotik::NO_JOINT);
+    EXPECT_NE(left->robot().getJoints().find("joint1"), robotik::NO_JOINT);
+    EXPECT_NE(right->robot().getJoints().find("joint1"), robotik::NO_JOINT);
     EXPECT_NE(simulation.cell().skills().find("left.Home"), robotik::NO_SKILL);
     EXPECT_NE(simulation.cell().skills().find("right.Stop"), robotik::NO_SKILL);
     EXPECT_EQ(simulation.cell().skills().find("Home"), robotik::NO_SKILL);
@@ -142,16 +145,18 @@ TEST(Simulation, TwoRobotsShareOnePhysics)
     EXPECT_NEAR(simulation.cell().requirePose("right").position.y, 0.6, 1e-9);
 
     // Moving the right arm leaves the left one where it is.
-    robotik::JointId const joint = right->joints().find("joint1");
-    double const left_before = left->joints().position(joint);
-    right->joints().moveTo(joint, 0.5);
+    robotik::JointId const joint = right->robot().getJoints().find("joint1");
+    double const left_before = left->robot().getJoints().position(joint);
+    right->robot().getJoints().moveTo(joint, 0.5);
     for (int i = 0; i < 200; ++i)
     {
         simulation.step(robotik::Seconds(0.01));
     }
-    EXPECT_NEAR(right->joints().position(joint), 0.5, 0.02);
-    EXPECT_NEAR(left->joints().position(joint), left_before, 1e-3);
-    EXPECT_NEAR(left->time().value(), right->time().value(), 1e-12);
+    EXPECT_NEAR(right->robot().getJoints().position(joint), 0.5, 0.02);
+    EXPECT_NEAR(left->robot().getJoints().position(joint), left_before, 1e-3);
+    EXPECT_NEAR(left->robot().getTime().value(),
+                right->robot().getTime().value(),
+                1e-12);
     EXPECT_DOUBLE_EQ(
         simulation.cell().requireQuery("(collision_count left)").value(), 0.0);
     EXPECT_DOUBLE_EQ(simulation.cell()

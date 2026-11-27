@@ -34,7 +34,7 @@ text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
 <text x="72" y="226">SkillScheduler::update</text>
 <text x="450" y="226" class="small">admit, preempt, tick the skills</text>
 <rect x="56" y="246" width="788" height="40" rx="10" class="box"/>
-<text x="72" y="272">RobotSession prepare / advance / sense</text>
+<text x="72" y="272">RobotRuntime prepare / advance / sense</text>
 <text x="450" y="272" class="small">every robot: actuators, one physics step, sensors</text>
 <rect x="56" y="292" width="788" height="40" rx="10" class="box"/>
 <text x="72" y="318">GraspModel::update</text>

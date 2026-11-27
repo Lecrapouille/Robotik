@@ -22,9 +22,8 @@ void PainterLogic::setup(robotik::RoboticCell& p_cell,
 {
     // The easel and the canvas are entities of painting_lab.world.yaml: the
     // simulation builds them. The scenario logic brings the gestures.
-    robotik::ResourceManager const& resources =
-        p_cell.robot().resources();
-    robotik::ActuatorList const& actuators = p_cell.robot().actuators();
+    robotik::ResourceManager const& resources = p_cell.robot().getResources();
+    robotik::ActuatorSet const& actuators = p_cell.robot().getActuators();
     std::vector<robotik::ResourceRequirement> arm;
     if (auto const* group = actuators.first<robotik::JointGroup>())
     {
@@ -61,7 +60,7 @@ void PainterLogic::setup(robotik::RoboticCell& p_cell,
     robotik::ConfigNode const& gains = parameters.at("arm_gains");
     if (gains.isMap())
     {
-        robotik::JointSet& joints = p_cell.robot().joints();
+        robotik::JointSet& joints = p_cell.robot().getJoints();
         for (robotik::JointId id = 0; id < joints.size(); ++id)
         {
             robotik::JointGains& gain = joints.gains(id);
@@ -138,8 +137,8 @@ void PainterLogic::simulate(robotik::RoboticCell& p_cell,
     {
         return;
     }
-    robotik::RobotSession const& robot = p_cell.robot();
-    if (robot.tool().empty())
+    robotik::RobotRuntime const& robot = p_cell.runtime();
+    if (robot.robot().getTool().empty())
     {
         return;
     }
@@ -147,7 +146,8 @@ void PainterLogic::simulate(robotik::RoboticCell& p_cell,
     // out.
     robotik::Pose const board = p_cell.requirePose(painter::CANVAS);
     robotik::Vector3 const local =
-        board.inverse() * robot.requireTrueWorldPose(robot.tool()).position;
+        board.inverse() *
+        robot.requireTrueWorldPose(robot.robot().getTool()).position;
     constexpr double FACE = 0.01;
     if (local.x < FACE || local.x > FACE + 0.05 || std::abs(local.y) > 0.19 ||
         std::abs(local.z) > 0.24)

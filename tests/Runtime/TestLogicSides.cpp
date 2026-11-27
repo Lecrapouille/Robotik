@@ -26,9 +26,15 @@ static_assert(
 static_assert(
     std::is_const_v<std::remove_pointer_t<
         decltype(std::declval<robotik::RoboticCell const&>().camera())>>);
+static_assert(
+    std::is_const_v<std::remove_reference_t<
+        decltype(std::declval<robotik::RoboticCell const&>().runtime())>>);
 static_assert(std::is_same_v<
               decltype(std::declval<robotik::RoboticCell const&>().robots()),
-              std::vector<robotik::RobotSession const*> const&>);
+              std::vector<robotik::Robot const*> const&>);
+static_assert(std::is_same_v<
+              decltype(std::declval<robotik::RoboticCell const&>().runtimes()),
+              std::vector<robotik::RobotRuntime const*> const&>);
 
 /// Writes the order of its calls.
 class SidesLogic final: public robotik::ScenarioLogic
@@ -55,8 +61,9 @@ public:
     [[nodiscard]] robotik::Status
     status(robotik::RobotContext const& p_context) const override
     {
-        return p_context.time >= robotik::Seconds(0.03) ? robotik::Status::SUCCESS
-                                                       : robotik::Status::RUNNING;
+        return p_context.time >= robotik::Seconds(0.03)
+                   ? robotik::Status::SUCCESS
+                   : robotik::Status::RUNNING;
     }
 
     std::string calls;

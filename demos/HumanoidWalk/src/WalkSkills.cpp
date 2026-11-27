@@ -43,9 +43,10 @@ void StandSkill::reset()
     m_elapsed = robotik::Seconds{};
 }
 
-robotik::Status StandSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
+robotik::Status StandSkill::tick(robotik::RobotContext& p_context,
+                                 robotik::Seconds p_dt)
 {
-    robotik::JointSet& joints = p_context.robot.joints();
+    robotik::JointSet& joints = p_context.robot.getJoints();
     for (std::size_t i = 0; i < m_body.joints.size(); ++i)
     {
         joints.moveTo(m_body.joints[i], m_posture[i]);
@@ -57,7 +58,7 @@ robotik::Status StandSkill::tick(robotik::RobotContext& p_context, robotik::Seco
 
 void StandSkill::cancel(robotik::RobotContext& p_context)
 {
-    p_context.robot.joints().hold();
+    p_context.robot.getJoints().hold();
 }
 
 // ****************************************************************************
@@ -83,13 +84,14 @@ void WalkSkill::reset()
     m_wait = robotik::Seconds{};
 }
 
-robotik::Status WalkSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
+robotik::Status WalkSkill::tick(robotik::RobotContext& p_context,
+                                robotik::Seconds p_dt)
 {
     robotik::Robot& robot = p_context.robot;
-    auto const* imu = robot.sensors().find<robotik::Imu>(m_body.imu);
+    auto const* imu = robot.getSensors().find<robotik::Imu>(m_body.imu);
     if (imu == nullptr || !imu->reading().valid)
     {
-        damp(robot.joints(), m_body.joints);
+        damp(robot.getJoints(), m_body.joints);
         return fail("no_imu_reading", "the IMU gives no valid reading");
     }
     robotik::ImuReading const& reading = imu->reading();
@@ -97,7 +99,7 @@ robotik::Status WalkSkill::tick(robotik::RobotContext& p_context, robotik::Secon
         reading.orientation.conjugate() * robotik::Vector3(0.0, 0.0, -1.0);
     if (gravity.z > FALLEN_GRAVITY_Z)
     {
-        damp(robot.joints(), m_body.joints);
+        damp(robot.getJoints(), m_body.joints);
         return fail("fallen", "the body is tilted too much: the robot fell");
     }
 
@@ -105,7 +107,7 @@ robotik::Status WalkSkill::tick(robotik::RobotContext& p_context, robotik::Secon
     if (m_wait.value() <= 1e-9)
     {
         m_wait = m_wait + m_period;
-        robotik::JointSet& joints = robot.joints();
+        robotik::JointSet& joints = robot.getJoints();
         for (std::size_t i = 0; i < m_body.joints.size(); ++i)
         {
             m_positions[i] = joints.position(m_body.joints[i]);
@@ -136,5 +138,5 @@ robotik::Status WalkSkill::tick(robotik::RobotContext& p_context, robotik::Secon
 
 void WalkSkill::cancel(robotik::RobotContext& p_context)
 {
-    p_context.robot.joints().hold();
+    p_context.robot.getJoints().hold();
 }

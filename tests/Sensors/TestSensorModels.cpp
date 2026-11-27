@@ -68,13 +68,13 @@ TEST(LatencyBuffer, DeliversAfterTheLatencyWithTheCaptureStamp)
 TEST(Imu, ReadingHasAHeaderALatencyAndGoesInvalidOnFailure)
 {
     compages::world::World world;
-    robotik::RobotSession robot(
+    robotik::RobotRuntime robot(
         world, assetFile("robotik.robots.simple_revolute_robot"));
     robotik::ImuConfig config;
     config.parent = "base_link";
     config.frequency = 100.0;
     config.latency = robotik::Seconds(0.03);
-    robotik::Imu& imu = robot.sensors().add<robotik::Imu>("imu", config);
+    robotik::Imu& imu = robot.addSensor<robotik::Imu>("imu", config);
 
     robot.step(robotik::Seconds(0.01));
     robot.step(robotik::Seconds(0.01));
@@ -88,7 +88,7 @@ TEST(Imu, ReadingHasAHeaderALatencyAndGoesInvalidOnFailure)
     // At rest the accelerometer reads the reaction to gravity, upward.
     EXPECT_NEAR(imu.reading().acceleration.z, 9.80665, 1e-6);
 
-    robot.resources().fail("imu");
+    robot.getResources().fail("imu");
     robot.step(robotik::Seconds(0.01));
     EXPECT_FALSE(imu.reading().valid);
 }
@@ -113,7 +113,8 @@ entities:
       lidar: { type: range, parent: base_link, beams: 90, fov: 180, max_range: 5,
                noise: { sigma: 0.01, resolution: 0.001 } }
       wrist: { type: force_torque, link: link6, force: 0.5, torque: 0.02 }
-)").take();
+)")
+                                          .take();
     robotik::WorldDescription const description =
         robotik::readWorld(world, ".", testAssets()).take();
     std::vector<robotik::SensorSpec> const& sensors =
@@ -133,13 +134,16 @@ entities:
     EXPECT_EQ(sensors[3].force_torque.link, "link6");
 
     robotik::ConfigNode bad = world;
-    EXPECT_TRUE(bad.set("entities.robot.sensors.wrist.link", robotik::ConfigNode("")));
+    EXPECT_TRUE(
+        bad.set("entities.robot.sensors.wrist.link", robotik::ConfigNode("")));
     EXPECT_FALSE(robotik::readWorld(bad, ".", testAssets()));
     bad = world;
-    EXPECT_TRUE(bad.set("entities.robot.sensors.eye.latency", robotik::ConfigNode("0.1")));
+    EXPECT_TRUE(bad.set("entities.robot.sensors.eye.latency",
+                        robotik::ConfigNode("0.1")));
     EXPECT_FALSE(robotik::readWorld(bad, ".", testAssets()));
     bad = world;
-    EXPECT_TRUE(bad.set("entities.robot.sensors.eye.type", robotik::ConfigNode("sonar")));
+    EXPECT_TRUE(bad.set("entities.robot.sensors.eye.type",
+                        robotik::ConfigNode("sonar")));
     EXPECT_FALSE(robotik::readWorld(bad, ".", testAssets()));
 }
 
@@ -147,8 +151,11 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
 {
     auto build = [](char const* p_policy)
     {
-        robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
-            "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
+        robotik::ScenarioSource source =
+            robotik::loadScenarioSource(
+                repoFile("demos/PickAndPlace/scenarios/"
+                         "pick_and_place.scenario.yaml"))
+                .take();
         EXPECT_TRUE(robotik::overrideValue(source, "scenario.perception.blind",
                         robotik::ConfigNode(p_policy)));
         return robotik::readScenario(source, testAssets()).take();

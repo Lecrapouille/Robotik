@@ -9,8 +9,8 @@
 
 #include "FlyDraw.hpp"
 
-#include "RobotIK/Robot/Backends/SceneView.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/SceneView.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 
 #include "Compages/GPU/GPU.hpp"
 #include "Compages/GPU/RenderPass.hpp"
@@ -66,7 +66,7 @@ struct FlyView::Gpu
     std::unique_ptr<compages::world::World> world;
     std::unique_ptr<compages::renderer::Scene> scene;
     std::unique_ptr<FlySceneView> hooks;
-    std::unique_ptr<robotik::RobotSession> robot;
+    std::unique_ptr<robotik::RobotRuntime> robot;
     compages::world::Entity camera;
     compages::world::Entity eyes[2];
     compages::world::Entity beams[3];
@@ -133,7 +133,7 @@ bool FlyView::open()
     m_gpu->scene->activeCamera(m_gpu->camera);
 
     m_gpu->hooks = std::make_unique<FlySceneView>(*m_gpu->scene);
-    m_gpu->robot = std::make_unique<robotik::RobotSession>(
+    m_gpu->robot = std::make_unique<robotik::RobotRuntime>(
         *m_gpu->world, m_scenario.robot_model, m_gpu->hooks.get());
     // Insets sit on the bottom corners. y is the bottom of the window.
     m_gpu->eyes[0] =

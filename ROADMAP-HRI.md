@@ -22,15 +22,19 @@ and feet that do not slide (Compages `play(model, clip, fade)`,
       `demos/Reception/people/make_people.py` makes a woman, a man and a
       child with clothes, the Mixamo rig of MPFB (52 joints), the 52 face
       units of ARKit and the visemes as morph targets, and moves the clips
-      of Soldier.glb onto them (`make reception-people`)
+      of Soldier.glb onto them (`make reception-people`). Skin, hair and
+      clothes come from the system assets of MakeHuman only (280 MB)
 - [x] Compages: cut the transparent parts of a glTF material (cornea,
       hair, brows and lashes)
+- [x] Compages: keep the materials and skins of each glTF file apart (two
+      MPFB people both have `Human.body` and `Human.rig`)
 - [ ] Clips under a free license, for a visitor: the Idle of Soldier.glb is
       a soldier on guard, its license is not checked. The Universal
       Animation Library of Quaternius (CC0) retargeted by the same script
       (idle, walk, run, talk, wave, point, sit)
 - [ ] More people drawn from a seed: random sliders, skins, hair and
-      clothes in people.json (the character builder of MPFB)
+      clothes in people.json (the character builder of MPFB). More clothes
+      and skins: the packs dropped into `RECEPTION_PACKS` are installed too
 - [ ] Compages: the shadows and the transparent parts (a hair card casts
       a full rectangle today)
 - [ ] Compages: morph targets (glTF loader, vertex shader, weights driven by
@@ -48,6 +52,28 @@ and feet that do not slide (Compages `play(model, clip, fade)`,
 
 ## 👀 What the robot perceives
 
+- [ ] A robot file (`hu_d04_01.robot.yaml`, a new file role) with all the
+      sensors and actuators of the real robot, as in its datasheet: the
+      two D435 (head, waist), the IMU, the joint encoders, the microphones,
+      the speaker, the joint groups. A world takes it by its path
+      (`robot: robots/hu_d04_01.robot.yaml`) and changes only what differs
+      (a sensor off, a noise). Today each world copies the sensors of its
+      robot. A robot file is generic: the core reads it, the demos keep
+      their own robots
+- [x] The head camera of the real robot: the RealSense D435 of the LimX
+      URDF (`head_camera_joint`), RGB-D, 69×42°, 1280×720 at 30 Hz, in the
+      optical frame
+- [ ] The second camera of the real robot: the D435 of the waist
+      (`waist_camera_joint`, 35° down), for the floor and the near people
+- [ ] Noise of the D435 depth: the error grows with the square of the
+      distance (about 2 % at 2 m), holes on dark and shiny surfaces
+- [ ] Check the face resolution: with 720 px over 42°, a face 15 cm wide
+      is 64 px at 2.2 m and 18 px at the door (8 m). Detect the people far
+      away, the faces only near the desk; the head turns (`head_pitch`,
+      `head_yaw`) to look at a person
+- [ ] A fixed camera of the hall (a corner, high up), for the view of the
+      operator and the labels of the training images. It is not a sensor
+      of the robot: its images never go into the beliefs
 - [ ] People in the beliefs: the `WorldModel` holds persons (id of track,
       pose, speed, last time seen). First from the truth (`fidelity:
       truth`, `noisy_truth` with missed detections), then from a detector
@@ -64,12 +90,33 @@ and feet that do not slide (Compages `play(model, clip, fade)`,
 - [ ] Assertions on what the robot believes of the people
       (`(belief_error woman)`, `(believed (registered woman))`)
 
+## 🧰 The software stack
+
+Each block is behind a sensor, an actuator or a skill, with a mock first,
+so that a test runs the same at each run and without the block installed.
+A library used by the demo only goes in `dependencies:` of
+`demos/Reception/plugin.yaml`; a generic block (speech channel, LLM
+client) goes in the core only when a second plugin needs it.
+
+- [ ] Speech to text: whisper.cpp (MIT), behind the microphone sensor.
+      Mock: the transcript of the story
+- [ ] Text to speech: Piper (MIT, ONNX voices, offline), behind the
+      speaker actuator. Mock: the text in the list of utterances
+- [ ] LLM: the local Qwen, served by llama.cpp (`llama-server`, an
+      OpenAI-compatible HTTP API with tool calls). The client and the
+      model name are in a file of the scenario, not in C++. Mock: a
+      scripted LLM (questions and answers in YAML). Check that the Qwen
+      model answers tool calls in the format of llama.cpp
+- [ ] JEV: check its SDK contract first (what it takes, what it gives,
+      its license), then choose where it plugs in
+- [ ] The person detector and the faces: ONNX Runtime, as in HumanoidWalk
+      (YOLO, ArcFace)
+
 ## 🗣 What the robot says and does
 
 - [ ] A speaker actuator and a `Say` skill: the robot speaks into the same
       list of utterances as the actors, so that `(said robot follow_me)`
       can start an event of the story
-- [ ] Text to speech on the real robot (Piper), behind the same actuator
 - [ ] A dialogue skill with an LLM and function calling. The LLM proposes,
       the skills act: each tool it may call is a skill (look up a meeting,
       register a visitor, guide to a room, call the host). A scripted LLM

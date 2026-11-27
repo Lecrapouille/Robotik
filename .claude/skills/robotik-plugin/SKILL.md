@@ -87,6 +87,11 @@ canvas (`text`, `textColored`, `button`, `checkbox`,
 - Do not judge in C++: publish metrics, assert in YAML. Prefix metric names.
 - Do not keep pointers to world entities across resets/shutdown; use
   `cell.entity("id")`, `cell.requirePose("id")`.
+- SI types in every public function of a plugin or the core: `Seconds`,
+  `Length`, `Radians`, `Vector3m`, `Vector3rad`, `Revolute`/`Prismatic`
+  handles, never a bare `double` for a quantity; write values with
+  `using namespace robotik::literals;` (`0.01_m`, `2.0_s`).
+- Names: `getX`/`setX`/`isX`/`hasX`/`countX`, actions are verbs (AGENTS.md).
 - Must run headless (no view, no camera image → `perception: { blind: truth }`).
 - `host.clock: plugin` (or `clock: plugin` on one scenario entry) → `update(dt)` must advance the simulation itself.
 - Models are asset ids (`robotik.robots.robot_6axis`), never paths; a
@@ -114,7 +119,7 @@ Known leaks (October 2026), to fix:
 |-------|------|-------------------|
 | `Task/Grasp/AbstractGrasp.cpp`, `Task/RoboticCell.cpp` `trackPropPenetration` | the abstract level puts a released box at the centre of the container below (vacuum only) | done for `rigid` (`RigidGrasp`); a gripper interface for fingers (`contact`, doc/reference/scenario-file.md "Physics fidelity") |
 | `Task/RoboticCellTruth.cpp` `(holding g)` | only for `VacuumGripper` | a gripper interface (`holding`, `label`, `RoboticCell::held`) for any grasping actuator |
-| `Robot/Backends/SceneView.hpp` `openCanvas`, `ink` | the Painter sheet in the backend interface | a generic dynamic texture on an entity |
+| `Robot/SceneView.hpp` `openCanvas`, `ink` | the Painter sheet in the backend interface | a generic dynamic texture on an entity |
 | `Task/RoboticCell.cpp` built-in `Home` | needs an arm joint group; no sense for a humanoid or a fly | `Home` only when the robot declares a `home:` pose |
 | `src/Simulator/TeachPanel.cpp` `triggerTool` | knows vacuum, gripper, drill and `drill_spindle_joint` | each tool declares its trigger (actuator) in its pack |
 | `ecs::Shape` | box and container only | sphere, cylinder, mesh |

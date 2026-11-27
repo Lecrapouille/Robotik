@@ -268,7 +268,7 @@ static void switchWorkspace(App& p_app, Workspace p_workspace)
         ui.selection.kind == SelectionKind::None &&
         !p_app.simulation->cell().robots().empty())
         ui.selection = { SelectionKind::Robot,
-                         p_app.simulation->cell().robots().front()->id() };
+                         p_app.simulation->cell().robots().front()->getId() };
     ImGui::MarkIniSettingsDirty();
 }
 
@@ -796,7 +796,7 @@ static std::string alertOf(App const& p_app, Workspace p_workspace)
             line("Emergency stop engaged.");
         }
         robotik::ResourceManager const& resources =
-            simulation.cell().robot().resources();
+            simulation.cell().robot().getResources();
         for (std::size_t i = 0; i < resources.size(); ++i)
         {
             robotik::ResourceId const id = static_cast<robotik::ResourceId>(i);
@@ -1045,7 +1045,7 @@ static void statusBar(App& p_app)
             ImGui::SetItemTooltip("Show the assertions.");
 
             robotik::ResourceManager const& resources =
-                simulation.cell().robot().resources();
+                simulation.cell().robot().getResources();
             std::size_t faults = 0;
             std::string first;
             for (robotik::ResourceId id = 0; id < resources.size(); ++id)
@@ -1456,7 +1456,7 @@ void drawPanels(App& p_app)
             !p_app.simulation->cell().robots().empty())
             p_app.ui.selection = {
                 SelectionKind::Robot,
-                p_app.simulation->cell().robots().front()->id()
+                p_app.simulation->cell().robots().front()->getId()
             };
         p_app.ui.reset_layout = false;
     }

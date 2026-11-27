@@ -26,7 +26,7 @@ robotik::Vector3 inBase(robotik::RobotContext const& p_context,
     {
         return p_belief; // A robot alone: the beliefs are in its base frame.
     }
-    return p_context.robot.base().pose.inverse() * p_belief;
+    return p_context.robot.getBase().pose.inverse() * p_belief;
 }
 
 robotik::Quaternion pointingDown(robotik::Vector3 const& p_at)
@@ -40,13 +40,13 @@ robotik::Quaternion pointingDown(robotik::Vector3 const& p_at)
 robotik::Robot const* teammate(robotik::RobotContext const& p_context,
                                std::string_view p_id)
 {
-    if (p_context.robot.id() == p_id)
+    if (p_context.robot.getId() == p_id)
     {
         return &p_context.robot;
     }
     for (robotik::Robot const* robot : p_context.team)
     {
-        if (robot->id() == p_id)
+        if (robot->getId() == p_id)
         {
             return robot;
         }
@@ -56,12 +56,12 @@ robotik::Robot const* teammate(robotik::RobotContext const& p_context,
 
 robotik::VacuumGripper* cupOf(robotik::Robot& p_robot)
 {
-    return p_robot.actuators().first<robotik::VacuumGripper>();
+    return p_robot.getActuators().first<robotik::VacuumGripper>();
 }
 
 robotik::VacuumGripper const* cupOf(robotik::Robot const& p_robot)
 {
-    return p_robot.actuators().first<robotik::VacuumGripper>();
+    return p_robot.getActuators().first<robotik::VacuumGripper>();
 }
 
 std::string heldObject(robotik::Robot const& p_robot)
@@ -98,7 +98,8 @@ Status HoverSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
         }
         robotik::Vector3 const at = inBase(p_context, object->position);
         double const top =
-            inBase(p_context, robotik::Vector3(0.0, 0.0, robotik::top(*object))).z;
+            inBase(p_context, robotik::Vector3(0.0, 0.0, robotik::top(*object)))
+                .z;
         double const height = top + m_clearance.value() + cup->length().value();
         robotik::Pose const target{ { at.x, at.y, height }, pointingDown(at) };
         m_move = robotik::MoveTCPSkill(cup->link(), target);
@@ -156,7 +157,8 @@ void GraspSkill::cancel(robotik::RobotContext& p_context)
 }
 
 // ----------------------------------------------------------------------------
-Status ReleaseSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
+Status ReleaseSkill::tick(robotik::RobotContext& p_context,
+                          robotik::Seconds p_dt)
 {
     robotik::VacuumGripper* cup = cupOf(p_context.robot);
     if (cup == nullptr)

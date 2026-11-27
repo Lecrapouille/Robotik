@@ -89,7 +89,7 @@ struct EpisodeClock
 ///     const&,
 ///                  std::span<float> p_obs) override
 ///     {
-///         auto const q = p_cell.robot().joints().positions();
+///         auto const q = p_cell.robot().getJoints().positions();
 ///         p_obs[0] = float(q[0]);
 ///         p_obs[1] = float(q[1]);
 ///     }
@@ -143,7 +143,7 @@ public:
 ///     void apply(std::span<float const> p_action,
 ///                robotik::RoboticCell& p_cell) override
 ///     {
-///         auto& joints = p_cell.robot().joints();
+///         auto& joints = p_cell.robot().getJoints();
 ///         joints.moveTo(0, p_action[0]);
 ///         joints.moveTo(1, p_action[1]);
 ///     }

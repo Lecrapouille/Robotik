@@ -105,6 +105,6 @@ perception:
 
 The old key `oracle` is still read: `always` is `fidelity: truth`, `when_blind` is `blind: truth`, `never` is the default.
 
-**Frame of the beliefs.** With one robot, the beliefs are in its base frame. With several robots, they share the beliefs in the **world frame**: each camera turns its detections into the world with the base pose of its robot, and a skill brings a belief into its own base with `context.robot.base().pose.inverse() * belief` (`RoboticCell::beliefFrame()` says which frame is used).
+**Frame of the beliefs.** With one robot, the beliefs are in its base frame. With several robots, they share the beliefs in the **world frame**: each camera turns its detections into the world with the base pose of its robot, and a skill brings a belief into its own base with `context.robot.getBase().pose.inverse() * belief` (`RoboticCell::beliefFrame()` says which frame is used).
 
 **Judge the beliefs too.** The assertions read the truth, so they see a mistake of the robot only by its effect, often at the end. To see a wrong belief when it happens (a cup labelled with the wrong cube, a lost localization), compare the belief with the truth: `(believed ...)`, `(belief_error e)`, `(base_error robot)`, with a tolerance for the latency of the belief ([Check what the robot believes](../reference/scenario-file.md#-check-what-the-robot-believes)). The base a skill reads is a belief as well: `localization: truth` makes it the true base, a mock that the report states ([Localization](../reference/scenario-file.md#-localization)).

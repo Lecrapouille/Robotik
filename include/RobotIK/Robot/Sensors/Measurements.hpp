@@ -61,7 +61,7 @@ struct Measurement
 /// Velocity of a frame.
 ///
 /// @code
-/// robotik::Twist const& v = robot.base().twist;
+/// robotik::Twist const& v = robot.getBase().twist;
 /// double const speed = robotik::norm(v.linear);
 /// @endcode
 // ****************************************************************************
@@ -96,7 +96,7 @@ struct Wrench
 /// mobile robot does not know it: it estimates it (odometry, localization).
 ///
 /// @code
-/// robotik::BaseState const& base = robot.base();
+/// robotik::BaseState const& base = robot.getBase();
 /// double const heading = robotik::yaw(base.pose.rotation).value();
 /// @endcode
 // ****************************************************************************

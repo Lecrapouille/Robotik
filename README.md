@@ -35,7 +35,7 @@ RobotIK itself has three layers. Each works without the layers above it, so a pr
 | 🧩 **Task** | robots, objects, a job | a robot cell written in C++: skills, behavior tree or PDDL plan, beliefs (`robotik::RoboticCell`) |
 | 📦 **Package** | YAML files, a plugin | scenarios, experiments, assertions, reports, the simulator (`robotik::Simulation`) |
 
-A skill never asks "am I simulated?". It drives the robot through one API (`robot.joints()`, the tool, the sensors); a backend translates it to MuJoCo today, and to a real robot (an SO-101 arm is planned) tomorrow.
+A skill never asks "am I simulated?". It drives the robot through one API (`robot.getJoints()`, the tool, the sensors); a backend translates it to MuJoCo today, and to a real robot (an SO-101 arm is planned) tomorrow.
 
 ![You write a world file, a scenario file and skills in C++; RobotIK runs them in the 3D simulator, as a headless test in CI, as a reinforcement learning environment, and later on a real robot.](doc/images/mission-four-ways.svg)
 

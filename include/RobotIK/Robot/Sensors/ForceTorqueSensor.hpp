@@ -62,7 +62,7 @@ struct ForceTorqueConfig
 /// the ground.
 ///
 /// @code
-/// auto& ft = robot.sensors().add<robotik::ForceTorqueSensor>("wrist_ft",
+/// auto& ft = runtime.addSensor<robotik::ForceTorqueSensor>("wrist_ft",
 /// config);
 /// // later, in a skill:
 /// if (ft.reading().valid && ft.reading().wrench.force.z > 5.0)
@@ -78,23 +78,6 @@ public:
     /// @param p_config Measured link, rate, latency and noise.
     // -------------------------------------------------------------------------
     ForceTorqueSensor(std::string p_name, ForceTorqueConfig p_config);
-
-    // -------------------------------------------------------------------------
-    /// @return The configuration given at construction.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] ForceTorqueConfig const& config() const
-    {
-        return m_config;
-    }
-
-    // -------------------------------------------------------------------------
-    /// @return Last delivered reading, in the frame of the measured link.
-    ///   Check @c valid before use.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] ForceTorqueReading const& reading() const
-    {
-        return m_readings.current();
-    }
 
     // -------------------------------------------------------------------------
     /// Marks the current reading invalid (the sensor resource failed).
@@ -113,10 +96,27 @@ public:
         m_random = Random(p_seed);
     }
 
+    // -------------------------------------------------------------------------
+    /// @return Last delivered reading, in the frame of the measured link.
+    ///   Check @c valid before use.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] ForceTorqueReading const& reading() const
+    {
+        return m_readings.current();
+    }
+
+    // -------------------------------------------------------------------------
+    /// @return The configuration given at construction.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] ForceTorqueConfig const& config() const
+    {
+        return m_config;
+    }
+
 protected:
 
     /// Reads the wrench from the backend and adds the noise.
-    bool sample(RobotSession const& p_robot, Seconds p_now) override;
+    bool sample(RobotRuntime const& p_robot, Seconds p_now) override;
     /// Clears the readings waiting for their latency.
     void restart() override;
     /// Publishes the readings whose latency has elapsed.

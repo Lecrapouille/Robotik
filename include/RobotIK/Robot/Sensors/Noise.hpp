@@ -74,7 +74,8 @@ struct NoiseModel
 [[nodiscard]] inline bool ideal(NoiseModel const& p_model)
 {
     return p_model.sigma <= 0.0 && std::fpclassify(p_model.bias) == FP_ZERO &&
-           p_model.resolution <= 0.0 && std::isinf(p_model.min) && std::isinf(p_model.max);
+           p_model.resolution <= 0.0 && std::isinf(p_model.min) &&
+           std::isinf(p_model.max);
 }
 
 // -------------------------------------------------------------------------
@@ -83,7 +84,8 @@ struct NoiseModel
 /// @param p_random Generator of the sensor.
 /// @return The measured value.
 // -------------------------------------------------------------------------
-[[nodiscard]] inline double applyNoise(NoiseModel const& p_model, double p_value, Random& p_random)
+[[nodiscard]] inline double
+applyNoise(NoiseModel const& p_model, double p_value, Random& p_random)
 {
     double value = p_value + p_model.bias;
     if (p_model.sigma > 0.0)
@@ -94,7 +96,8 @@ struct NoiseModel
     {
         value = p_model.resolution * std::round(value / p_model.resolution);
     }
-    return value < p_model.min ? p_model.min : (value > p_model.max ? p_model.max : value);
+    return value < p_model.min ? p_model.min
+                               : (value > p_model.max ? p_model.max : value);
 }
 
 // -------------------------------------------------------------------------
@@ -104,7 +107,8 @@ struct NoiseModel
 /// @param p_random Generator of the sensor.
 /// @return The measured vector.
 // -------------------------------------------------------------------------
-[[nodiscard]] inline Vector3 applyNoise(NoiseModel const& p_model, Vector3 const& p_value, Random& p_random)
+[[nodiscard]] inline Vector3
+applyNoise(NoiseModel const& p_model, Vector3 const& p_value, Random& p_random)
 {
     double const x = applyNoise(p_model, p_value.x, p_random);
     double const y = applyNoise(p_model, p_value.y, p_random);
@@ -132,23 +136,6 @@ template <class Sample>
 class LatencyBuffer
 {
 public:
-
-    // -------------------------------------------------------------------------
-    /// Sets the delay between a capture and its delivery.
-    /// @param p_latency Delay; zero delivers at once.
-    // -------------------------------------------------------------------------
-    void latency(Seconds p_latency)
-    {
-        m_latency = p_latency;
-    }
-
-    // -------------------------------------------------------------------------
-    /// @return The delay between a capture and its delivery.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] Seconds latency() const
-    {
-        return m_latency;
-    }
 
     // -------------------------------------------------------------------------
     /// Queues a sample.
@@ -180,6 +167,15 @@ public:
     }
 
     // -------------------------------------------------------------------------
+    /// Drops the pending samples and resets @ref current (episode reset).
+    // -------------------------------------------------------------------------
+    void clear()
+    {
+        m_pending.clear();
+        m_current = Sample{};
+    }
+
+    // -------------------------------------------------------------------------
     /// @return Last delivered sample (default before the first one).
     // -------------------------------------------------------------------------
     [[nodiscard]] Sample const& current() const
@@ -194,12 +190,20 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Drops the pending samples and resets @ref current (episode reset).
+    /// Sets the delay between a capture and its delivery.
+    /// @param p_latency Delay; zero delivers at once.
     // -------------------------------------------------------------------------
-    void clear()
+    void latency(Seconds p_latency)
     {
-        m_pending.clear();
-        m_current = Sample{};
+        m_latency = p_latency;
+    }
+
+    // -------------------------------------------------------------------------
+    /// @return The delay between a capture and its delivery.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Seconds latency() const
+    {
+        return m_latency;
     }
 
 private:

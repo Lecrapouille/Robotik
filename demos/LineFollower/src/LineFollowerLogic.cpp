@@ -59,7 +59,8 @@ void LineFollowerLogic::bindCamera(robotik::RoboticCell& p_cell)
     double const s = std::sin(pitch);
     camera->mount(robotik::Pose{
         { 0.2, 0.0, 0.2 },
-        robotik::Quaternion::fromBasis({ 0.0, -1.0, 0.0 }, { -s, 0.0, -c }, { c, 0.0, -s }) });
+        robotik::Quaternion::fromBasis(
+            { 0.0, -1.0, 0.0 }, { -s, 0.0, -c }, { c, 0.0, -s }) });
     m_source = std::make_unique<FloorCamera>(*m_floor, *m_drive);
     camera->source(m_source.get());
     camera->onFrame(
@@ -86,12 +87,10 @@ void LineFollowerLogic::setup(robotik::RoboticCell& p_cell,
     auto backend = std::make_unique<DiffDriveBackend>("left_wheel_joint",
                                                       "right_wheel_joint");
     m_drive = backend.get();
-    p_cell.robot().connect(std::move(backend));
+    p_cell.runtime().connect(std::move(backend));
 
-    m_left =
-        p_cell.robot().actuators().find<robotik::Motor>("left_wheel");
-    m_right =
-        p_cell.robot().actuators().find<robotik::Motor>("right_wheel");
+    m_left = p_cell.robot().getActuators().find<robotik::Motor>("left_wheel");
+    m_right = p_cell.robot().getActuators().find<robotik::Motor>("right_wheel");
     if (m_left == nullptr || m_right == nullptr)
     {
         throw std::runtime_error(
@@ -104,7 +103,7 @@ void LineFollowerLogic::setup(robotik::RoboticCell& p_cell,
 
     m_navigation = std::make_unique<Navigation>(m_track, m_drive->geometry());
 
-    robotik::ResourceManager& resources = p_cell.robot().resources();
+    robotik::ResourceManager& resources = p_cell.runtime().getResources();
     robotik::SkillDescription describe;
     describe.priority = SKILL_PRIORITY;
     describe.resources = { resources.require("left_wheel"),
@@ -147,7 +146,7 @@ void LineFollowerLogic::reset(robotik::RoboticCell& p_cell,
     m_drive->start({ near.x - offset * std::sin(near.heading),
                      near.y + offset * std::cos(near.heading),
                      near.heading + start.uniform(-0.8, 0.8) });
-    p_cell.robot().startPose(m_drive->pose());
+    p_cell.runtime().setStartPose(m_drive->pose());
 
     robotik::Random calibration(p_seed.derive("odometry"));
     DriveGeometry model = m_drive->geometry();

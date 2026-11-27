@@ -64,7 +64,7 @@ Pick-and-place skills (`DetectSkill`, `ApproachSkill`, `GraspSkill`, `ReleaseSki
 A skill is added to the scheduler with a description:
 
 ```cpp
-robotik::ResourceManager const& resources = p_simulation.robot().resources();
+robotik::ResourceManager const& resources = p_simulation.robot().getResources();
 
 robotik::SkillDescription grasp;
 grasp.name = "Grasp(red_cube)";                       // unique; also the BT action name
@@ -98,13 +98,13 @@ Do this in `ScenarioLogic::setup`. The simulation then makes every skill a behav
 In a world of several robots ([Several robots](../reference/world-file.md#-several-robots)), each skill drives the robot of its `robot` field: `p_context.robot` is that robot. Name the skills after the robot (`left.Hover(p3)`), so that a behavior tree or a planner binding (`"{0}.Hover({1})"`) picks the right one. From `demos/DualArm/src/ConveyorLogic.cpp`:
 
 ```cpp
-std::string const& id = p_robot.id();
+std::string const& id = p_robot.getId();
 skills.add<HoverSkill>(describe(id + ".Hover(" + part + ")", id, arm), part, Length(kHover));
 ```
 
 - The resources are shared by the robots: a skill may hold an arm of each (a move of both arms at once).
 - `p_context.team` lists every robot: a skill reads what the others measure of themselves (joints, tool pose), as a real cell shares it on its network. The drill of the DualArm tray follows the tool of the carrying arm this way. Command another robot only with its resources held.
-- The beliefs are in the world frame: bring them into the base of your robot with `p_context.robot.base().pose.inverse() * belief`.
+- The beliefs are in the world frame: bring them into the base of your robot with `p_context.robot.getBase().pose.inverse() * belief`.
 
 ## 🔒 Resources
 
@@ -146,7 +146,7 @@ At each update it:
   1.02 s  Wave  FAILED (unavailable: arm)  (0 s)
 ```
 
-Each `request` returns a ticket (`RunId`): read the state of your run and cancel it with that ticket, so you never cancel the run of another caller. A preempted skill with `wait = true` waits for its resources again and starts again from `reset()`. A skill that commands an actuator held by another skill throws `std::logic_error`. The reasons for these rules, and the stopping phase, are in [Resources and arbitration](06-architecture.md#-resources-and-arbitration).
+Each `request` returns a ticket (`RunId`): read the state of your run and cancel it with that ticket, so you never cancel the run of another caller. A preempted skill with `wait = true` waits for its resources again and starts again from `reset()`. A skill that commands an actuator held by another skill throws `std::logic_error`. The reasons for these rules, and the stopping phase, are in [Resources and arbitration](architecture/04-resources.md).
 
 ### 📅 Use the scheduler without a tree
 
@@ -193,7 +193,7 @@ A tick of this node **requests** the skill `Wave` and returns:
 
 Each node has its own ticket: two nodes of the same skill make two runs, one after the other. When the tree leaves the node while it is running (for example a parent gives up), only the run of this node is cancelled.
 
-When the run ends, the node writes `Wave.state`, `Wave.reason` and `Wave.failure` on the blackboard of the tree (`FAILED`, `resource lost` and an empty failure, for example). A condition of the tree can read them to react to a fault and not to a failure, and to tell one failure of the skill from another (the code the skill gave to `fail`). The list of reasons is in [What the tree sees](06-architecture.md#-what-the-tree-sees).
+When the run ends, the node writes `Wave.state`, `Wave.reason` and `Wave.failure` on the blackboard of the tree (`FAILED`, `resource lost` and an empty failure, for example). A condition of the tree can read them to react to a fault and not to a failure, and to tell one failure of the skill from another (the code the skill gave to `fail`). The list of reasons is in [What the tree sees](architecture/04-resources.md#-what-the-tree-sees).
 
 ### 🌿 The main nodes
 

@@ -68,6 +68,26 @@ static JointInfo infoOf(robotik::JointSet const& p_joints,
 }
 
 /// The value when it is finite and positive, otherwise the fallback.
+/// Jogs a joint of the table by @p_delta in its own unit (rad or m): the
+/// table walks all joints by index, the pendant wants the typed handle.
+static void jogJoint(robotik::TeachPendant& p_pendant,
+                     robotik::Robot& p_robot,
+                     robotik::JointId p_id,
+                     double p_delta)
+{
+    robotik::JointSet const& joints = p_robot.getJoints();
+    if (joints.type(p_id) == robotik::JointType::Prismatic)
+    {
+        p_pendant.jogJoint(
+            p_robot, joints.requirePrismatic(p_id), robotik::Length(p_delta));
+    }
+    else
+    {
+        p_pendant.jogJoint(
+            p_robot, joints.requireRevolute(p_id), robotik::Radians(p_delta));
+    }
+}
+
 static double finiteOr(double p_value, double p_fallback)
 {
     return std::isfinite(p_value) && p_value > 0.0 ? p_value : p_fallback;
@@ -76,11 +96,11 @@ static double finiteOr(double p_value, double p_fallback)
 /// Robot name, model and joint count.
 static void header(App& p_app)
 {
-    robotik::RobotSession& robot = p_app.simulation->cell().robot();
+    robotik::Robot& robot = p_app.simulation->cell().robot();
     robotik::Scenario const& scenario = p_app.simulation->scenario();
-    ImGui::TextUnformatted(robot.name().c_str());
+    ImGui::TextUnformatted(robot.getName().c_str());
     ImGui::SameLine();
-    ImGui::TextDisabled("%zu joints", robot.joints().size());
+    ImGui::TextDisabled("%zu joints", robot.getJoints().size());
     ImGui::SetItemTooltip(
         "%s", robotik::firstRobot(scenario.world).model_ref.c_str());
 
@@ -122,7 +142,7 @@ static void header(App& p_app)
     }
 
     // Tool and gripper on one line.
-    std::string const tool = robot.tool();
+    std::string const tool = robot.getTool();
     if (!tool.empty())
     {
         robotik::Pose const pose = robot.requireFramePose(tool);
@@ -132,7 +152,8 @@ static void header(App& p_app)
                             pose.position.y,
                             pose.position.z);
     }
-    if (auto const* gripper = robot.actuators().first<robotik::VacuumGripper>())
+    if (auto const* gripper =
+            robot.getActuators().first<robotik::VacuumGripper>())
     {
         if (!tool.empty())
         {
@@ -142,8 +163,9 @@ static void header(App& p_app)
         {
             // The truth, and what the program says it took when it differs.
             std::string const truth =
-                compages::world::Entity(robot.world(),
-                                        p_app.simulation->cell().held(*gripper))
+                compages::world::Entity(
+                    p_app.simulation->cell().runtime().getWorld(),
+                    p_app.simulation->cell().held(*gripper))
                     .name();
             std::string const& label = gripper->label();
             if (label.empty() || label == truth)
@@ -170,8 +192,8 @@ static void header(App& p_app)
 static void
 positionCell(App& p_app, robotik::JointId p_id, JointInfo const& p_info)
 {
-    robotik::RobotSession& robot = p_app.simulation->cell().robot();
-    robotik::JointSet& joints = robot.joints();
+    robotik::Robot& robot = p_app.simulation->cell().robot();
+    robotik::JointSet& joints = robot.getJoints();
     double const position = joints.position(p_id);
     bool const commanded = joints.mode(p_id) == robotik::JointMode::Position;
     double const target = commanded ? joints.target(p_id) : position;
@@ -204,8 +226,10 @@ positionCell(App& p_app, robotik::JointId p_id, JointInfo const& p_info)
                 joints.mode(p_id) == robotik::JointMode::Position
                     ? joints.target(p_id)
                     : joints.position(p_id);
-            p_app.teach.pendant.jogJoint(
-                robot, p_id, static_cast<double>(value) / p_info.unit - from);
+            jogJoint(p_app.teach.pendant,
+                     robot,
+                     p_id,
+                     static_cast<double>(value) / p_info.unit - from);
         }
     }
     else
@@ -246,8 +270,8 @@ positionCell(App& p_app, robotik::JointId p_id, JointInfo const& p_info)
 /// Table of every joint: mode, position, velocity and plot toggle.
 static void jointsTable(App& p_app)
 {
-    robotik::RobotSession& robot = p_app.simulation->cell().robot();
-    robotik::JointSet& joints = robot.joints();
+    robotik::Robot& robot = p_app.simulation->cell().robot();
+    robotik::JointSet& joints = robot.getJoints();
     if (p_app.ui.plotted.size() != joints.size())
     {
         p_app.ui.plotted.assign(joints.size(), false);
@@ -261,7 +285,7 @@ static void jointsTable(App& p_app)
         ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_Hideable;
     // A new robot has other joint names: give the table a new id so the
     // name column is sized again.
-    ImGui::PushID(robot.name().c_str());
+    ImGui::PushID(robot.getName().c_str());
     bool const details_changed =
         ImGui::Checkbox("Show details", &p_app.ui.joint_details);
     ImGui::SetItemTooltip(
@@ -424,13 +448,13 @@ static void jointsTable(App& p_app)
         if (ImGui::SmallButton(" - "))
         {
             takeArm(p_app);
-            p_app.teach.pendant.jogJoint(robot, id, -step);
+            jogJoint(p_app.teach.pendant, robot, id, -step);
         }
         ImGui::SameLine(0.0F, 2.0F);
         if (ImGui::SmallButton(" + "))
         {
             takeArm(p_app);
-            p_app.teach.pendant.jogJoint(robot, id, step);
+            jogJoint(p_app.teach.pendant, robot, id, step);
         }
         ImGui::EndDisabled();
         ImGui::PopID();
@@ -498,7 +522,8 @@ void plotsView(App& p_app)
         emptyState("No data yet: press Play.");
         return;
     }
-    robotik::JointSet const& joints = p_app.simulation->cell().robot().joints();
+    robotik::JointSet const& joints =
+        p_app.simulation->cell().robot().getJoints();
     JointHistory const& history = p_app.history;
     if (p_app.ui.plotted.size() != joints.size())
     {

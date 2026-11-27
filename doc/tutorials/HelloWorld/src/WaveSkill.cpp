@@ -19,7 +19,7 @@ void WaveSkill::reset()
 robotik::Status WaveSkill::tick(robotik::RobotContext& p_context,
                                 robotik::Seconds /*p_dt*/)
 {
-    robotik::JointSet& joints = p_context.robot.joints();
+    robotik::JointSet& joints = p_context.robot.getJoints();
     robotik::Radians const target((m_waves % 2 == 0) ? 0.5 : -0.5);
     joints.moveTo(m_base, target);
     if (joints.reached(m_base, robotik::Radians(0.02)))
@@ -32,7 +32,7 @@ robotik::Status WaveSkill::tick(robotik::RobotContext& p_context,
 void WaveSkill::cancel(robotik::RobotContext& p_context)
 {
     // Cancelled or preempted: stop where we are.
-    p_context.robot.joints().hold();
+    p_context.robot.getJoints().hold();
 }
 
 void SkillsLogic::setup(robotik::RoboticCell& p_cell,
@@ -42,8 +42,8 @@ void SkillsLogic::setup(robotik::RoboticCell& p_cell,
     // can move the arm at the same time.
     robotik::SkillDescription wave;
     wave.name = "Wave";
-    wave.resources = { p_cell.robot().resources().require("arm") };
+    wave.resources = { p_cell.robot().getResources().require("arm") };
     wave.priority = 100;
     p_cell.skills().add<WaveSkill>(
-        std::move(wave), p_cell.robot().joints().requireRevolute("joint1"));
+        std::move(wave), p_cell.robot().getJoints().requireRevolute("joint1"));
 }

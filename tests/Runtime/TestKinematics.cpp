@@ -8,8 +8,8 @@
 #include "main.hpp"
 
 #include "RobotIK/Robot/Backends/MujocoBackend.hpp"
-#include "RobotIK/Robot/Backends/PinocchioBackend.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/Kinematics.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 #include "RobotIK/Task/Perception/WorldModel.hpp"
 #include "RobotIK/Task/RobotContext.hpp"
 #include "RobotIK/Task/Skills/MotionSkills.hpp"
@@ -22,9 +22,9 @@
 
 #define TEST_SIM_STEP_S 0.002
 
-TEST(PinocchioBackend, NeutralPoseOfRevoluteArm)
+TEST(Kinematics, NeutralPoseOfRevoluteArm)
 {
-    robotik::PinocchioBackend kinematics(
+    robotik::Kinematics kinematics(
         assetFile("robotik.robots.simple_revolute_robot"));
     EXPECT_EQ(kinematics.nq(), 1U);
     ASSERT_TRUE(kinematics.hasFrame("arm_link"));
@@ -33,30 +33,30 @@ TEST(PinocchioBackend, NeutralPoseOfRevoluteArm)
     EXPECT_NEAR(pose.position.x, 0.0, 1e-6);
 }
 
-TEST(RobotSession, LoadsJointsFromUrdf)
+TEST(RobotRuntime, LoadsJointsFromUrdf)
 {
     compages::world::World world;
-    robotik::RobotSession robot(world, assetFile("robotik.robots.robot_6axis"));
-    EXPECT_EQ(robot.joints().size(), 6U);
-    EXPECT_EQ(robot.joints().find("joint3"), 2U);
-    EXPECT_EQ(robot.joints().find("nope"), robotik::NO_JOINT);
-    EXPECT_FALSE(robot.tool().empty());
-    EXPECT_TRUE(robot.link(robot.tool()));
+    robotik::RobotRuntime robot(world, assetFile("robotik.robots.robot_6axis"));
+    EXPECT_EQ(robot.robot().getJoints().size(), 6U);
+    EXPECT_EQ(robot.robot().getJoints().find("joint3"), 2U);
+    EXPECT_EQ(robot.robot().getJoints().find("nope"), robotik::NO_JOINT);
+    EXPECT_FALSE(robot.robot().getTool().empty());
+    EXPECT_TRUE(robot.getLink(robot.robot().getTool()));
 }
 
-TEST(RobotSession, GripperJointsJoinTheArm)
+TEST(RobotRuntime, GripperJointsJoinTheArm)
 {
     compages::world::World world;
-    robotik::RobotSession robot(world,
+    robotik::RobotRuntime robot(world,
                                 assetFile("robotik.robots.robot_6axis"),
                                 nullptr,
                                 assetFile("robotik.tools.gripper"));
-    EXPECT_EQ(robot.joints().size(), 8U);
-    EXPECT_NE(robot.joints().find("gripper_finger_left_joint"),
+    EXPECT_EQ(robot.robot().getJoints().size(), 8U);
+    EXPECT_NE(robot.robot().getJoints().find("gripper_finger_left_joint"),
               robotik::NO_JOINT);
-    EXPECT_NE(robot.joints().find("gripper_finger_right_joint"),
+    EXPECT_NE(robot.robot().getJoints().find("gripper_finger_right_joint"),
               robotik::NO_JOINT);
-    EXPECT_EQ(robot.tool(), "tcp");
+    EXPECT_EQ(robot.robot().getTool(), "tcp");
 }
 
 /// The simulator loads meshes through a scene. That path must keep the fingers.
@@ -96,20 +96,20 @@ private:
     compages::renderer::Scene& m_scene;
 };
 
-TEST(RobotSession, GripperJointsJoinTheArmInTheScene)
+TEST(RobotRuntime, GripperJointsJoinTheArmInTheScene)
 {
     compages::world::World world;
     compages::renderer::Scene scene(world);
     SceneToolView view(scene);
-    robotik::RobotSession robot(world,
+    robotik::RobotRuntime robot(world,
                                 assetFile("robotik.robots.robot_6axis"),
                                 &view,
                                 assetFile("robotik.tools.gripper"));
-    EXPECT_EQ(robot.joints().size(), 8U);
-    EXPECT_TRUE(robot.joints().isPrismatic(
-        robot.joints().find("gripper_finger_left_joint")));
-    EXPECT_TRUE(robot.joints().isPrismatic(
-        robot.joints().find("gripper_finger_right_joint")));
+    EXPECT_EQ(robot.robot().getJoints().size(), 8U);
+    EXPECT_TRUE(robot.robot().getJoints().isPrismatic(
+        robot.robot().getJoints().find("gripper_finger_left_joint")));
+    EXPECT_TRUE(robot.robot().getJoints().isPrismatic(
+        robot.robot().getJoints().find("gripper_finger_right_joint")));
 }
 
 TEST(MujocoBackend, AttachesAndDetachesAToolChain)
@@ -124,34 +124,34 @@ TEST(MujocoBackend, AttachesAndDetachesAToolChain)
     physics->attach(arm, "flange", tool, "tool_mount");
     robotik::MujocoBackend* const backend = physics.get();
 
-    robotik::RobotSession robot(world, assetFile("robotik.robots.robot_6axis"));
+    robotik::RobotRuntime robot(world, assetFile("robotik.robots.robot_6axis"));
     robot.connect(std::move(physics));
-    ASSERT_TRUE(robot.backend()->wrench("tcp").has_value());
-    ASSERT_TRUE(robot.backend()->wrench("flange").has_value());
+    ASSERT_TRUE(robot.getPhysics()->wrench("tcp").has_value());
+    ASSERT_TRUE(robot.getPhysics()->wrench("flange").has_value());
 
     backend->detach(arm, "flange", tool, "tool_mount");
     EXPECT_THROW(backend->detach(arm, "flange", tool, "tool_mount"),
                  std::runtime_error);
-    EXPECT_TRUE(robot.backend()->wrench("tcp").has_value());
-    EXPECT_TRUE(robot.backend()->wrench("flange").has_value());
+    EXPECT_TRUE(robot.getPhysics()->wrench("tcp").has_value());
+    EXPECT_TRUE(robot.getPhysics()->wrench("flange").has_value());
     robot.step(robotik::Seconds(0.01));
 
     backend->attach(arm, "joint6", tool, "tool_mount");
-    EXPECT_TRUE(robot.backend()->wrench("tool_mount").has_value());
+    EXPECT_TRUE(robot.getPhysics()->wrench("tool_mount").has_value());
     robot.step(robotik::Seconds(0.01));
 }
 
-TEST(RobotSession, MoveJointReachesTheCommand)
+TEST(RobotRuntime, MoveJointReachesTheCommand)
 {
     compages::world::World world;
     std::filesystem::path const urdf =
         assetFile("robotik.robots.simple_revolute_robot");
-    robotik::RobotSession robot(world, urdf);
+    robotik::RobotRuntime robot(world, urdf);
     auto physics = std::make_unique<robotik::MujocoBackend>();
     (void)physics->load(urdf);
     robot.connect(std::move(physics));
     robotik::WorldModel beliefs;
-    robotik::RobotContext context{ robot, beliefs, {}, {} };
+    robotik::RobotContext context{ robot.robot(), beliefs, {}, {} };
     robotik::MoveJointSkill skill("revolute_joint", 0.5, 0.05);
     skill.reset();
 
@@ -159,30 +159,30 @@ TEST(RobotSession, MoveJointReachesTheCommand)
     robotik::Seconds const step(TEST_SIM_STEP_S);
     for (int i = 0; i < 1500 && status == robotik::Status::RUNNING; ++i)
     {
-        context.time = robot.time();
+        context.time = robot.robot().getTime();
         context.dt = step;
         status = skill.tick(context, step);
         robot.step(step);
     }
     EXPECT_EQ(status, robotik::Status::SUCCESS);
-    EXPECT_NEAR(robot.joints().position(0), 0.5, 0.05);
+    EXPECT_NEAR(robot.robot().getJoints().position(0), 0.5, 0.05);
 }
 
-TEST(RobotSession, FailedActuatorIsDisabled)
+TEST(RobotRuntime, FailedActuatorIsDisabled)
 {
     compages::world::World world;
     std::filesystem::path const urdf =
         assetFile("robotik.robots.simple_diff_drive_robot");
-    robotik::RobotSession robot(world, urdf);
-    auto& motor = robot.actuators().add<robotik::Motor>("left_motor",
-                                                        robot.joints().name(0));
-    EXPECT_TRUE(robot.resources().available("left_motor"));
+    robotik::RobotRuntime robot(world, urdf);
+    auto& motor = robot.addActuator<robotik::Motor>(
+        "left_motor", robot.robot().getJoints().name(0));
+    EXPECT_TRUE(robot.getResources().available("left_motor"));
 
     motor.spin(robotik::AngularVelocity(2.0));
-    EXPECT_EQ(robot.joints().mode(motor.joint().id),
+    EXPECT_EQ(robot.robot().getJoints().mode(motor.joint().id),
               robotik::JointMode::Velocity);
-    robot.resources().fail("left_motor");
+    robot.getResources().fail("left_motor");
     robot.step(robotik::Seconds(0.01));
-    EXPECT_EQ(robot.joints().mode(motor.joint().id),
+    EXPECT_EQ(robot.robot().getJoints().mode(motor.joint().id),
               robotik::JointMode::Disabled);
 }

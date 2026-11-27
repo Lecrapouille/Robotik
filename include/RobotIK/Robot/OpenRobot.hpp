@@ -31,7 +31,7 @@
 #pragma once
 
 #include "RobotIK/Common/Result.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -79,16 +79,16 @@ struct OpenedRobot
     /// ECS world holding the robot entities.
     std::unique_ptr<compages::world::World> world;
     /// The robot.
-    std::unique_ptr<RobotSession> robot;
+    std::unique_ptr<RobotRuntime> robot;
 
     /// @return The robot.
-    RobotSession* operator->() const
+    RobotRuntime* operator->() const
     {
         return robot.get();
     }
 
     /// @return The robot.
-    RobotSession& operator*() const
+    RobotRuntime& operator*() const
     {
         return *robot;
     }

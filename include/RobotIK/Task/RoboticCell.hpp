@@ -27,7 +27,7 @@
 #pragma once
 
 #include "RobotIK/Robot/Backends/MujocoBackend.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 #include "RobotIK/Task/Condition.hpp"
 #include "RobotIK/Task/Faults.hpp"
 #include "RobotIK/Task/Grasp/GraspModel.hpp"
@@ -60,7 +60,7 @@ class World;
 namespace robotik
 {
 
-class PinocchioBackend;
+class Kinematics;
 class MujocoBackend;
 class Story;
 
@@ -208,7 +208,8 @@ public:
     /// @param p_dt Step.
     /// @return The final state, or @c Waiting / @c Running at the limit.
     // -------------------------------------------------------------------------
-    SkillState run(SkillId p_skill, Seconds p_limit, Seconds p_dt = Seconds(0.01));
+    SkillState
+    run(SkillId p_skill, Seconds p_limit, Seconds p_dt = Seconds(0.01));
 
     // -------------------------------------------------------------------------
     /// Steps until the controller ends (behavior tree, plan, or the status of
@@ -242,42 +243,78 @@ public:
 
     [[nodiscard]] Seconds time() const
     {
-        return m_robot->time();
+        return m_robot->robot().getTime();
     }
 
-    /// @return The first robot of the world file.
-    [[nodiscard]] RobotSession& robot()
+    // -------------------------------------------------------------------------
+    /// @return The first robot of the world file, as its skills see it
+    ///   (joints, read-only sensors, actuators, estimated base).
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Robot& robot()
     {
-        return *m_robot;
+        return m_robot->robot();
     }
 
     /// @return The first robot, read only (a const cell commands nothing).
-    [[nodiscard]] RobotSession const& robot() const
+    [[nodiscard]] Robot const& robot() const
+    {
+        return m_robot->robot();
+    }
+
+    // -------------------------------------------------------------------------
+    /// Finds a robot, as its skills see it. The robots of a world share one
+    /// physics, one resource manager, one scheduler and the beliefs.
+    /// @param p_id Entity id in the world file.
+    /// @return The robot, or null.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Robot* robot(std::string_view p_id);
+
+    /// @copydoc robot(std::string_view)
+    [[nodiscard]] Robot const* robot(std::string_view p_id) const;
+
+    /// @return Every robot as its skills see it, read only, in world file
+    ///   order (the first is @ref robot()).
+    [[nodiscard]] std::vector<Robot const*> const& robots() const
+    {
+        return m_robot_views;
+    }
+
+    // -------------------------------------------------------------------------
+    /// @return What runs the first robot: its true base, its backend, its
+    ///   entities, its writable sensors (see @ref RobotRuntime). For the
+    ///   world side of a scenario (@c simulate, @c observe), never a skill.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] RobotRuntime& runtime()
+    {
+        return *m_robot;
+    }
+
+    /// @copydoc runtime()
+    [[nodiscard]] RobotRuntime const& runtime() const
     {
         return *m_robot;
     }
 
     // -------------------------------------------------------------------------
-    /// Finds a robot. The robots of a world share one physics, one resource
-    /// manager, one scheduler and the beliefs.
+    /// Finds what runs a robot.
     /// @param p_id Entity id in the world file.
-    /// @return The robot, or null.
+    /// @return The runtime, or null.
     // -------------------------------------------------------------------------
-    [[nodiscard]] RobotSession* robot(std::string_view p_id);
+    [[nodiscard]] RobotRuntime* runtime(std::string_view p_id);
 
-    /// @copydoc robot(std::string_view)
-    [[nodiscard]] RobotSession const* robot(std::string_view p_id) const;
+    /// @copydoc runtime(std::string_view)
+    [[nodiscard]] RobotRuntime const* runtime(std::string_view p_id) const;
 
-    /// @return Every robot, in world file order (the first is @ref robot()).
-    [[nodiscard]] std::vector<std::unique_ptr<RobotSession>> const& robots()
+    /// @return What runs every robot, in world file order.
+    [[nodiscard]] std::vector<std::unique_ptr<RobotRuntime>> const& runtimes()
     {
         return m_robots;
     }
 
-    /// @return Every robot, read only, in world file order.
-    [[nodiscard]] std::vector<RobotSession const*> const& robots() const
+    /// @return What runs every robot, read only, in world file order.
+    [[nodiscard]] std::vector<RobotRuntime const*> const& runtimes() const
     {
-        return m_robot_views;
+        return m_runtime_views;
     }
 
     // -------------------------------------------------------------------------
@@ -297,7 +334,7 @@ public:
     /// @return Frame of the beliefs in the world, as the robot believes it:
     ///   the estimated base of the robot when it is alone, the world itself
     ///   when the robots share them (a skill then uses its own base:
-    ///   @c robot.base().pose.inverse() * belief).
+    ///   @c robot.getBase().pose.inverse() * belief).
     // -------------------------------------------------------------------------
     [[nodiscard]] Pose beliefFrame() const;
 
@@ -660,7 +697,7 @@ private:
         /// Backend bodies of the entity, for contacts.
         std::unordered_set<std::string> links;
         /// Frames of a body model, at its root (neutral configuration).
-        std::shared_ptr<PinocchioBackend> frames;
+        std::shared_ptr<Kinematics> frames;
         /// Where the entity starts (world frame) before randomization.
         Pose nominal{ Vector3::ZERO, Quaternion{} };
         /// Pose captured at the start of the episode.
@@ -675,7 +712,7 @@ private:
     void build(SceneView* p_view);
     /// Actuators and sensors of one robot and of its mounted tool.
     /// @p_blind turns false when a camera gets a render source.
-    void buildDevices(RobotSession& p_robot,
+    void buildDevices(RobotRuntime& p_robot,
                       EntitySpec const& p_spec,
                       EntitySpec const* p_tool,
                       SceneView* p_view,
@@ -690,7 +727,7 @@ private:
     void addSkills();
     /// Robot that carries @p_spec: a robot itself, the robot a tool is
     /// mounted on, else the first robot.
-    [[nodiscard]] RobotSession const& ownerOf(EntitySpec const& p_spec) const;
+    [[nodiscard]] RobotRuntime const& ownerOf(EntitySpec const& p_spec) const;
 
     /// @ref beliefFrame from the true base: turns the truth into beliefs
     /// (perception fidelity @c truth and @c noisy_truth).
@@ -736,13 +773,15 @@ private:
     /// One for all the robots of the world.
     std::shared_ptr<ResourceManager> m_resources;
     /// Every robot, in world file order.
-    std::vector<std::unique_ptr<RobotSession>> m_robots;
-    /// The same robots, read only, for @ref robots() const.
-    std::vector<RobotSession const*> m_robot_views;
+    std::vector<std::unique_ptr<RobotRuntime>> m_robots;
+    /// The same runtimes, read only, for @ref runtimes() const.
+    std::vector<RobotRuntime const*> m_runtime_views;
+    /// The robots as the skills see them, read only, for @ref robots().
+    std::vector<Robot const*> m_robot_views;
     /// The first robot.
-    RobotSession* m_robot = nullptr;
+    RobotRuntime* m_robot = nullptr;
     /// @ref RobotContext::team — every robot when there are several.
-    std::vector<Robot*> m_team;
+    std::vector<Robot const*> m_team;
     /// Beliefs shared by the robots.
     WorldModel m_world_model;
     /// Detectors run on every camera frame.

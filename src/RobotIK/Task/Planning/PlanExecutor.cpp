@@ -791,7 +791,8 @@ bt::Status PlanExecutor::check(std::size_t p_step,
         for (Literal const& effect : effects(p_step, partial))
         {
             Truth const value = evaluate(effect.atom, p_context);
-            if (m_spec.observed && !seenSince(effect.atom, p_context, m_start_times[p_step]))
+            if (m_spec.observed &&
+                !seenSince(effect.atom, p_context, m_start_times[p_step]))
             {
                 m_check_failure =
                     std::to_string(p_step + 1U) + ". " + label(m_plan[p_step]) +
@@ -874,7 +875,8 @@ bt::Status PlanExecutor::ready(std::size_t p_step)
         }
     }
     m_started[p_step] = true;
-    m_start_times[p_step] = m_context != nullptr ? m_context->time : Seconds(0.0);
+    m_start_times[p_step] =
+        m_context != nullptr ? m_context->time : Seconds(0.0);
     return bt::Status::SUCCESS;
 }
 
@@ -1073,7 +1075,7 @@ std::string PlanExecutor::stepFailure(RobotContext const& p_context) const
         if (ResourceId const blocker = m_skills.blocker(id);
             blocker != NO_RESOURCE)
         {
-            text += ": " + p_context.robot.resources().name(blocker);
+            text += ": " + p_context.robot.getResources().name(blocker);
         }
         return text + ")";
     }

@@ -16,32 +16,38 @@
 namespace robotik
 {
 
-/// Keeps a joint command inside its limits when they are bounded.
-static double clampJoint(JointSet const& p_joints, JointId p_id, double p_value)
+// ----------------------------------------------------------------------------
+/// Keeps a joint command inside the limits of the joint, when it has some
+/// (a wheel turns without limits).
+/// @tparam Position @c Radians for a joint that turns, @c Length for one
+///   that slides: the handle and the value have the same unit.
+// ----------------------------------------------------------------------------
+template <class Position>
+static Position clampJoint(JointSet const& p_joints,
+                           JointHandle<Position> p_joint,
+                           Position p_value)
 {
-    if (p_joints.isPrismatic(p_id))
-    {
-        PrismaticLimits const limits =
-            p_joints.limits(p_joints.requirePrismatic(p_id));
-        if (bounded(limits))
-        {
-            return std::clamp(
-                p_value, limits.lower.value(), limits.upper.value());
-        }
-    }
-    else
-    {
-        RevoluteLimits const limits =
-            p_joints.limits(p_joints.requireRevolute(p_id));
-        if (bounded(limits))
-        {
-            return std::clamp(
-                p_value, limits.lower.value(), limits.upper.value());
-        }
-    }
-    return p_value;
+    JointLimits<Position> const limits = p_joints.limits(p_joint);
+    return bounded(limits) ? std::clamp(p_value, limits.lower, limits.upper)
+                           : p_value;
 }
 
+// ----------------------------------------------------------------------------
+/// Where a jog of @p_delta takes a joint: from its target (or from where it
+/// is, when it is not driven in position), inside its limits.
+// ----------------------------------------------------------------------------
+template <class Position>
+static Position jogged(JointSet const& p_joints,
+                       JointHandle<Position> p_joint,
+                       Position p_delta)
+{
+    Position const from(p_joints.mode(p_joint.id) == JointMode::Position
+                            ? p_joints.target(p_joint.id)
+                            : p_joints.position(p_joint.id));
+    return clampJoint(p_joints, p_joint, from + p_delta);
+}
+
+// ----------------------------------------------------------------------------
 double TeachPendant::Polynomial::position(double p_t) const
 {
     double const t2 = p_t * p_t;
@@ -51,9 +57,10 @@ double TeachPendant::Polynomial::position(double p_t) const
     return a0 + a3 * t3 + a4 * t4 + a5 * t5;
 }
 
+// ----------------------------------------------------------------------------
 std::vector<double> TeachPendant::command(Robot const& p_robot) const
 {
-    JointSet const& joints = p_robot.joints();
+    JointSet const& joints = p_robot.getJoints();
     std::vector<double> values(joints.size());
     for (JointId id = 0; id < joints.size(); ++id)
     {
@@ -64,26 +71,41 @@ std::vector<double> TeachPendant::command(Robot const& p_robot) const
     return values;
 }
 
+// ----------------------------------------------------------------------------
 bool TeachPendant::compatible(Robot const& p_robot,
-                              TeachWaypoint const& p_waypoint) const
+                              Waypoint const& p_waypoint) const
 {
-    return p_waypoint.joints.size() == p_robot.joints().size();
+    return p_waypoint.joints.size() == p_robot.getJoints().size() &&
+           p_waypoint.joint_names == p_robot.getModel().joints;
 }
 
+// ----------------------------------------------------------------------------
 void TeachPendant::apply(Robot& p_robot, std::vector<double> const& p_positions)
 {
-    JointSet& joints = p_robot.joints();
+    JointSet& joints = p_robot.getJoints();
     std::size_t const count = std::min(joints.size(), p_positions.size());
     for (JointId id = 0; id < count; ++id)
     {
-        joints.moveTo(id, clampJoint(joints, id, p_positions[id]));
+        if (joints.isPrismatic(id))
+        {
+            Prismatic const joint = joints.requirePrismatic(id);
+            joints.moveTo(joint,
+                          clampJoint(joints, joint, Length(p_positions[id])));
+        }
+        else
+        {
+            Revolute const joint = joints.requireRevolute(id);
+            joints.moveTo(joint,
+                          clampJoint(joints, joint, Radians(p_positions[id])));
+        }
     }
 }
 
-void TeachPendant::begin(Robot const& p_robot, TeachWaypoint const& p_goal)
+// ----------------------------------------------------------------------------
+void TeachPendant::begin(Robot const& p_robot, Waypoint const& p_goal)
 {
     std::vector<double> const from = command(p_robot);
-    m_duration = std::max(p_goal.duration, 0.05);
+    m_duration = std::max(p_goal.duration.value(), 0.05);
     m_time = 0.0;
     m_polynomials.clear();
     m_polynomials.reserve(from.size());
@@ -102,91 +124,109 @@ void TeachPendant::begin(Robot const& p_robot, TeachWaypoint const& p_goal)
     }
 }
 
-bool TeachPendant::jogJoint(Robot& p_robot, JointId p_joint, double p_delta)
+// ----------------------------------------------------------------------------
+bool TeachPendant::jogJoint(Robot& p_robot, Revolute p_joint, Radians p_delta)
 {
     m_playing = false;
-    JointSet& joints = p_robot.joints();
-    if (p_joint >= joints.size())
+    JointSet& joints = p_robot.getJoints();
+    if (!p_joint || p_joint.id >= joints.size())
     {
         m_error = "Unknown joint";
         return false;
     }
-    double const from = joints.mode(p_joint) == JointMode::Position
-                            ? joints.target(p_joint)
-                            : joints.position(p_joint);
-    joints.moveTo(p_joint, clampJoint(joints, p_joint, from + p_delta));
+    joints.moveTo(p_joint, jogged(joints, p_joint, p_delta));
     m_error.clear();
     return true;
 }
 
-std::string const& TeachPendant::frame(Robot const& p_robot) const
+// ----------------------------------------------------------------------------
+bool TeachPendant::jogJoint(Robot& p_robot, Prismatic p_joint, Length p_delta)
 {
-    return m_frame.empty() ? p_robot.tool() : m_frame;
+    m_playing = false;
+    JointSet& joints = p_robot.getJoints();
+    if (!p_joint || p_joint.id >= joints.size())
+    {
+        m_error = "Unknown joint";
+        return false;
+    }
+    joints.moveTo(p_joint, jogged(joints, p_joint, p_delta));
+    m_error.clear();
+    return true;
 }
 
-IkGoal TeachPendant::jogGoal(Robot const& p_robot, bool p_rotation) const
+// ----------------------------------------------------------------------------
+std::string const& TeachPendant::getFrame(Robot const& p_robot) const
 {
-    std::string const& moved = frame(p_robot);
-    if (moved.empty() || p_robot.kinematics().requireChainDofs(moved) >= 6U)
+    return m_frame.empty() ? p_robot.getTool() : m_frame;
+}
+
+// ----------------------------------------------------------------------------
+IkGoal TeachPendant::getJogGoal(Robot const& p_robot, bool p_rotation) const
+{
+    std::string const& moved = getFrame(p_robot);
+    if (moved.empty() || p_robot.getKinematics().requireChainDofs(moved) >= 6U)
     {
         return IkGoal::Whole;
     }
     return p_rotation ? IkGoal::Orientation : IkGoal::Position;
 }
 
-std::array<bool, 6> TeachPendant::jogAxes(Robot const& p_robot) const
+// ----------------------------------------------------------------------------
+std::array<bool, 6> TeachPendant::getJogAxes(Robot const& p_robot) const
 {
-    std::string const& moved = frame(p_robot);
+    std::string const& moved = getFrame(p_robot);
     if (moved.empty())
     {
         return {};
     }
     // Position and Orientation give the same flags: each block alone.
-    return p_robot.kinematics().requireMovableAxes(
+    return p_robot.getKinematics().requireMovableAxes(
         moved,
-        jogGoal(p_robot, false) == IkGoal::Whole ? IkGoal::Whole
-                                                 : IkGoal::Position);
+        getJogGoal(p_robot, false) == IkGoal::Whole ? IkGoal::Whole
+                                                    : IkGoal::Position);
 }
 
+// ----------------------------------------------------------------------------
 bool TeachPendant::jogTool(Robot& p_robot,
-                           Vector3 const& p_translation,
-                           Vector3 const& p_rotation)
+                           Vector3m const& p_translation,
+                           Vector3rad const& p_rotation)
 {
     m_playing = false;
-    std::string const& moved = frame(p_robot);
+    std::string const& moved = getFrame(p_robot);
     if (moved.empty())
     {
         m_error = "Robot has no tool frame";
         return false;
     }
 
+    // The IK and the checks below work in plain numbers (m, rad).
+    Vector3 const shift(p_translation.x.value(),
+                        p_translation.y.value(),
+                        p_translation.z.value());
+    Vector3 const angles(
+        p_rotation.x.value(), p_rotation.y.value(), p_rotation.z.value());
     Pose target = p_robot.requireFramePose(moved);
-    target.position.x += p_translation.x;
-    target.position.y += p_translation.y;
-    target.position.z += p_translation.z;
-    if (std::abs(p_rotation.x) + std::abs(p_rotation.y) +
-            std::abs(p_rotation.z) >
-        0.0)
+    target.position.x += shift.x;
+    target.position.y += shift.y;
+    target.position.z += shift.z;
+    bool const turn =
+        std::abs(angles.x) + std::abs(angles.y) + std::abs(angles.z) > 0.0;
+    if (turn)
     {
-        target.rotation = Quaternion::fromAngleAxis(Radians(p_rotation.x),
-                                                    Vector3(1.0, 0.0, 0.0)) *
-                          Quaternion::fromAngleAxis(Radians(p_rotation.y),
-                                                    Vector3(0.0, 1.0, 0.0)) *
-                          Quaternion::fromAngleAxis(Radians(p_rotation.z),
-                                                    Vector3(0.0, 0.0, 1.0)) *
-                          target.rotation;
+        target.rotation =
+            Quaternion::fromAngleAxis(p_rotation.x, Vector3(1.0, 0.0, 0.0)) *
+            Quaternion::fromAngleAxis(p_rotation.y, Vector3(0.0, 1.0, 0.0)) *
+            Quaternion::fromAngleAxis(p_rotation.z, Vector3(0.0, 0.0, 1.0)) *
+            target.rotation;
     }
 
-    bool const turn = std::abs(p_rotation.x) + std::abs(p_rotation.y) +
-                          std::abs(p_rotation.z) >
-                      0.0;
-    IkGoal const goal = jogGoal(p_robot, turn);
+    IkGoal const goal = getJogGoal(p_robot, turn);
     if (goal != IkGoal::Whole)
     {
         // Few joints: the move goes to the closest point, so it must be
         // mostly along the asked axes.
-        std::array<bool, 6> const axes = jogAxes(p_robot);
-        Vector3 const& asked = turn ? p_rotation : p_translation;
+        std::array<bool, 6> const axes = getJogAxes(p_robot);
+        Vector3 const& asked = turn ? angles : shift;
         std::size_t const first = turn ? 3U : 0U;
         if ((asked.x != 0.0 && !axes[first]) ||
             (asked.y != 0.0 && !axes[first + 1U]) ||
@@ -211,27 +251,30 @@ bool TeachPendant::jogTool(Robot& p_robot,
     return true;
 }
 
+// ----------------------------------------------------------------------------
 std::size_t TeachPendant::record(Robot const& p_robot,
                                  std::string p_label,
-                                 double p_duration)
+                                 Seconds p_duration)
 {
-    TeachWaypoint waypoint;
+    Waypoint waypoint;
     waypoint.label = std::move(p_label);
     if (waypoint.label.empty())
     {
         waypoint.label = "wp " + std::to_string(m_waypoints.size());
     }
-    waypoint.joints.assign(p_robot.joints().positions().begin(),
-                           p_robot.joints().positions().end());
-    waypoint.pose = frame(p_robot).empty()
+    waypoint.joints.assign(p_robot.getJoints().positions().begin(),
+                           p_robot.getJoints().positions().end());
+    waypoint.joint_names = p_robot.getModel().joints;
+    waypoint.pose = getFrame(p_robot).empty()
                         ? Pose{}
-                        : p_robot.requireFramePose(frame(p_robot));
-    waypoint.duration = std::max(p_duration, 0.05);
+                        : p_robot.requireFramePose(getFrame(p_robot));
+    waypoint.duration = Seconds(std::max(p_duration.value(), 0.05));
     m_waypoints.push_back(std::move(waypoint));
     m_error.clear();
     return m_waypoints.size() - 1U;
 }
 
+// ----------------------------------------------------------------------------
 void TeachPendant::erase(std::size_t p_index)
 {
     if (p_index >= m_waypoints.size())
@@ -244,6 +287,7 @@ void TeachPendant::erase(std::size_t p_index)
                       static_cast<std::ptrdiff_t>(p_index));
 }
 
+// ----------------------------------------------------------------------------
 void TeachPendant::clear()
 {
     m_playing = false;
@@ -252,6 +296,7 @@ void TeachPendant::clear()
     m_polynomials.clear();
 }
 
+// ----------------------------------------------------------------------------
 bool TeachPendant::goTo(Robot& p_robot, std::size_t p_index)
 {
     if (p_index >= m_waypoints.size())
@@ -272,6 +317,7 @@ bool TeachPendant::goTo(Robot& p_robot, std::size_t p_index)
     return true;
 }
 
+// ----------------------------------------------------------------------------
 bool TeachPendant::play(Robot& p_robot, bool p_loop)
 {
     if (m_waypoints.empty())
@@ -279,7 +325,7 @@ bool TeachPendant::play(Robot& p_robot, bool p_loop)
         m_error = "No waypoint";
         return false;
     }
-    for (TeachWaypoint const& waypoint : m_waypoints)
+    for (Waypoint const& waypoint : m_waypoints)
     {
         if (!compatible(p_robot, waypoint))
         {
@@ -296,13 +342,15 @@ bool TeachPendant::play(Robot& p_robot, bool p_loop)
     return true;
 }
 
+// ----------------------------------------------------------------------------
 void TeachPendant::stop(Robot& p_robot)
 {
     m_playing = false;
     m_cursor = -1;
-    p_robot.joints().hold();
+    p_robot.getJoints().hold();
 }
 
+// ----------------------------------------------------------------------------
 void TeachPendant::update(Robot& p_robot, Seconds p_dt)
 {
     if (!m_playing)

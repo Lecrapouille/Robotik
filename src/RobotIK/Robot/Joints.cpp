@@ -18,15 +18,13 @@ namespace robotik
 
 JointId JointSet::append(std::string p_name,
                          JointType p_type,
-                         Bounds const& p_bounds,
-                         compages::world::Entity p_link)
+                         Bounds const& p_bounds)
 {
     if (find(p_name) != NO_JOINT)
     {
         throw std::invalid_argument("Duplicated joint '" + p_name + "'");
     }
     m_names.push_back(std::move(p_name));
-    m_links.push_back(p_link);
     m_gains.emplace_back();
     m_homes.push_back(0.0);
     m_types.push_back(p_type);
@@ -41,36 +39,6 @@ JointId JointSet::append(std::string p_name,
     return static_cast<JointId>(m_names.size() - 1U);
 }
 
-JointId JointSet::add(std::string p_name, compages::world::Entity p_link)
-{
-    if (auto const* joint = p_link.find<compages::world::RevoluteJoint>())
-    {
-        auto const& state = joint->state;
-        bool const continuous = std::isinf(state.position.min.value()) &&
-                                std::isinf(state.position.max.value());
-        return append(std::move(p_name),
-                      continuous ? JointType::Continuous : JointType::Revolute,
-                      { state.position.min.value(),
-                        state.position.max.value(),
-                        state.velocity.max.value(),
-                        state.effort.max.value() },
-                      p_link);
-    }
-    if (auto const* joint = p_link.find<compages::world::PrismaticJoint>())
-    {
-        auto const& state = joint->state;
-        return append(std::move(p_name),
-                      JointType::Prismatic,
-                      { state.position.min.value(),
-                        state.position.max.value(),
-                        state.velocity.max.value(),
-                        state.effort.max.value() },
-                      p_link);
-    }
-    throw std::invalid_argument("Link of joint '" + p_name +
-                                "' has no revolute nor prismatic joint");
-}
-
 Revolute JointSet::add(std::string p_name,
                        RevoluteLimits const& p_limits,
                        bool p_continuous)
@@ -80,8 +48,7 @@ Revolute JointSet::add(std::string p_name,
                     { p_limits.lower.value(),
                       p_limits.upper.value(),
                       p_limits.velocity.value(),
-                      p_limits.effort.value() },
-                    {}) };
+                      p_limits.effort.value() }) };
 }
 
 Prismatic JointSet::add(std::string p_name, PrismaticLimits const& p_limits)
@@ -91,8 +58,7 @@ Prismatic JointSet::add(std::string p_name, PrismaticLimits const& p_limits)
                     { p_limits.lower.value(),
                       p_limits.upper.value(),
                       p_limits.velocity.value(),
-                      p_limits.effort.value() },
-                    {}) };
+                      p_limits.effort.value() }) };
 }
 
 JointId JointSet::find(std::string_view p_name) const
@@ -251,30 +217,6 @@ void JointSet::control(Seconds p_dt)
                 break;
         }
         m_efforts[i] = std::clamp(effort, -bounds.effort, bounds.effort);
-    }
-}
-
-void JointSet::publish() const
-{
-    for (std::size_t i = 0; i < m_names.size(); ++i)
-    {
-        compages::world::Entity link = m_links[i];
-        if (!link)
-        {
-            continue;
-        }
-        if (auto* revolute = link.find<compages::world::RevoluteJoint>())
-        {
-            revolute->state.position.value = Radians(m_positions[i]);
-            revolute->state.velocity.value = AngularVelocity(m_velocities[i]);
-            revolute->state.effort.value = Torque(m_efforts[i]);
-        }
-        else if (auto* prismatic = link.find<compages::world::PrismaticJoint>())
-        {
-            prismatic->state.position.value = Length(m_positions[i]);
-            prismatic->state.velocity.value = LinearVelocity(m_velocities[i]);
-            prismatic->state.effort.value = Force(m_efforts[i]);
-        }
     }
 }
 

@@ -110,14 +110,14 @@ public:
 
     void reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/) override
     {
-        m_joint = p_cell.robot().joints().requireRevolute("joint2");
+        m_joint = p_cell.robot().getJoints().requireRevolute("joint2");
         m_count = 0;
         m_down = true;
     }
 
     void act(robotik::RobotContext& p_context, robotik::Seconds /*p_dt*/) override
     {
-        robotik::JointSet& joints = p_context.robot.joints();
+        robotik::JointSet& joints = p_context.robot.getJoints();
         robotik::Radians const target(m_down ? 0.8 : 0.2);
         joints.moveTo(m_joint, target);
         if (joints.reached(m_joint, robotik::Radians(0.02)))

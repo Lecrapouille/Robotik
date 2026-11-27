@@ -8,7 +8,7 @@
 #include "main.hpp"
 
 #include "RobotIK/Common/Random.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 #include "RobotIK/Robot/Sensors/Camera.hpp"
 #include "RobotIK/Task/Perception/Detector.hpp"
 #include "RobotIK/Task/Perception/Localization.hpp"
@@ -22,7 +22,8 @@
 static robotik::Pose downward()
 {
     return { { 0.0, 0.0, 1.0 },
-             robotik::Quaternion::fromAngleAxis(robotik::Radians(std::numbers::pi), { 1.0, 0.0, 0.0 }) };
+             robotik::Quaternion::fromAngleAxis(
+                 robotik::Radians(std::numbers::pi), { 1.0, 0.0, 0.0 }) };
 }
 
 /// Gray image of the right size, counts captures.
@@ -91,8 +92,11 @@ TEST(Random, SeedsAreReplayableAndIndependent)
 
 TEST(Pose, ComposeAndInvert)
 {
-    robotik::Pose const pose{ { 1.0, 2.0, 3.0 },
-                              robotik::Quaternion::fromRpy(robotik::Radians(0.1), robotik::Radians(0.2), robotik::Radians(0.3)) };
+    robotik::Pose const pose{
+        { 1.0, 2.0, 3.0 },
+        robotik::Quaternion::fromRpy(
+            robotik::Radians(0.1), robotik::Radians(0.2), robotik::Radians(0.3))
+    };
     robotik::Pose const identity = pose * pose.inverse();
     EXPECT_NEAR(robotik::norm(identity.position), 0.0, 1e-12);
     EXPECT_NEAR(std::abs(identity.rotation.w), 1.0, 1e-12);
@@ -100,7 +104,10 @@ TEST(Pose, ComposeAndInvert)
     robotik::Vector3 const back = pose.inverse() * (pose * point);
     EXPECT_NEAR(robotik::norm(back - point), 0.0, 1e-12);
     EXPECT_NEAR(
-        robotik::yaw(robotik::Quaternion::fromRpy(robotik::Radians(0.0), robotik::Radians(0.0), robotik::Radians(0.7))).value(),
+        robotik::yaw(robotik::Quaternion::fromRpy(robotik::Radians(0.0),
+                                                  robotik::Radians(0.0),
+                                                  robotik::Radians(0.7)))
+            .value(),
         0.7,
         1e-12);
 }
@@ -122,13 +129,13 @@ TEST(CameraIntrinsics, RayAndProjectAreInverse)
 TEST(Camera, SamplesAtItsFrequencyFromItsSource)
 {
     compages::world::World world;
-    robotik::RobotSession robot(
+    robotik::RobotRuntime robot(
         world, assetFile("robotik.robots.simple_revolute_robot"));
     robotik::CameraConfig config;
     config.frequency = 10.0;
     config.mount = downward();
-    auto& camera = robot.sensors().add<robotik::Camera>("camera", config);
-    EXPECT_TRUE(robot.resources().available("camera"));
+    auto& camera = robot.addSensor<robotik::Camera>("camera", config);
+    EXPECT_TRUE(robot.getResources().available("camera"));
 
     robot.step(robotik::Seconds(0.01));
     EXPECT_EQ(camera.samples(), 0U) << "no source, no frame";
@@ -146,7 +153,7 @@ TEST(Camera, SamplesAtItsFrequencyFromItsSource)
     EXPECT_EQ(frames, source.captures);
     EXPECT_EQ(camera.frame().rgb.width(), config.intrinsics.width);
 
-    robot.resources().fail("camera");
+    robot.getResources().fail("camera");
     int const before = source.captures;
     for (int i = 0; i < 50; ++i)
     {
@@ -202,12 +209,16 @@ TEST(WorldModel, GateRejectsOutliers)
 
 TEST(Localization, RecoversTheRobotPoseFromALandmark)
 {
-    robotik::Pose const robot{ { 1.0, -0.5, 0.0 },
-                               robotik::Quaternion::fromRpy(robotik::Radians(0.0), robotik::Radians(0.0), robotik::Radians(0.4)) };
-    robotik::Pose const camera{
-        { 0.1, 0.0, 0.2 },
-        robotik::Quaternion::fromRpy(robotik::Radians(-2.0), robotik::Radians(0.0), robotik::Radians(-1.57))
+    robotik::Pose const robot{
+        { 1.0, -0.5, 0.0 },
+        robotik::Quaternion::fromRpy(
+            robotik::Radians(0.0), robotik::Radians(0.0), robotik::Radians(0.4))
     };
+    robotik::Pose const camera{ { 0.1, 0.0, 0.2 },
+                                robotik::Quaternion::fromRpy(
+                                    robotik::Radians(-2.0),
+                                    robotik::Radians(0.0),
+                                    robotik::Radians(-1.57)) };
     robotik::Landmark const tag{
         3, { { 1.4, -0.3, 0.0 }, robotik::Quaternion{} }
     };

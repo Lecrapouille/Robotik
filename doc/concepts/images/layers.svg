@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" role="img" aria-labelledby="title desc">
 <!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
 <title id="title">The four layers of RobotIK</title>
-<desc id="desc">Package: files and plugins, Simulation, RunReport, the YAML files, assertions, plugin ABI. Task: a job in C++, RoboticCell, ScenarioLogic, SkillScheduler, skills, WorldModel, planning, grasp, learning. Robot: one robot, Robot, RobotSession, joints, sensors, actuators, resources, backends, asset packs. Common: units, poses, Result, Signal, Config, Random. Each layer uses only the layers below it.</desc>
+<desc id="desc">Package: files and plugins, Simulation, RunReport, the YAML files, assertions, plugin ABI. Task: a job in C++, RoboticCell, ScenarioLogic, SkillScheduler, skills, WorldModel, planning, grasp, learning. Robot: one robot, Robot, RobotRuntime, joints, sensors, actuators, resources, backends, asset packs. Common: units, poses, Result, Signal, Config, Random. Each layer uses only the layers below it.</desc>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
 <style>
 text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
@@ -37,7 +37,7 @@ text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
 <rect x="32" y="276" width="836" height="90" rx="10" class="box"/>
 <text x="52" y="308">Robot</text>
 <text x="150" y="308" class="note">one robot</text>
-<text x="52" y="334" class="small">Robot, RobotSession, openRobot, joints, sensors, actuators, resources, backends (MuJoCo,</text>
+<text x="52" y="334" class="small">Robot, RobotRuntime, openRobot, joints, sensors, actuators, resources, backends (MuJoCo,</text>
 <text x="52" y="352" class="small">Pinocchio), asset packs</text>
 <path d="M450 366 L450 380" class="arrow"/>
 <rect x="32" y="382" width="836" height="90" rx="10" class="box"/>

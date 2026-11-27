@@ -23,7 +23,9 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **Flange**: the plate at the end of an arm, where a tool is screwed.
 - **Frame**: a point and three axes, to say where something is and how it is turned. RobotIK uses Z up, metres and radians.
 - **IK (inverse kinematics)**: finding the joint angles that put the tool at a given pose.
+- **Configuration**: the values of all the joints of a robot together: it says the shape of the robot. A *waypoint* saves one.
 - **Joint**: an axis between two links. *Revolute* turns (radians); *prismatic* slides (metres).
+- **Jog**: move the robot by one small step each time a button is pushed: one joint (joint jog) or the tool along a line or about an axis (tool jog, which needs IK). See [The teach pendant](../concepts/07-teach-pendant.md).
 - **Kinematics**: the geometry of the robot: where each link is for given joint angles. RobotIK uses Pinocchio for it.
 - **Capture stamp**: the time a sensor measured, kept by its reading even when the reading arrives later (latency). A belief takes the stamp of the reading it comes from.
 - **Latency**: the delay between the moment a sensor measures and the moment the reading is available.
@@ -32,13 +34,16 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **Noise model**: how a sensor spoils the true value: bias, random noise, rounding, limits.
 - **Pinocchio**: the library that computes kinematics.
 - **Pose**: a position plus a rotation.
-- **Lease**: the right to use a set of resources, given all at once or not at all. It gives them back when it is released. See [Resources and arbitration](../concepts/06-architecture.md#-resources-and-arbitration).
+- **Lease**: the right to use a set of resources, given all at once or not at all. It gives them back when it is released. See [Resources and arbitration](../concepts/architecture/04-resources.md).
 - **Resource**: something a skill reserves to run (the arm, the gripper, the camera). Two skills cannot hold the same resource. A failure makes a resource unavailable.
 - **Sensor**: a device that measures: camera, IMU (motion), lidar (distance), force-torque.
 - **Robot clock**: the time of a robot, given by its backend after each step: the simulated time, or the stamp of the last reading on hardware.
 - **SI units**: metres, seconds, radians, newtons. The types carry them (`Seconds`, `Radians`...), so a length cannot be given for an angle.
+- **Smooth move (quintic, rest-to-rest)**: a move of a joint that starts and ends at zero speed, with no jerk; its curve is a polynomial of degree 5. The teach pendant replays waypoints this way.
+- **Teach pendant**: the hand-held box an operator uses to jog a robot, save waypoints and replay them. RobotIK has one in the simulator and in C++ (`TeachPendant`). See [The teach pendant](../concepts/07-teach-pendant.md).
 - **TCP (tool centre point)**: the working point of the tool (the tip of the brush, the centre of the suction cup).
 - **URDF**: an XML file that describes a robot: its links, joints and shapes.
+- **Waypoint**: a position of the robot saved to come back to it: the value of every joint, a name and the time to reach it.
 
 ## 📦 Assets and packages
 

@@ -70,7 +70,7 @@ std::size_t JointHistory::latest() const
 
 void JointHistory::record(robotik::Simulation const& p_simulation)
 {
-    robotik::JointSet const& joints = p_simulation.cell().robot().joints();
+    robotik::JointSet const& joints = p_simulation.cell().robot().getJoints();
     std::size_t const size = joints.size();
     if (position.size() != size || time.size() != CAPACITY)
     {
@@ -118,7 +118,7 @@ static void report(robotik::Simulation const& p_simulation)
 {
     robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     robotik::ResourceManager const& resources =
-        p_simulation.cell().robot().resources();
+        p_simulation.cell().robot().getResources();
     for (robotik::SkillRun const& run : skills.trace())
     {
         if (run.state == robotik::SkillState::Succeeded)
@@ -185,7 +185,7 @@ void App::load(bool p_keep_tool)
     owns_clock = false;
     teach.manual = false;
     teach.pendant.clear();
-    teach.pendant.frame({});
+    teach.pendant.setFrame({});
     teach.markers.clear();
     teach.axes_made = false;
     if (!p_keep_tool)
@@ -285,9 +285,9 @@ void App::load(bool p_keep_tool)
     if (ui.workspace == Workspace::Robot &&
         !simulation->cell().robots().empty())
         ui.selection = { SelectionKind::Robot,
-                         simulation->cell().robots().front()->id() };
+                         simulation->cell().robots().front()->getId() };
     seed = simulation->seed().value;
-    ui.plotted.assign(simulation->cell().robot().joints().size(), false);
+    ui.plotted.assign(simulation->cell().robot().getJoints().size(), false);
     if (!ui.plotted.empty())
         ui.plotted.front() = true;
     ui.place_plugin_panels = true;

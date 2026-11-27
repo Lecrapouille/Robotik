@@ -31,12 +31,12 @@ namespace robotik
 {
 
 class Robot;
-class RobotSession;
+class RobotRuntime;
 
 // ****************************************************************************
 /// Base class of the actuators.
 ///
-/// An actuator is added with @c robot.actuators().add<T>(name, ...); the set
+/// An actuator is added with @c runtime.addActuator<T>(name, ...); the set
 /// calls @ref bind, and the robot calls @ref disable when its resource
 /// fails.
 ///
@@ -55,12 +55,6 @@ class Actuator
 public:
 
     virtual ~Actuator() = default;
-
-    /// @return Actuator name, also the name of its resource.
-    [[nodiscard]] std::string const& name() const
-    {
-        return m_name;
-    }
 
     // -------------------------------------------------------------------------
     /// Resolves joints and frames once the robot is loaded.
@@ -81,6 +75,12 @@ public:
         /* no-op */
     }
 
+    /// @return Actuator name, also the name of its resource.
+    [[nodiscard]] std::string const& name() const
+    {
+        return m_name;
+    }
+
 protected:
 
     /// @param p_name Actuator name, unique in the world.
@@ -96,7 +96,7 @@ private:
 /// One rotary motor driving one revolute joint (a wheel, a pan axis).
 ///
 /// @code
-/// auto& left = robot.actuators().add<robotik::Motor>("left_motor",
+/// auto& left = runtime.addActuator<robotik::Motor>("left_motor",
 ///                                                    "left_wheel_joint");
 /// left.spin(AngularVelocity(4.0));
 /// @endcode
@@ -155,7 +155,7 @@ private:
 /// order of @ref joints, like an IK solution.
 ///
 /// @code
-/// auto& arm = robot.actuators().add<robotik::JointGroup>(
+/// auto& arm = runtime.addActuator<robotik::JointGroup>(
 ///     "arm", std::vector<std::string>{ "joint1", "joint2", "joint3" });
 /// arm.moveTo(std::vector<double>{ 0.0, 0.4, -0.2 });
 /// if (arm.reached(0.01)) { ... }
@@ -176,15 +176,6 @@ public:
     /// A failed group brakes where it is.
     void disable(Robot& p_robot) override;
 
-    /// @return The joints of the group, in command order.
-    [[nodiscard]] std::span<JointId const> joints() const
-    {
-        return m_joints;
-    }
-
-    /// @return True when @p_joint belongs to the group.
-    [[nodiscard]] bool contains(JointId p_joint) const;
-
     // -------------------------------------------------------------------------
     /// Servos every joint of the group.
     /// @param p_positions One target per joint of the group, in @ref joints
@@ -197,6 +188,15 @@ public:
     ///   slower than @p_speed (see @ref JointSet::reached).
     [[nodiscard]] bool reached(double p_tolerance,
                                double p_speed = SETTLED_SPEED) const;
+
+    /// @return The joints of the group, in command order.
+    [[nodiscard]] std::span<JointId const> joints() const
+    {
+        return m_joints;
+    }
+
+    /// @return True when @p_joint belongs to the group.
+    [[nodiscard]] bool contains(JointId p_joint) const;
 
 private:
 
@@ -221,7 +221,7 @@ private:
 /// assertions of the scenario, which read the truth.
 ///
 /// @code
-/// auto* cup = robot.actuators().first<robotik::VacuumGripper>();
+/// auto* cup = robot.getActuators().first<robotik::VacuumGripper>();
 /// cup->suction(true);           // the grasp model attaches what touches it
 /// if (cup->holding())
 ///     cup->label("red_cube");   // what the program went to take
@@ -258,16 +258,30 @@ public:
         m_suction = p_on;
     }
 
-    /// @return True when the pump is commanded on.
-    [[nodiscard]] bool suction() const
-    {
-        return m_suction;
-    }
-
     /// @return True when an object is held (measured).
     [[nodiscard]] bool holding() const
     {
         return m_holding;
+    }
+
+    // -------------------------------------------------------------------------
+    /// @param p_robot Robot carrying the gripper.
+    /// @return Flange pose in the robot base frame.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Pose flange(Robot const& p_robot) const;
+
+    // -------------------------------------------------------------------------
+    /// @param p_robot Robot carrying the gripper.
+    /// @param p_extra Distance beyond the cup, along +Z of the flange.
+    /// @return Cup tip in the robot base frame, @p_extra beyond the cup.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Vector3 tip(Robot const& p_robot,
+                              Length p_extra = Length(0.0)) const;
+
+    /// @return True when the pump is commanded on.
+    [[nodiscard]] bool suction() const
+    {
+        return m_suction;
     }
 
     // -------------------------------------------------------------------------
@@ -299,24 +313,10 @@ public:
         return m_length;
     }
 
-    // -------------------------------------------------------------------------
-    /// @param p_robot Robot carrying the gripper.
-    /// @return Flange pose in the robot base frame.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] Pose flange(Robot const& p_robot) const;
-
-    // -------------------------------------------------------------------------
-    /// @param p_robot Robot carrying the gripper.
-    /// @param p_extra Distance beyond the cup, along +Z of the flange.
-    /// @return Cup tip in the robot base frame, @p_extra beyond the cup.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] Vector3 tip(Robot const& p_robot,
-                              Length p_extra = Length(0.0)) const;
-
 private:
 
-    // The session writes the measured vacuum (RobotSession::measureHolding).
-    friend class RobotSession;
+    // The runtime writes the measured vacuum (RobotRuntime::measureHolding).
+    friend class RobotRuntime;
 
     // -------------------------------------------------------------------------
     /// Writes the measured vacuum. Losing the vacuum clears the @ref label.

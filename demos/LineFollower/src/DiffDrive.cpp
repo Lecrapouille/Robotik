@@ -65,40 +65,44 @@ DiffDriveBackend::DiffDriveBackend(std::string p_left,
 {
 }
 
-void DiffDriveBackend::attach(robotik::RobotSession& p_robot)
+void DiffDriveBackend::attach(robotik::RobotRuntime& p_robot)
 {
-    m_left = p_robot.joints().require(m_left_name);
-    m_right = p_robot.joints().require(m_right_name);
+    m_left = p_robot.robot().getJoints().requireRevolute(m_left_name);
+    m_right = p_robot.robot().getJoints().requireRevolute(m_right_name);
 }
 
-void DiffDriveBackend::reset(robotik::RobotSession& p_robot)
+void DiffDriveBackend::reset(robotik::RobotRuntime& p_robot)
 {
     m_truth = m_start;
     m_speeds[0] = 0.0;
     m_speeds[1] = 0.0;
-    robotik::JointSet& joints = p_robot.joints();
-    p_robot.measureJoint(m_left, joints.position(m_left), 0.0);
-    p_robot.measureJoint(m_right, joints.position(m_right), 0.0);
+    robotik::JointSet& joints = p_robot.robot().getJoints();
+    p_robot.measureJoint(
+        m_left, joints.position(m_left), robotik::AngularVelocity(0.0));
+    p_robot.measureJoint(
+        m_right, joints.position(m_right), robotik::AngularVelocity(0.0));
     p_robot.measureBase({ pose(), {} });
 }
 
-void DiffDriveBackend::step(robotik::RobotSession& p_robot,
+void DiffDriveBackend::step(robotik::RobotRuntime& p_robot,
                             robotik::Seconds p_dt)
 {
-    robotik::JointSet& joints = p_robot.joints();
+    robotik::JointSet& joints = p_robot.robot().getJoints();
     double const dt = p_dt.value();
     double const blend = 1.0 - std::exp(-dt / WHEEL_TIME_CONSTANT_S);
-    robotik::JointId const ids[2] = { m_left, m_right };
+    robotik::Revolute const wheels[2] = { m_left, m_right };
     for (int i = 0; i < 2; ++i)
     {
         // A disabled or position controlled wheel brakes.
+        robotik::Revolute const wheel = wheels[i];
         double const target =
-            joints.mode(ids[i]) == robotik::JointMode::Velocity
-                ? joints.target(ids[i])
+            joints.mode(wheel.id) == robotik::JointMode::Velocity
+                ? joints.target(wheel.id)
                 : 0.0;
         m_speeds[i] += (target - m_speeds[i]) * blend;
+        robotik::AngularVelocity const speed_i(m_speeds[i]);
         p_robot.measureJoint(
-            ids[i], joints.position(ids[i]) + m_speeds[i] * dt, m_speeds[i]);
+            wheel, joints.position(wheel) + speed_i * p_dt, speed_i);
     }
     double speed = 0.0;
     double yaw_rate = 0.0;
@@ -110,5 +114,6 @@ void DiffDriveBackend::step(robotik::RobotSession& p_robot,
 robotik::Pose DiffDriveBackend::pose() const
 {
     return { { m_truth.x, m_truth.y, m_geometry.height },
-             robotik::Quaternion::fromAngleAxis(robotik::Radians(m_truth.yaw), { 0.0, 0.0, 1.0 }) };
+             robotik::Quaternion::fromAngleAxis(robotik::Radians(m_truth.yaw),
+                                                { 0.0, 0.0, 1.0 }) };
 }

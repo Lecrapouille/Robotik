@@ -7,7 +7,7 @@
 
 #include "RobotIK/Robot/Sensors/Imu.hpp"
 
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -61,16 +61,16 @@ void Imu::deliver(Seconds p_now)
     }
 }
 
-bool Imu::sample(RobotSession const& p_robot, Seconds p_now)
+bool Imu::sample(RobotRuntime const& p_robot, Seconds p_now)
 {
     if (!m_resolved)
     {
-        m_link = p_robot.requireLink(m_config.parent);
-        m_holder = m_config.parent.empty() ? p_robot.root()
-                                           : p_robot.link(m_config.parent);
+        m_link = p_robot.robot().requireLink(m_config.parent);
+        m_holder = m_config.parent.empty() ? p_robot.getRoot()
+                                           : p_robot.getLink(m_config.parent);
         m_resolved = true;
     }
-    Pose const pose = p_robot.trueWorldPose(m_link) * m_config.mount;
+    Pose const pose = p_robot.getTrueWorldPose(m_link) * m_config.mount;
     Vector3 velocity = Vector3::ZERO;
     Vector3 acceleration = Vector3::ZERO;
     Vector3 angular_velocity = Vector3::ZERO;

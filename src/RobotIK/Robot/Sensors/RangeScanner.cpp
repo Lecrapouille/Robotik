@@ -8,7 +8,7 @@
 #include "RobotIK/Robot/Sensors/RangeScanner.hpp"
 
 #include "RobotIK/Robot/Components/Objects.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -89,16 +89,16 @@ void RangeScanner::deliver(Seconds p_now)
     }
 }
 
-bool RangeScanner::sample(RobotSession const& p_robot, Seconds p_now)
+bool RangeScanner::sample(RobotRuntime const& p_robot, Seconds p_now)
 {
     if (!m_resolved)
     {
-        m_link = p_robot.requireLink(m_config.parent);
-        m_holder = m_config.parent.empty() ? p_robot.root()
-                                           : p_robot.link(m_config.parent);
+        m_link = p_robot.robot().requireLink(m_config.parent);
+        m_holder = m_config.parent.empty() ? p_robot.getRoot()
+                                           : p_robot.getLink(m_config.parent);
         m_resolved = true;
     }
-    Pose const pose = p_robot.trueWorldPose(m_link) * m_config.mount;
+    Pose const pose = p_robot.getTrueWorldPose(m_link) * m_config.mount;
     double const max_range = m_config.max_range.value();
     double const fov = m_config.field_of_view.value();
     bool const full_turn = fov >= 2.0 * std::numbers::pi - 1e-9;
@@ -110,7 +110,7 @@ bool RangeScanner::sample(RobotSession const& p_robot, Seconds p_now)
 
     // Scene objects are axis-aligned boxes at their world position.
     std::vector<Box> boxes;
-    p_robot.world().each<ecs::Shape>(
+    p_robot.getWorld().each<ecs::Shape>(
         [&boxes](compages::world::Entity p_entity, ecs::Shape const& p_object)
         {
             if (p_entity.find<ecs::Decoration>() != nullptr)
@@ -127,7 +127,7 @@ bool RangeScanner::sample(RobotSession const& p_robot, Seconds p_now)
             boxes.push_back({ c - half, c + half });
         });
 
-    RobotBackend const* backend = p_robot.backend();
+    PhysicsWorld const* physics = p_robot.getPhysics();
     RangeScan scan;
     scan.ranges.resize(m_config.beams);
     for (std::uint32_t i = 0; i < m_config.beams; ++i)
@@ -136,11 +136,11 @@ bool RangeScanner::sample(RobotSession const& p_robot, Seconds p_now)
         Vector3 const direction =
             pose.rotation * Vector3(std::cos(angle), std::sin(angle), 0.0);
         double range = max_range;
-        if (backend != nullptr)
+        if (physics != nullptr)
         {
             range =
                 std::min(range,
-                         backend->raycast(pose.position, direction, max_range)
+                         physics->raycast(pose.position, direction, max_range)
                              .value_or(max_range));
         }
         for (Box const& box : boxes)

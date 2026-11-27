@@ -36,7 +36,7 @@
 namespace robotik
 {
 
-class RobotSession;
+class RobotRuntime;
 class VacuumGripper;
 
 // ****************************************************************************
@@ -71,15 +71,15 @@ public:
 
     // ------------------------------------------------------------------------
     /// @p_gripper holds @p_object (an invalid id is the same as @ref drop).
-    /// @param p_robot Session of the robot carrying the gripper: it writes
+    /// @param p_robot Runtime of the robot carrying the gripper: it writes
     ///   the measured vacuum.
     // ------------------------------------------------------------------------
-    void hold(RobotSession& p_robot,
+    void hold(RobotRuntime& p_robot,
               VacuumGripper& p_gripper,
               compages::world::EntityId p_object);
 
     /// @p_gripper of @p_robot holds nothing.
-    void drop(RobotSession& p_robot, VacuumGripper& p_gripper);
+    void drop(RobotRuntime& p_robot, VacuumGripper& p_gripper);
 
 private:
 
@@ -114,7 +114,7 @@ public:
     /// @param p_robot Robot whose grippers are updated.
     /// @param p_held What each gripper holds, shared by the models.
     // ------------------------------------------------------------------------
-    virtual void update(RobotSession& p_robot, HeldObjects& p_held) = 0;
+    virtual void update(RobotRuntime& p_robot, HeldObjects& p_held) = 0;
 };
 
 // ****************************************************************************
@@ -135,7 +135,7 @@ class AbstractGrasp final: public GraspModel
 public:
 
     /// Attaches, carries or drops the shapes without physics.
-    void update(RobotSession& p_robot, HeldObjects& p_held) override;
+    void update(RobotRuntime& p_robot, HeldObjects& p_held) override;
 };
 
 // ****************************************************************************
@@ -189,7 +189,7 @@ public:
                                               std::string const& p_object);
 
     /// Turns the welds on or off from the suction of each gripper.
-    void update(RobotSession& p_robot, HeldObjects& p_held) override;
+    void update(RobotRuntime& p_robot, HeldObjects& p_held) override;
 
 private:
 

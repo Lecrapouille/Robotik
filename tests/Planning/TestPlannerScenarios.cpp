@@ -101,7 +101,8 @@ TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
               simulation.cell().planner()->plan().size());
 
     // The generated tree runs the bound skills, then checks each step.
-    std::string const& tree = simulation.cell().planner()->history().front().tree;
+    std::string const& tree =
+        simulation.cell().planner()->history().front().tree;
     EXPECT_NE(tree.find("\"Grasp(red_cube)\""), std::string::npos) << tree;
     EXPECT_NE(tree.find("\"Check 2. (pick red_cube)\""), std::string::npos)
         << tree;
@@ -230,10 +231,15 @@ TEST(PlannerScenario, PlannerRefusesAnUnknownMethod)
 
 TEST(PlannerScenario, ScenarioRefusesATreeAndAPlanner)
 {
-    robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
-        "demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml")).take();
-    EXPECT_TRUE(robotik::overrideValue(source, "scenario.controller.behavior_tree",
-                    robotik::ConfigNode("scenarios/pick_and_place.bt.yaml")));
+    robotik::ScenarioSource source =
+        robotik::loadScenarioSource(
+            repoFile("demos/PickAndPlace/scenarios/"
+                     "pick_and_place_pddl.scenario.yaml"))
+            .take();
+    EXPECT_TRUE(robotik::overrideValue(
+        source,
+        "scenario.controller.behavior_tree",
+        robotik::ConfigNode("scenarios/pick_and_place.bt.yaml")));
     EXPECT_FALSE(robotik::readScenario(source, testAssets()));
 }
 
@@ -265,7 +271,7 @@ TEST(PlannerScenario, BeliefAssertionsSeeAWrongLabelWhenItHappens)
     EXPECT_LT(seen.value, 1e-6);
 
     // Step until the cup holds the cube and says so.
-    auto* cup = cell.robot().actuators().first<robotik::VacuumGripper>();
+    auto* cup = cell.robot().getActuators().first<robotik::VacuumGripper>();
     ASSERT_NE(cup, nullptr);
     while (cup->label().empty() && simulation.time() < robotik::Seconds(30.0))
     {

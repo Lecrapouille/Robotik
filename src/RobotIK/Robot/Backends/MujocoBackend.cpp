@@ -7,7 +7,7 @@
 
 #include "RobotIK/Robot/Backends/MujocoBackend.hpp"
 
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 
 #include <mujoco/mujoco.h>
 
@@ -36,7 +36,7 @@ namespace robotik
 /// One robot bound to the backend: its MuJoCo names start with @c prefix.
 struct MujocoBackend::Member
 {
-    RobotSession* robot = nullptr;
+    RobotRuntime* robot = nullptr;
     std::string prefix;
     struct Binding
     {
@@ -941,12 +941,12 @@ void MujocoBackend::compile()
     m_impl->dirty = false;
 }
 
-void MujocoBackend::attach(RobotSession& p_robot)
+void MujocoBackend::attach(RobotRuntime& p_robot)
 {
     join(p_robot, "");
 }
 
-void MujocoBackend::join(RobotSession& p_robot, std::string const& p_prefix)
+void MujocoBackend::join(RobotRuntime& p_robot, std::string const& p_prefix)
 {
     if (m_impl->model == nullptr || m_impl->dirty)
     {
@@ -968,7 +968,7 @@ void MujocoBackend::join(RobotSession& p_robot, std::string const& p_prefix)
 void MujocoBackend::bind(Member& p_member)
 {
     mjModel const* model = m_impl->model;
-    JointSet const& joints = p_member.robot->joints();
+    JointSet const& joints = p_member.robot->robot().getJoints();
     p_member.bindings.assign(joints.size(), Member::Binding{});
     for (JointId id = 0; id < joints.size(); ++id)
     {
@@ -1025,7 +1025,7 @@ void MujocoBackend::bind(Member& p_member)
     }
 }
 
-void MujocoBackend::reset(RobotSession& /*p_robot*/)
+void MujocoBackend::reset(RobotRuntime& /*p_robot*/)
 {
     mjModel* model = m_impl->model;
     mjData* data = m_impl->data;
@@ -1034,7 +1034,7 @@ void MujocoBackend::reset(RobotSession& /*p_robot*/)
     // Every bound robot: resetting one must not move the others.
     for (Member const& member : m_impl->members)
     {
-        Pose const& base = member.robot->trueBase().pose;
+        Pose const& base = member.robot->getTrueBase().pose;
         double const position[3] = { base.position.x,
                                      base.position.y,
                                      base.position.z };
@@ -1052,7 +1052,7 @@ void MujocoBackend::reset(RobotSession& /*p_robot*/)
             mju_copy(model->body_quat + 4 * member.root, quaternion, 4);
         }
 
-        JointSet const& joints = member.robot->joints();
+        JointSet const& joints = member.robot->robot().getJoints();
         for (JointId id = 0; id < member.bindings.size(); ++id)
         {
             if (member.bindings[id].qpos >= 0)
@@ -1074,7 +1074,7 @@ std::optional<Seconds> MujocoBackend::time() const
     return Seconds(m_impl->data->time);
 }
 
-void MujocoBackend::step(RobotSession& p_robot, Seconds p_dt)
+void MujocoBackend::step(RobotRuntime& p_robot, Seconds p_dt)
 {
     std::vector<Member>& members = m_impl->members;
     if (members.empty() || members.front().robot != &p_robot)
@@ -1117,7 +1117,7 @@ void MujocoBackend::step(RobotSession& p_robot, Seconds p_dt)
         }
         for (Member const& member : members)
         {
-            JointSet& joints = member.robot->joints();
+            JointSet& joints = member.robot->robot().getJoints();
             joints.control(Seconds(timestep));
             for (JointId id = 0; id < member.bindings.size(); ++id)
             {
@@ -1148,8 +1148,18 @@ void MujocoBackend::step(RobotSession& p_robot, Seconds p_dt)
                 Member::Binding const& binding = member.bindings[id];
                 if (binding.qpos >= 0)
                 {
-                    member.robot->measureJoint(
-                        id, data->qpos[binding.qpos], data->qvel[binding.dof]);
+                    double const q = data->qpos[binding.qpos];
+                    double const v = data->qvel[binding.dof];
+                    if (member.robot->robot().getJoints().isPrismatic(id))
+                    {
+                        member.robot->measureJoint(
+                            Prismatic{ id }, Length(q), LinearVelocity(v));
+                    }
+                    else
+                    {
+                        member.robot->measureJoint(
+                            Revolute{ id }, Radians(q), AngularVelocity(v));
+                    }
                 }
             }
         }
@@ -1300,7 +1310,7 @@ std::optional<Wrench> MujocoBackend::wrench(std::string const& p_link) const
 /// One robot of a world shared with others: forwards to the shared
 /// backend, with the MuJoCo names of its chain.
 // ****************************************************************************
-class MujocoMember final: public RobotBackend
+class MujocoMember final: public RobotBackend, public PhysicsWorld
 {
 public:
 
@@ -1309,17 +1319,17 @@ public:
     {
     }
 
-    void attach(RobotSession& p_robot) override
+    void attach(RobotRuntime& p_robot) override
     {
         m_physics->join(p_robot, m_prefix);
     }
 
-    void reset(RobotSession& p_robot) override
+    void reset(RobotRuntime& p_robot) override
     {
         m_physics->reset(p_robot);
     }
 
-    void step(RobotSession& p_robot, Seconds p_dt) override
+    void step(RobotRuntime& p_robot, Seconds p_dt) override
     {
         m_physics->step(p_robot, p_dt);
     }

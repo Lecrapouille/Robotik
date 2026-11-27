@@ -7,7 +7,7 @@ The classes a plugin author uses, grouped by task. For each one: the header, wha
 Conventions in the code:
 
 - namespace `robotik`; units from `RobotIK/Common/Math.hpp` (`Seconds`, `Radians`, …), the same types as Compages (`compages::si`);
-- headers are in three layers (see [Architecture](../concepts/06-architecture.md) and the [glossary](glossary.md)): `RobotIK/Robot/` (one robot), `RobotIK/Task/` (a job in C++), `RobotIK/Package/` (files and plugins), plus `RobotIK/Common/`;
+- headers are in three layers (see [Architecture](../concepts/architecture/README.md) and the [glossary](glossary.md)): `RobotIK/Robot/` (one robot), `RobotIK/Task/` (a job in C++), `RobotIK/Package/` (files and plugins), plus `RobotIK/Common/`;
 - reading a file returns a `Result` (`if (!r) … r.error()`, then `r.value()` or `r.take()`); a mistake in the code throws;
 - parameters start with `p_`, members with `m_`;
 - SI units everywhere: metres, radians, seconds, newtons;
@@ -130,8 +130,9 @@ Header: `RobotIK/Task/RoboticCell.hpp`. The robot cell: robots, objects, one phy
 
 | Method | Returns |
 |--------|---------|
-| `robot()` | `RobotSession&` of the first robot: joints, sensors, actuators, resources, kinematics |
-| `robot(id)`, `robots()` | One robot by its entity id (or null), every robot in file order |
+| `robot()` | `Robot&` of the first robot, as its skills see it: joints, sensors (read only), actuators, kinematics |
+| `robot(id)`, `robots()` | One robot by its entity id (or null), every robot in file order (`Robot const*`) |
+| `runtime()`, `runtime(id)`, `runtimes()` | The same robots, as `RobotRuntime`: true base, backend, entities, writable sensors (for `simulate` and `observe`) |
 | `skills()` | `SkillScheduler&` |
 | `worldModel()` | `WorldModel&`: the beliefs |
 | `perception()` | `PerceptionPipeline&`: add detectors here |
@@ -158,7 +159,7 @@ Header: `RobotIK/Task/RoboticCell.hpp`. The robot cell: robots, objects, one phy
 | `time()` | Simulated time (`Seconds`) |
 | `seed()` | Seed of the current episode |
 | `reset(Seed)`, `reset()` | New episode (scenario seed by default) |
-| `step(Seconds dt)` | One step (see [One simulation step](../concepts/06-architecture.md#-one-simulation-step)) |
+| `step(Seconds dt)` | One step (see [One simulation step](../concepts/architecture/01-decision-path.md#-one-simulation-step)) |
 | `status()`, `stopController()` | State of the controller (tree, plan or scenario logic); stop ticking it |
 | `perceptionOf("id")`, `perceptionSummary()` | Perception fidelity of an object (`truth`, `noisy_truth`, `sensed`) and of the run |
 | *Simulation* `finished()`, `outcome()` | Has the run ended, and why (`ControllerSucceeded`, `Timeout`, `StopCondition`, …) |
@@ -188,26 +189,54 @@ Header: `RobotIK/Task/RoboticCell.hpp`. The robot cell: robots, objects, one phy
 
 ## 🤖 Robot and joints
 
-Headers: `RobotIK/Robot/Robot.hpp` (skills), `RobotIK/Robot/RobotSession.hpp` (the program that runs the robot), `RobotIK/Robot/Joints.hpp`.
+Headers: `RobotIK/Robot/Robot.hpp` (skills), `RobotIK/Robot/RobotRuntime.hpp` (the program that runs the robot), `RobotIK/Robot/RobotModel.hpp`, `RobotIK/Robot/Joints.hpp`.
 
-### 🤖 `Robot` (and `RobotSession`)
+### 🤖 `Robot` (what a skill gets)
 
 | Method | Returns / does |
 |--------|----------------|
-| `name()` | Name of the robot |
-| `joints()` | `JointSet&` |
-| `sensors()`, `actuators()` | Device sets, by name or by type |
-| `resources()` | `ResourceManager&` |
-| `time()` | Robot clock |
-| `tool()` | Working frame: `tcp` with a tool, `tool0` without |
-| `framePose("frame")` | **Forward kinematics**: pose of a frame in the robot base frame |
-| `worldPose("frame")` | Same, in the world frame |
+| `getName()` | Name of the robot (URDF); `getId()` its id in the world |
+| `getJoints()` | `JointSet&` |
+| `getSensors()` | `SensorSet const&`: find and read, never change a sensor |
+| `getActuators()` | `ActuatorSet&`: find and command (no `add`) |
+| `getModel()` | `RobotModel const&`: name, URDF, work frame, joint names (does not change) |
+| `getResources()` | `ResourceManager const&` |
+| `getTime()` | Robot clock |
+| `getTool()` | Working frame: `tcp` with a tool, `tool0` without |
+| `requireFramePose("frame")` | **Forward kinematics**: pose of a frame in the robot base frame |
+| `requireWorldPose("frame")` | Same, in the world frame |
 | `inverseKinematics("frame", Pose[, IkGoal])` | **Inverse kinematics**: `std::optional<std::vector<double>>`, one value per joint. `IkGoal::Position` or `Orientation` places only that part, for a link with fewer than six joints above it (the closest reachable one) |
-| `kinematics()` | The `PinocchioBackend`, read only (Jacobians…) |
-| `base()` | State of a mobile base |
-| `requireLink("frame")`, `worldPose(link)` | A link found once, then its pose with no search |
+| `getKinematics()` | The `Kinematics`, read only (Jacobians…) |
+| `getBase()` | Estimated state of a mobile base |
+| `requireLink("frame")`, `getWorldPose(link)` | A link found once, then its pose with no search |
 
-`RobotSession` adds `connect(backend)`, `hold(posture)`, `step(dt)`, `reset()` (used by `RoboticCell`). It also gives what only the simulator side may touch: `world()`, `root()`, `link("name")` (ECS entities), `backend()`, `urdfFrame()`, the writable `kinematics()` and `measureBase(state)`. And what a skill must not write because it is measured or decided outside the program: `measureJoint(id, q, v)`, `placeJoint(id, q)`, `measureHolding(cup, on)`, the writable `resources()` (faults), `sensors().add<T>()`, `actuators().add<T>()` and `identify(id)`. The `Robot` of a skill gives `SensorList`/`ActuatorList` (find, read, command) and a read-only `resources()`. A skill receives a `Robot&`, so it has none of them; `make check-layers` compiles `Task/Skills` and `Task/Planning` without `RobotSession.hpp`. Sensors (`sample(RobotSession const&, now)`), backends and grasp models receive the session.
+### ⚙ `RobotRuntime` (what runs the robot)
+
+`RobotRuntime` owns the `Robot` and lends it with `robot()`: it is not a base class of it, so a skill cannot cast its `Robot&` to the runtime. The `Robot` does not store the world, the entities, the backend nor the true base: they are in the runtime only.
+
+| Method | Returns / does |
+|--------|----------------|
+| `robot()` | The `Robot&` to give to the skills |
+| `connect(backend)`, `step(dt)` (= `prepare`, `advance`, `sense`), `reset()`, `hold(posture)`, `setStartPose(pose)` | Run the robot (used by `RoboticCell`) |
+| `addSensor<T>(name, …)`, `addActuator<T>(name, …)` | The only way to add a device |
+| `getSensors()` | Writable `SensorSet&`: image source, noise seed, readings |
+| `getResources()`, `getKinematics()` | Writable (faults, tool change) |
+| `measureJoint(joint, q, v)`, `placeJoint(joint, q)` | What the encoders read (typed: a `Revolute` takes `Radians`, a `Prismatic` takes `Length`) |
+| `measureHolding(cup, on)`, `measureBase(state)`, `estimateBase(state)` | What the vacuum sensor, the backend and a localization write |
+| `getTrueBase()`, `getTrueWorldPose(link)`, `requireTrueWorldPose("frame")` | The truth, for sensors and checks |
+| `getWorld()`, `getRoot()`, `getLink("name")`, `getJointLink(id)`, `getUrdfFrame()` | ECS entities (rendering) |
+| `getBackend()` | The `RobotBackend`, or null |
+| `getPhysics()` | The `PhysicsWorld` (rays, contacts, body poses, welds), null on hardware |
+| `getHealth()` | `RobotBackend::Health` after the last step: while not `ok`, the actuators are failed resources |
+| `setId(id)`, `setLocalization(fidelity)` | Identity and who writes the estimated base |
+
+`make check-layers` compiles `Task/Skills` and `Task/Planning` without `RobotRuntime.hpp`; `tests/Robot/TestSkillAccess.cpp` checks with the compiler that a `Robot&` cannot change a sensor, add a device, reach an entity, nor command a robot of `RobotContext::team`. Sensors (`update(RobotRuntime&, now)`), backends and grasp models receive the runtime.
+
+In a `RoboticCell`, `robot()`, `robot(id)` and `robots()` give the `Robot` of the skills; `runtime()`, `runtime(id)` and `runtimes()` give what runs them.
+
+### 🔌 `RobotBackend` and `PhysicsWorld`
+
+`RobotBackend` is the hardware abstraction layer of one robot: `attach`, `reset`, `step(dt)`, `time()`, `getHealth()`. A driver for real hardware implements it alone. `PhysicsWorld` is what only a simulator knows: `raycast`, `wrench`, `bodyPose`, `contactList`, `contacts`, `weld`, `placeBody`. `MujocoBackend` implements both.
 
 ### 🧮 `JointSet`
 
@@ -241,7 +270,7 @@ robotik::Prismatic const k = joints.requirePrismatic("rail");  // typed handle, 
 Header: `RobotIK/Robot/Actuators.hpp`. Declared in the world file; each one is also a resource.
 
 ```cpp
-auto* group = p_simulation.robot().actuators().first<robotik::JointGroup>();
+auto* group = p_simulation.robot().getActuators().first<robotik::JointGroup>();
 ```
 
 | Class | YAML `type` | Main methods |

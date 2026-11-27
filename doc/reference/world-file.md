@@ -161,7 +161,7 @@ Rules:
 - The names of the sensors and actuators are **unique in the world** (`left_arm`, `right_arm`): they are the names of the resources, and the robots share the resource manager. A second `gripper` is refused when the world is loaded.
 - Each robot keeps the names of its own URDF: both arms have a `joint1`. In the same way, two `body` entities may use the same model (the two stands of the tray cell).
 - A `joint_group` without `joints` takes every joint of the robot, the joints of its tool too (the spindle of a drill). List the arm joints when the tool has joints of its own.
-- The first robot of the file is `RoboticCell::robot()`. The others are `RoboticCell::robot("right")`; all of them are `RoboticCell::robots()`.
+- The first robot of the file is `RoboticCell::robot()`. The others are `RoboticCell::robot("right")`; all of them are `RoboticCell::robots()`. What runs each one (true base, backend) is `RoboticCell::runtime("right")`.
 - The skills of the core are named after the robot: `left.Home`, `right.Stop`. With one robot they stay `Home` and `Stop`.
 - The queries take the robot id: `pose(right.tcp)`, `(collision_count left)`, `(joint_limits_respected right)`. A contact with the other robot is a collision.
 - The shared beliefs are in the **world frame** (with one robot, they stay in its base frame: see [Truth, description and belief](../concepts/02-worlds-scenarios-experiments.md#-truth-description-and-belief)).

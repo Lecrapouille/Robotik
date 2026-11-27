@@ -15,7 +15,9 @@
 /// @li the Compages joint components (@c compages::world::RevoluteJoint,
 ///     @c PrismaticJoint) on the link entities — limits loaded from the URDF,
 ///     and a mirror of the measured state (position, velocity, effort) for
-///     rendering and inspection, refreshed after each step.
+///     rendering and inspection, refreshed after each step by the
+///     @ref robotik::RobotRuntime. The joint set does not know the entities:
+///     a skill that holds it cannot reach the world.
 ///
 /// The public API is typed with SI units: a revolute joint is addressed by a
 /// @ref robotik::Revolute handle and speaks @c Radians, @c AngularVelocity and
@@ -34,7 +36,6 @@
 ///   @c std::invalid_argument: it is a mistake in the code.
 #pragma once
 
-#include "Compages/World/Entity.hpp"
 #include "Compages/World/Kinematics/Joint.hpp"
 #include "RobotIK/Common/Math.hpp"
 #include "RobotIK/Robot/Resources.hpp"
@@ -227,12 +228,12 @@ inline constexpr double SETTLED_SPEED = 0.05;
 ///
 /// Skills write commands (@ref moveTo, @ref spin, @ref push); the backend
 /// runs @ref control, writes the measurements with
-/// @ref RobotSession::measureJoint, and the robot calls @ref publish for the
-/// view. A skill cannot write a measurement, a home or a placed position:
-/// those are private, reached through the session only.
+/// @ref RobotRuntime::measureJoint, and the runtime copies them to the drawn
+/// links. A skill cannot write a measurement, a home or a placed position:
+/// those are private, reached through the runtime only.
 ///
 /// @code
-/// robotik::JointSet& joints = robot.joints();
+/// robotik::JointSet& joints = robot.getJoints();
 /// robotik::Revolute const elbow = joints.requireRevolute("joint3");
 /// joints.moveTo(elbow, Radians(0.8));
 /// if (joints.reached(elbow, Radians(0.01))) { ... }
@@ -245,18 +246,7 @@ class JointSet
 public:
 
     // -------------------------------------------------------------------------
-    /// Appends the joint carried by a link, reading its type and its limits
-    /// from the Compages joint component (filled from the URDF).
-    /// @param p_name Joint name, unique in the robot.
-    /// @param p_link Link entity carrying the joint component.
-    /// @return The id of the new joint.
-    /// @throws std::invalid_argument if @p_link has no joint component or the
-    ///   name is taken.
-    // -------------------------------------------------------------------------
-    JointId add(std::string p_name, compages::world::Entity p_link);
-
-    // -------------------------------------------------------------------------
-    /// Appends a revolute joint without rendered link (tests, drivers).
+    /// Appends a revolute joint.
     /// @param p_name Joint name, unique in the robot.
     /// @param p_limits Position, speed and torque limits.
     /// @param p_continuous True for a joint without position limits.
@@ -268,7 +258,7 @@ public:
                  bool p_continuous = false);
 
     // -------------------------------------------------------------------------
-    /// Appends a prismatic joint without rendered link (tests, drivers).
+    /// Appends a prismatic joint.
     /// @param p_name Joint name, unique in the robot.
     /// @param p_limits Position, speed and force limits.
     /// @return The handle of the new joint.
@@ -276,13 +266,76 @@ public:
     // -------------------------------------------------------------------------
     Prismatic add(std::string p_name, PrismaticLimits const& p_limits);
 
+    // --- Commands (typed) ---------------------------------------------------
+
     // -------------------------------------------------------------------------
-    /// @return The number of joints.
+    /// Servos a joint toward a position (position mode). The reference moves
+    /// at @ref JointGains::speed_ratio of the speed limit; the effort is
+    /// clamped to the limit.
+    /// @param p_joint Typed handle.
+    /// @param p_position Target position.
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::size_t size() const
+    template <class Position>
+    void moveTo(JointHandle<Position> p_joint, Position p_position)
     {
-        return m_names.size();
+        moveTo(p_joint.id, p_position.value());
     }
+
+    // -------------------------------------------------------------------------
+    /// Turns a joint at a speed (velocity mode), e.g. a wheel.
+    /// @param p_joint Typed handle.
+    /// @param p_velocity Target speed.
+    // -------------------------------------------------------------------------
+    template <class Position>
+    void spin(JointHandle<Position> p_joint, VelocityOf<Position> p_velocity)
+    {
+        spin(p_joint.id, p_velocity.value());
+    }
+
+    // -------------------------------------------------------------------------
+    /// Applies a raw effort (effort mode).
+    /// @param p_joint Typed handle.
+    /// @param p_effort Torque or force; @ref control clamps it to the limit.
+    // -------------------------------------------------------------------------
+    template <class Position>
+    void push(JointHandle<Position> p_joint, EffortOf<Position> p_effort)
+    {
+        push(p_joint.id, p_effort.value());
+    }
+
+    // -------------------------------------------------------------------------
+    /// A joint that passes through its target at full speed has not arrived:
+    /// it also has to be slow enough to stay there.
+    /// @param p_joint Typed handle.
+    /// @param p_tolerance Largest accepted error.
+    /// @param p_speed Largest accepted speed (absolute value).
+    /// @return True in position mode once |position - target| <= @p_tolerance
+    ///   and |velocity| <= @p_speed.
+    // -------------------------------------------------------------------------
+    template <class Position>
+    [[nodiscard]] bool reached(JointHandle<Position> p_joint,
+                               Position p_tolerance,
+                               VelocityOf<Position> p_speed =
+                                   VelocityOf<Position>(SETTLED_SPEED)) const
+    {
+        return reached(p_joint.id, p_tolerance.value(), p_speed.value());
+    }
+
+    /// @return The home position of @p_joint (used by the @c Home skill).
+    template <class Position>
+    [[nodiscard]] Position home(JointHandle<Position> p_joint) const
+    {
+        return Position(m_homes[p_joint.id]);
+    }
+
+    // --- Backend side -------------------------------------------------------
+
+    // -------------------------------------------------------------------------
+    /// Runs the low-level loop of every joint and stores the efforts (see
+    /// @ref efforts). Backends call it at their physics rate.
+    /// @param p_dt Duration of the physics step.
+    // -------------------------------------------------------------------------
+    void control(Seconds p_dt);
 
     // -------------------------------------------------------------------------
     /// @param p_name Joint name.
@@ -386,69 +439,25 @@ public:
         return EffortOf<Position>(m_efforts[p_joint.id]);
     }
 
-    // --- Commands (typed) ---------------------------------------------------
-
-    // -------------------------------------------------------------------------
-    /// Servos a joint toward a position (position mode). The reference moves
-    /// at @ref JointGains::speed_ratio of the speed limit; the effort is
-    /// clamped to the limit.
-    /// @param p_joint Typed handle.
-    /// @param p_position Target position.
-    // -------------------------------------------------------------------------
-    template <class Position>
-    void moveTo(JointHandle<Position> p_joint, Position p_position)
-    {
-        moveTo(p_joint.id, p_position.value());
-    }
-
-    // -------------------------------------------------------------------------
-    /// Turns a joint at a speed (velocity mode), e.g. a wheel.
-    /// @param p_joint Typed handle.
-    /// @param p_velocity Target speed.
-    // -------------------------------------------------------------------------
-    template <class Position>
-    void spin(JointHandle<Position> p_joint, VelocityOf<Position> p_velocity)
-    {
-        spin(p_joint.id, p_velocity.value());
-    }
-
-    // -------------------------------------------------------------------------
-    /// Applies a raw effort (effort mode).
-    /// @param p_joint Typed handle.
-    /// @param p_effort Torque or force; @ref control clamps it to the limit.
-    // -------------------------------------------------------------------------
-    template <class Position>
-    void push(JointHandle<Position> p_joint, EffortOf<Position> p_effort)
-    {
-        push(p_joint.id, p_effort.value());
-    }
-
-    // -------------------------------------------------------------------------
-    /// A joint that passes through its target at full speed has not arrived:
-    /// it also has to be slow enough to stay there.
-    /// @param p_joint Typed handle.
-    /// @param p_tolerance Largest accepted error.
-    /// @param p_speed Largest accepted speed (absolute value).
-    /// @return True in position mode once |position - target| <= @p_tolerance
-    ///   and |velocity| <= @p_speed.
-    // -------------------------------------------------------------------------
-    template <class Position>
-    [[nodiscard]] bool
-    reached(JointHandle<Position> p_joint,
-            Position p_tolerance,
-            VelocityOf<Position> p_speed = VelocityOf<Position>(SETTLED_SPEED)) const
-    {
-        return reached(p_joint.id, p_tolerance.value(), p_speed.value());
-    }
-
-    /// @return The home position of @p_joint (used by the @c Home skill).
-    template <class Position>
-    [[nodiscard]] Position home(JointHandle<Position> p_joint) const
-    {
-        return Position(m_homes[p_joint.id]);
-    }
-
     // --- Mixed joints: SI base unit of each joint (rad or m) ----------------
+
+    /// Untyped @ref moveTo — @p_position in rad or m.
+    void moveTo(JointId p_id, double p_position);
+    /// Untyped @ref spin — @p_velocity in rad/s or m/s.
+    void spin(JointId p_id, double p_velocity);
+    /// Untyped @ref push — @p_effort in N.m or N.
+    void push(JointId p_id, double p_effort);
+    /// Untyped @ref reached(JointHandle, Position, VelocityOf<Position>) const.
+    [[nodiscard]] bool reached(JointId p_id,
+                               double p_tolerance,
+                               double p_speed = SETTLED_SPEED) const;
+
+    /// Servos joint @p_id where it is.
+    void hold(JointId p_id);
+    /// Servos every joint where it is.
+    void hold();
+    /// Removes any effort on joint @p_id (the joint becomes free).
+    void release(JointId p_id);
 
     /// @return Measured positions, indexed by @ref JointId.
     [[nodiscard]] std::span<double const> positions() const
@@ -504,45 +513,20 @@ public:
         return m_targets[p_id];
     }
 
-    /// Untyped @ref moveTo — @p_position in rad or m.
-    void moveTo(JointId p_id, double p_position);
-    /// Untyped @ref spin — @p_velocity in rad/s or m/s.
-    void spin(JointId p_id, double p_velocity);
-    /// Untyped @ref push — @p_effort in N.m or N.
-    void push(JointId p_id, double p_effort);
-    /// Untyped @ref reached(JointHandle, Position, VelocityOf<Position>) const.
-    [[nodiscard]] bool reached(JointId p_id,
-                               double p_tolerance,
-                               double p_speed = SETTLED_SPEED) const;
-
-    /// Servos joint @p_id where it is.
-    void hold(JointId p_id);
-    /// Servos every joint where it is.
-    void hold();
-    /// Removes any effort on joint @p_id (the joint becomes free).
-    void release(JointId p_id);
-
-    // --- Backend side -------------------------------------------------------
-
     // -------------------------------------------------------------------------
-    /// Runs the low-level loop of every joint and stores the efforts (see
-    /// @ref efforts). Backends call it at their physics rate.
-    /// @param p_dt Duration of the physics step.
+    /// @return The number of joints.
     // -------------------------------------------------------------------------
-    void control(Seconds p_dt);
-
-    // -------------------------------------------------------------------------
-    /// Copies the measured state into the Compages joint components of the
-    /// links (rendering and inspection).
-    // -------------------------------------------------------------------------
-    void publish() const;
+    [[nodiscard]] std::size_t size() const
+    {
+        return m_names.size();
+    }
 
 private:
 
-    // The session writes what is measured (the backend through
-    // RobotSession::measureJoint, the reset); a skill only commands.
+    // The runtime writes what is measured (the backend through
+    // RobotRuntime::measureJoint, the reset); a skill only commands.
     friend class Robot;
-    friend class RobotSession;
+    friend class RobotRuntime;
     // The actuators say which resource guards their joints.
     friend class Motor;
     friend class JointGroup;
@@ -576,7 +560,7 @@ private:
     }
 
     // -------------------------------------------------------------------------
-    /// Writes a measurement (see @ref RobotSession::measureJoint).
+    /// Writes a measurement (see @ref RobotRuntime::measureJoint).
     /// @param p_id Joint id.
     /// @param p_position Measured position (rad or m).
     /// @param p_velocity Measured speed.
@@ -600,12 +584,6 @@ private:
         m_homes[p_id] = p_position;
     }
 
-    /// @return The link entity of joint @p_id (invalid without rendering).
-    [[nodiscard]] compages::world::Entity link(JointId p_id) const
-    {
-        return m_links[p_id];
-    }
-
     // -------------------------------------------------------------------------
     /// Limits in SI base units.
     // -------------------------------------------------------------------------
@@ -620,16 +598,13 @@ private:
     /// Appends a joint to every array; throws if the name is taken.
     JointId append(std::string p_name,
                    JointType p_type,
-                   Bounds const& p_bounds,
-                   compages::world::Entity p_link);
+                   Bounds const& p_bounds);
 
 private:
 
     // Cold data.
     /// Joint names.
     std::vector<std::string> m_names;
-    /// Link entities (invalid without rendering).
-    std::vector<compages::world::Entity> m_links;
     /// Loop tuning.
     std::vector<JointGains> m_gains;
     /// Home positions.

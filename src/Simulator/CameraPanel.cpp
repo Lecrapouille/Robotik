@@ -22,7 +22,8 @@ std::vector<robotik::Camera*> robotCameras(App& p_app)
     {
         return cameras;
     }
-    robotik::SensorSet& sensors = p_app.simulation->cell().robot().sensors();
+    robotik::SensorSet& sensors =
+        p_app.simulation->cell().runtime().getSensors();
     for (std::size_t i = 0; i < sensors.size(); ++i)
     {
         if (auto* camera = dynamic_cast<robotik::Camera*>(&sensors[i]))
@@ -73,7 +74,7 @@ overlay(App& p_app, robotik::Camera const& p_camera, ImVec2 p_at, ImVec2 p_size)
 {
     robotik::Simulation& simulation = *p_app.simulation;
     ImDrawList* draw = ImGui::GetWindowDrawList();
-    if (!simulation.cell().robot().resources().available(p_camera.name()))
+    if (!simulation.cell().robot().getResources().available(p_camera.name()))
     {
         draw->AddRectFilled(p_at,
                             ImVec2(p_at.x + p_size.x, p_at.y + p_size.y),
@@ -111,7 +112,7 @@ static void cameraCell(App& p_app,
 {
     robotik::Simulation& simulation = *p_app.simulation;
     bool const available =
-        simulation.cell().robot().resources().available(p_camera.name());
+        simulation.cell().robot().getResources().available(p_camera.name());
     ImGui::TextUnformatted(p_camera.name().c_str());
     ImGui::SameLine();
     ImGui::TextDisabled(

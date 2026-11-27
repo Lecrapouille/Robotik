@@ -180,7 +180,7 @@ struct CameraConfig
 /// source (headless run) it produces no frame.
 ///
 /// @code
-/// auto& camera = robot.sensors().add<robotik::Camera>(
+/// auto& camera = runtime.addSensor<robotik::Camera>(
 ///     "wrist_camera", robotik::CameraConfig{ .parent = "link6" });
 /// camera.source(&renderer_camera);
 /// camera.onFrame([&](robotik::CameraFrame const& p_frame) {
@@ -201,10 +201,42 @@ public:
     // -------------------------------------------------------------------------
     Camera(std::string p_name, CameraConfig p_config = {});
 
-    /// @return The configuration.
-    [[nodiscard]] CameraConfig const& config() const
+    /// Emitted after every capture with the new frame, to the slots in
+    /// connection order.
+    Signal<CameraFrame const&> frames;
+
+    // -------------------------------------------------------------------------
+    /// Calls a function after every capture (a shortcut for
+    /// @c frames.connect).
+    /// @param p_callback Function receiving the frame.
+    /// @return Handle to disconnect it from @ref frames.
+    // -------------------------------------------------------------------------
+    Signal<CameraFrame const&>::Id onFrame(Callback p_callback)
     {
-        return m_config;
+        return frames.connect(std::move(p_callback));
+    }
+
+    // -------------------------------------------------------------------------
+    /// @return Last captured frame (empty images before the first capture).
+    // -------------------------------------------------------------------------
+    [[nodiscard]] CameraFrame const& frame() const
+    {
+        return m_frame;
+    }
+
+    /// Marks the current frame invalid (the sensor resource failed).
+    void invalidate() override
+    {
+        m_frame.valid = false;
+    }
+
+    // -------------------------------------------------------------------------
+    /// Reseeds the noise generator (episode reset).
+    /// @param p_seed Same seed, same noise.
+    // -------------------------------------------------------------------------
+    void seed(Seed p_seed)
+    {
+        m_random = Random(p_seed);
     }
 
     // -------------------------------------------------------------------------
@@ -214,12 +246,6 @@ public:
     void mount(Pose const& p_mount)
     {
         m_config.mount = p_mount;
-    }
-
-    /// @return The image geometry.
-    [[nodiscard]] CameraIntrinsics const& intrinsics() const
-    {
-        return m_config.intrinsics;
     }
 
     // -------------------------------------------------------------------------
@@ -237,48 +263,22 @@ public:
         return m_source;
     }
 
-    // -------------------------------------------------------------------------
-    /// @return Last captured frame (empty images before the first capture).
-    // -------------------------------------------------------------------------
-    [[nodiscard]] CameraFrame const& frame() const
+    /// @return The configuration.
+    [[nodiscard]] CameraConfig const& config() const
     {
-        return m_frame;
+        return m_config;
     }
 
-    /// Emitted after every capture with the new frame, to the slots in
-    /// connection order.
-    Signal<CameraFrame const&> frames;
-
-    // -------------------------------------------------------------------------
-    /// Calls a function after every capture (a shortcut for
-    /// @c frames.connect).
-    /// @param p_callback Function receiving the frame.
-    /// @return Handle to disconnect it from @ref frames.
-    // -------------------------------------------------------------------------
-    Signal<CameraFrame const&>::Id onFrame(Callback p_callback)
+    /// @return The image geometry.
+    [[nodiscard]] CameraIntrinsics const& intrinsics() const
     {
-        return frames.connect(std::move(p_callback));
-    }
-
-    // -------------------------------------------------------------------------
-    /// Reseeds the noise generator (episode reset).
-    /// @param p_seed Same seed, same noise.
-    // -------------------------------------------------------------------------
-    void seed(Seed p_seed)
-    {
-        m_random = Random(p_seed);
-    }
-
-    /// Marks the current frame invalid (the sensor resource failed).
-    void invalidate() override
-    {
-        m_frame.valid = false;
+        return m_config.intrinsics;
     }
 
 protected:
 
     /// Asks the source for images, adds the noise, calls the callbacks.
-    bool sample(RobotSession const& p_robot, Seconds p_now) override;
+    bool sample(RobotRuntime const& p_robot, Seconds p_now) override;
 
 private:
 

@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" role="img" aria-labelledby="title desc">
 <!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
 <title id="title">The backend of a robot session</title>
-<desc id="desc">A RobotSession uses a RobotBackend. The MuJoCo backend reads and writes the joint positions and velocities of the simulation. A hardware backend, planned, will talk to the servos on their bus.</desc>
+<desc id="desc">A RobotRuntime uses a RobotBackend. The MuJoCo backend reads and writes the joint positions and velocities of the simulation. A hardware backend, planned, will talk to the servos on their bus.</desc>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
 <style>
 text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
@@ -23,7 +23,7 @@ text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
 <rect width="900" height="340" rx="16" fill="#f5f8fc"/>
 <text x="32" y="40" class="heading">Simulated or real: the same session</text>
 <rect x="330" y="64" width="240" height="50" rx="10" class="box"/>
-<text x="450.0" y="95.0" text-anchor="middle">RobotSession</text>
+<text x="450.0" y="95.0" text-anchor="middle">RobotRuntime</text>
 <path d="M450 114 L450 140" class="arrow"/>
 <rect x="330" y="145" width="240" height="50" rx="10" class="box"/>
 <text x="450.0" y="176.0" text-anchor="middle">RobotBackend</text>

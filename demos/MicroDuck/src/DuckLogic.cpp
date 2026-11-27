@@ -29,7 +29,8 @@ void DuckLogic::setup(robotik::RoboticCell& p_cell,
 {
     robotik::RoboticCellDescription const& scenario = p_cell.description();
     m_base = robotik::firstRobot(scenario.world).id + "." + TRUNK;
-    std::filesystem::path const& urdf = robotik::firstRobot(scenario.world).model;
+    std::filesystem::path const& urdf =
+        robotik::firstRobot(scenario.world).model;
     DuckContract contract =
         DuckContract::load(urdf.parent_path() / "walk.yaml");
     m_step = robotik::Seconds(contract.physics_step);
@@ -48,12 +49,12 @@ void DuckLogic::setup(robotik::RoboticCell& p_cell,
         options.armature.emplace(contract.joints[i], contract.armature[i]);
         options.damping.emplace(contract.joints[i], contract.damping[i]);
     }
-    robotik::RobotSession& robot = p_cell.robot();
+    robotik::RobotRuntime& robot = p_cell.runtime();
 
     // The position gain of the policy, no slew: the policy targets are the
     // whole command. Viscosity is the MuJoCo damping, not this kd (it is 0).
     DuckBody body{ {}, IMU_NAME };
-    robotik::JointSet& joints = robot.joints();
+    robotik::JointSet& joints = robot.robot().getJoints();
     for (std::size_t i = 0; i < contract.joints.size(); ++i)
     {
         robotik::JointId const id = joints.require(contract.joints[i]);
@@ -91,7 +92,7 @@ void DuckLogic::setup(robotik::RoboticCell& p_cell,
 
     robotik::SkillDescription describe;
     describe.priority = SKILL_PRIORITY;
-    describe.resources = { robot.resources().require("body") };
+    describe.resources = { robot.getResources().require("body") };
     robotik::SkillScheduler& skills = p_cell.skills();
     describe.name = "Stand";
     skills.add<StandSkill>(describe, body, posture, stand);

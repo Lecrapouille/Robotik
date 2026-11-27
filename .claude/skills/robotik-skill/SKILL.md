@@ -26,12 +26,12 @@ public:
 `RobotContext { Robot& robot; WorldModel& world_model; Seconds time, dt; }`
 — no simulator, no ground truth. Read objects with
 `p_context.world_model.find("cube")` (`observed()`, `position`, `size`,
-`confidence`). Reuse inside skills: `MoveTCPSkill(frame = robot.tool(),
+`confidence`). Reuse inside skills: `MoveTCPSkill(frame = robot.getTool(),
 target)` + `goal(pose)` (IK once per goal), `MoveJointSkill(joint, target)`,
 `MoveJointsSkill({{"joint1", 0.5}})`, `HomeSkill(group)`; each takes
 `(…, tolerance = 1e-2, speed = SETTLED_SPEED)`: infinity = pass through.
-Joints: `joints.find("j")` (id, doubles) or `joints.requireRevolute("j")` (typed,
-Radians); `moveTo`, `spin`, `push`, `reached(j, tol[, speed])` (also
+Joints: prefer `joints.requireRevolute("j")` / `requirePrismatic` (typed,
+Radians / Length) in a public API; `joints.find("j")` (id, doubles) only inside; `moveTo`, `spin`, `push`, `reached(j, tol[, speed])` (also
 |velocity| <= SETTLED_SPEED), `hold()`. Path through waypoints:
 `MoveTCPSkill::speed(inf)` on the inner points (Painter `follow`).
 Writes are checked: commanding a joint/pump whose resource another skill
@@ -52,8 +52,8 @@ held is truth: `RoboticCell::held(cup)`, for metrics and the simulator only.
 ```cpp
 robotik::SkillDescription d;
 d.name = "Wave";                                       // = BT Action name, unique
-d.resources = { p_sim.robot().resources().require("arm"),
-                p_sim.robot().resources().require("cam", robotik::Access::Shared) };
+d.resources = { p_sim.robot().getResources().require("arm"),
+                p_sim.robot().getResources().require("cam", robotik::Access::Shared) };
 d.priority = 100;          // higher admitted first, may preempt (Stop = highest)
 d.wait = true;             // wait when busy/precondition false (else fail at once)
 d.cancellable = true;      // false: cannot be preempted
@@ -141,5 +141,5 @@ bound skills; durative actions give required concurrency (`over all`).
 Several robots: `SkillDescription::robot = "left"`, name skills `left.X(...)`,
 bind `"{0}.X({1})"` with the arm as first PDDL argument; observers see the
 other robots in `context.team`; beliefs are in the world frame (bring them
-into the base: `context.robot.base().pose.inverse() * p`). Example:
+into the base: `context.robot.getBase().pose.inverse() * p`). Example:
 `demos/DualArm/src/ConveyorLogic.cpp`, `TrayLogic.cpp`.

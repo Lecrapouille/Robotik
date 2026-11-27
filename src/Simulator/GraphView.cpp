@@ -94,7 +94,7 @@ static std::string detailOf(App const& p_app, std::string const& p_name)
     for (robotik::ResourceRequirement const& need : description.resources)
     {
         text += (&need == &description.resources.front() ? "  " : " ") +
-                cell.robot().resources().name(need.id);
+                cell.robot().getResources().name(need.id);
     }
     return text;
 }
@@ -317,7 +317,7 @@ static void fromPlan(App& p_app,
                 box.tip +=
                     (box.tip.empty() ? "" : "\n") + name + ": " +
                     skillWhy(skills,
-                             p_app.simulation->cell().robot().resources(),
+                             p_app.simulation->cell().robot().getResources(),
                              id);
             }
         }
@@ -356,7 +356,7 @@ static std::size_t fromNode(App& p_app,
         if (skills.state(id) == robotik::SkillState::Waiting)
         {
             box.tip = skillWhy(
-                skills, p_app.simulation->cell().robot().resources(), id);
+                skills, p_app.simulation->cell().robot().getResources(), id);
         }
     }
     p_boxes.push_back(std::move(box));
@@ -580,7 +580,7 @@ static void skillCells(App& p_app, robotik::SkillId p_id)
 {
     robotik::RoboticCell& cell = p_app.simulation->cell();
     robotik::SkillScheduler& skills = cell.skills();
-    robotik::ResourceManager const& resources = cell.robot().resources();
+    robotik::ResourceManager const& resources = cell.robot().getResources();
     robotik::SkillDescription const& description = skills.description(p_id);
     robotik::SkillState const state = skills.state(p_id);
     ImGui::TableNextColumn();

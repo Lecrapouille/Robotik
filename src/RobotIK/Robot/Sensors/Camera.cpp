@@ -7,8 +7,8 @@
 
 #include "RobotIK/Robot/Sensors/Camera.hpp"
 
-#include "RobotIK/Robot/Backends/PinocchioBackend.hpp"
-#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/Kinematics.hpp"
+#include "RobotIK/Robot/RobotRuntime.hpp"
 #include "RobotIK/Robot/Sensors/Measurements.hpp"
 
 #include <algorithm>
@@ -59,7 +59,7 @@ Camera::Camera(std::string p_name, CameraConfig p_config)
 {
 }
 
-bool Camera::sample(RobotSession const& p_robot, Seconds p_now)
+bool Camera::sample(RobotRuntime const& p_robot, Seconds p_now)
 {
     if (m_source == nullptr)
     {
@@ -70,7 +70,7 @@ bool Camera::sample(RobotSession const& p_robot, Seconds p_now)
     m_frame.pose =
         m_config.parent.empty()
             ? m_config.mount
-            : p_robot.kinematics().requireFramePose(m_config.parent) *
+            : p_robot.robot().requireFramePose(m_config.parent) *
                   m_config.mount;
     m_frame.stamp = p_now;
     m_frame.frame = name();
@@ -94,8 +94,8 @@ bool Camera::sample(RobotSession const& p_robot, Seconds p_now)
     frames(m_frame);
 
     compages::world::Entity holder = m_config.parent.empty()
-                                         ? p_robot.root()
-                                         : p_robot.link(m_config.parent);
+                                         ? p_robot.getRoot()
+                                         : p_robot.getLink(m_config.parent);
     if (holder)
     {
         CameraReading reading;

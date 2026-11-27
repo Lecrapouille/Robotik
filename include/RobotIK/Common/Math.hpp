@@ -50,6 +50,10 @@ using compages::si::Torque;              ///< Torque (N.m).
 
 /// Position (m) or direction, in double precision.
 using Vector3 = compages::Vector3g;
+/// A move along X, Y, Z with its unit: `Vector3m(0.0_m, 0.0_m, 0.01_m)`.
+using Vector3m = compages::Vector3m;
+/// Three turns about X, Y, Z with their unit (rad).
+using Vector3rad = compages::Vector<Radians, 3u>;
 /// Rotation as a unit quaternion (w, x, y, z).
 using Quaternion = compages::Quatd;
 /// Where a frame is and how it is turned, in its parent frame (position in m).
@@ -59,3 +63,10 @@ using compages::yaw;          ///< Heading about Z of a rotation.
 using compages::vector::norm; ///< Length of a vector.
 
 } // namespace robotik
+
+/// The unit suffixes: `0.01_m`, `0.2_rad`, `90.0_deg`, `0.5_s`. Write
+/// `using namespace robotik::literals;` in a function to use them.
+namespace robotik::literals
+{
+using namespace compages::si::literals;
+} // namespace robotik::literals
