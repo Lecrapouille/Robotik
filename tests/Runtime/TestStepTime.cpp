@@ -9,7 +9,7 @@
 
 #include "main.hpp"
 
-#include "RobotIK/Task/OpenRoboticCell.hpp"
+#include "RobotIK/Task/StandaloneCell.hpp"
 
 #include <limits>
 #include <stdexcept>
@@ -30,15 +30,15 @@ static robotik::RoboticCellDescription fallingCube()
     robotik::RoboticCellDescription description;
     description.world.floor = true;
     description.world.entities = { arm, cube };
-    description.physics.fidelity = robotik::Fidelity::Rigid;
+    description.physics.fidelity = robotik::PhysicsFidelity::Rigid;
     return description;
 }
 
 TEST(StepTime, AStepThatDoesNotMoveTheClockIsRefused)
 {
-    auto opened = robotik::openRoboticCell(fallingCube());
+    auto opened = robotik::StandaloneCell::open(fallingCube());
     ASSERT_TRUE(opened) << opened.error();
-    robotik::RoboticCell& cell = *opened.value().cell;
+    robotik::RoboticCell& cell = opened.value().cell();
     double const nan = std::numeric_limits<double>::quiet_NaN();
     EXPECT_THROW(cell.step(robotik::Seconds(0.0)), std::invalid_argument);
     EXPECT_THROW(cell.step(robotik::Seconds(-0.01)), std::invalid_argument);
@@ -58,9 +58,9 @@ TEST(StepTime, ThePhysicsCoversTheTimeOfTheStep)
     double const steps[2] = { 0.01, 0.0025 };
     for (int i = 0; i < 2; ++i)
     {
-        auto opened = robotik::openRoboticCell(fallingCube());
+        auto opened = robotik::StandaloneCell::open(fallingCube());
         ASSERT_TRUE(opened) << opened.error();
-        robotik::RoboticCell& cell = *opened.value().cell;
+        robotik::RoboticCell& cell = opened.value().cell();
         while (cell.time().value() < 0.1 - 1e-9)
         {
             cell.step(robotik::Seconds(steps[i]));

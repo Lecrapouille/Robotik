@@ -36,16 +36,16 @@ struct UrdfRobot
     std::vector<UrdfJoint> joints;
 };
 
-/// Reads the robot name and its moving joints from a URDF.
-static UrdfRobot readUrdf(std::filesystem::path const& p_urdf)
+/// Reads the robot name and its joints from a URDF.
+static Result<UrdfRobot> parseUrdf(std::filesystem::path const& p_urdf)
 {
     pugi::xml_document document;
     pugi::xml_parse_result const parsed =
         document.load_file(p_urdf.string().c_str());
     if (!parsed)
     {
-        throw std::runtime_error("Failed to parse URDF '" + p_urdf.string() +
-                                 "': " + parsed.description());
+        return failure("Failed to parse URDF '" + p_urdf.string() +
+                       "': " + parsed.description());
     }
     pugi::xml_node const robot = document.child("robot");
     UrdfRobot result{ robot.attribute("name").as_string(), {} };
@@ -59,11 +59,48 @@ static UrdfRobot readUrdf(std::filesystem::path const& p_urdf)
     return result;
 }
 
+/// Same as @ref parseUrdf, for the constructor: a file that cannot be read
+/// throws.
+static UrdfRobot readUrdf(std::filesystem::path const& p_urdf)
+{
+    Result<UrdfRobot> parsed = parseUrdf(p_urdf);
+    if (!parsed)
+    {
+        throw std::runtime_error(parsed.error());
+    }
+    return std::move(parsed.value());
+}
+
 /// True for a revolute, continuous or prismatic joint.
 static bool moving(std::string_view p_type)
 {
     return p_type == "revolute" || p_type == "continuous" ||
            p_type == "prismatic";
+}
+
+Result<std::unordered_map<std::string, JointType>>
+readJointTypes(std::filesystem::path const& p_urdf)
+{
+    using Types = std::unordered_map<std::string, JointType>;
+    UrdfRobot urdf;
+    ROBOTIK_TRY_ASSIGN(urdf, parseUrdf(p_urdf));
+    Types types;
+    for (UrdfJoint const& joint : urdf.joints)
+    {
+        if (joint.type == "revolute")
+        {
+            types.emplace(joint.name, JointType::Revolute);
+        }
+        else if (joint.type == "continuous")
+        {
+            types.emplace(joint.name, JointType::Continuous);
+        }
+        else if (joint.type == "prismatic")
+        {
+            types.emplace(joint.name, JointType::Prismatic);
+        }
+    }
+    return types;
 }
 
 /// Depth-first search of an entity by name.
@@ -120,26 +157,29 @@ static compages::world::Entity loadTool(compages::world::World& p_world,
     return loaded.value();
 }
 
-/// Parents the tool mount frame on the robot flange.
+/// Parents the mount link of the tool on the flange link of the robot.
 static void mountTool(compages::world::World& p_world,
                       compages::world::Entity p_robot,
-                      std::filesystem::path const& p_tool,
+                      ToolMount const& p_tool,
                       SceneView* p_view)
 {
-    compages::world::Entity const wrapper = loadTool(p_world, p_tool, p_view);
-    compages::world::Entity const mount = findNamed(wrapper, "tool_mount");
-    compages::world::Entity const flange = findNamed(p_robot, "flange");
+    compages::world::Entity const wrapper =
+        loadTool(p_world, p_tool.urdf, p_view);
+    compages::world::Entity const mount = findNamed(wrapper, p_tool.mount);
+    compages::world::Entity const flange = findNamed(p_robot, p_tool.flange);
     if (!mount || !flange)
     {
-        throw std::runtime_error("Tool '" + p_tool.string() +
-                                 "' must hang from flange by tool_mount");
+        throw std::runtime_error("Tool '" + p_tool.urdf.string() +
+                                 "' must hang from " + p_tool.flange +
+                                 " by " + p_tool.mount);
     }
     if (!mount.setParent(flange))
     {
-        throw std::runtime_error("Tool '" + p_tool.string() +
-                                 "' could not be mounted on flange");
+        throw std::runtime_error("Tool '" + p_tool.urdf.string() +
+                                 "' could not be mounted on " +
+                                 p_tool.flange);
     }
-    // The loader's root only carries the Z-up to Y-up rotation. tool_mount
+    // The loader's root only carries the Z-up to Y-up rotation. The mount
     // now hangs from the flange, which already lives in that frame.
     if (wrapper.id() != mount.id())
     {
@@ -203,7 +243,7 @@ static void addJoint(JointSet& p_joints,
 RobotRuntime::RobotRuntime(compages::world::World& p_world,
                            std::filesystem::path const& p_urdf,
                            SceneView* p_view,
-                           std::filesystem::path const& p_tool,
+                           ToolMount const& p_tool,
                            std::shared_ptr<ResourceManager> p_resources)
     : m_world(p_world),
       m_root(loadRobot(p_world, p_urdf, p_view)),
@@ -211,15 +251,15 @@ RobotRuntime::RobotRuntime(compages::world::World& p_world,
       m_robot(p_urdf, p_tool, std::move(p_resources))
 {
     UrdfRobot const urdf = readUrdf(p_urdf);
-    RobotModel model;
+    Robot::Model model;
     model.name = urdf.name;
     model.urdf = p_urdf;
-    model.tool_urdf = p_tool;
+    model.tool_urdf = p_tool.urdf;
     m_robot.m_id = model.name;
     m_root.add<ecs::RobotTag>();
     m_root.set(ecs::RobotIdentity{ model.name, p_urdf });
 
-    Kinematics const& kinematics = *m_robot.m_kinematics;
+    Kinematics const& kinematics = m_robot.m_kinematics;
     std::string tcp;
     std::string tool0;
     std::string end_effector;
@@ -280,16 +320,16 @@ RobotRuntime::RobotRuntime(compages::world::World& p_world,
     {
         model.tool = end_effector;
     }
-    if (!p_tool.empty())
+    if (hasTool(p_tool))
     {
         mountTool(p_world, m_root, p_tool, p_view);
         if (compages::world::Entity const tip = findNamed(m_root, "tcp"))
         {
             model.tool = tip.name();
         }
-        adopt(readUrdf(p_tool), false);
+        adopt(readUrdf(p_tool.urdf), false);
     }
-    m_robot.m_model = std::make_shared<RobotModel const>(std::move(model));
+    m_robot.m_model = std::move(model);
     propagate();
 }
 
@@ -357,11 +397,28 @@ void RobotRuntime::connect(std::unique_ptr<RobotBackend> p_backend)
 
 void RobotRuntime::hold(JointPosture const& p_posture)
 {
-    for (auto const& [name, position] : p_posture)
+    JointSet& joints = m_robot.m_joints;
+    for (auto const& [name, angle] : p_posture.angles)
     {
-        JointId const id = m_robot.m_joints.require(name);
-        m_robot.m_joints.home(id, position);
-        m_robot.m_joints.place(id, position);
+        JointId const id = joints.require(name);
+        if (joints.type(id) == JointType::Prismatic)
+        {
+            throw std::invalid_argument("Joint '" + name +
+                                        "' slides: give it a Length");
+        }
+        joints.home(id, angle.value());
+        joints.place(id, angle.value());
+    }
+    for (auto const& [name, length] : p_posture.lengths)
+    {
+        JointId const id = joints.require(name);
+        if (joints.type(id) != JointType::Prismatic)
+        {
+            throw std::invalid_argument("Joint '" + name +
+                                        "' turns: give it Radians");
+        }
+        joints.home(id, length.value());
+        joints.place(id, length.value());
     }
     m_robot.m_joints.hold();
     if (m_backend)
@@ -386,7 +443,7 @@ void RobotRuntime::setStartPose(Pose const& p_pose)
 
 void RobotRuntime::reset()
 {
-    m_robot.m_time = Seconds{};
+    m_time = Seconds{};
     m_robot.m_base = BaseState{ m_start, {} };
     m_true_base = m_robot.m_base;
     for (JointId id = 0; id < m_robot.m_joints.size(); ++id)
@@ -443,7 +500,7 @@ void RobotRuntime::advance(Seconds p_dt)
     checkHealth();
     // The backend gives the clock when it has one (simulated time, hardware
     // stamp); without one, the robot counts the steps.
-    m_robot.m_time = clock ? *clock : m_robot.m_time + p_dt;
+    m_time = clock ? *clock : m_time + p_dt;
 }
 
 void RobotRuntime::checkHealth()
@@ -486,7 +543,7 @@ void RobotRuntime::sense()
     {
         if (m_robot.m_sensors.available(i))
         {
-            m_robot.m_sensors[i].update(*this, m_robot.m_time);
+            m_robot.m_sensors[i].update(*this, m_time);
         }
         else
         {

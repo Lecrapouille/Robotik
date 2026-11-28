@@ -141,15 +141,33 @@ Status MoveJointsSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
     JointSet& joints = p_context.robot.getJoints();
     if (m_joints.empty())
     {
-        for (auto const& [name, goal] : m_targets)
+        for (auto const& [name, goal] : m_targets.angles)
         {
             JointId const id = joints.find(name);
             if (id == NO_JOINT)
             {
                 return fail("unknown_joint", "no joint " + name);
             }
+            if (joints.type(id) == JointType::Prismatic)
+            {
+                return fail("wrong_unit", name + " slides: give it a Length");
+            }
             m_joints.push_back(id);
-            m_goals.push_back(goal);
+            m_goals.push_back(goal.value());
+        }
+        for (auto const& [name, goal] : m_targets.lengths)
+        {
+            JointId const id = joints.find(name);
+            if (id == NO_JOINT)
+            {
+                return fail("unknown_joint", "no joint " + name);
+            }
+            if (joints.type(id) != JointType::Prismatic)
+            {
+                return fail("wrong_unit", name + " turns: give it Radians");
+            }
+            m_joints.push_back(id);
+            m_goals.push_back(goal.value());
         }
         if (m_joints.empty())
         {

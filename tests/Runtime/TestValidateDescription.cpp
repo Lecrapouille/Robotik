@@ -10,7 +10,7 @@
 
 #include "main.hpp"
 
-#include "RobotIK/Task/OpenRoboticCell.hpp"
+#include "RobotIK/Task/StandaloneCell.hpp"
 
 #include <stdexcept>
 
@@ -29,7 +29,7 @@ static robotik::RoboticCellDescription oneArm()
 TEST(ValidateDescription, AnEmptyDescriptionIsAMessage)
 {
     auto const opened =
-        robotik::openRoboticCell(robotik::RoboticCellDescription{});
+        robotik::StandaloneCell::open(robotik::RoboticCellDescription{});
     ASSERT_FALSE(opened) << "an empty world must not reach the first robot";
     EXPECT_EQ(opened.error(), "world: an entity of type robot is required");
 
@@ -66,7 +66,7 @@ TEST(ValidateDescription, TheRulesOfTheWorldFileHoldInCpp)
     cube.physics = robotik::EntitySpec::Physics::Free;
     cube.attach = robotik::Attachment{ .parent = "table" };
     hanging.world.entities.push_back(cube);
-    auto const opened = robotik::openRoboticCell(hanging);
+    auto const opened = robotik::StandaloneCell::open(hanging);
     ASSERT_FALSE(opened);
     EXPECT_EQ(opened.error(),
               "world, entity 'cube': attach.parent 'table' "

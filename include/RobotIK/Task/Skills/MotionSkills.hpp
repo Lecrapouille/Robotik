@@ -134,9 +134,11 @@ private:
 /// Drives several joints at once; succeeds when all are reached.
 ///
 /// @code
+/// using namespace robotik::literals;
 /// scheduler.add<robotik::MoveJointsSkill>(
-///     { .name = "Ready" }, robotik::JointPosture{ { "joint1", 0.0 }, {
-///     "joint2", 0.6 } });
+///     { .name = "Ready" },
+///     robotik::JointPosture{ .angles = { { "joint1", 0.0_rad },
+///                                        { "joint2", 0.6_rad } } });
 /// @endcode
 // ****************************************************************************
 class MoveJointsSkill final: public Skill
@@ -144,7 +146,9 @@ class MoveJointsSkill final: public Skill
 public:
 
     // -------------------------------------------------------------------------
-    /// @param p_targets Joint name to target position (rad or m).
+    /// @param p_targets Target of each joint: angles for the joints that
+    ///   turn, lengths for those that slide. A name in the wrong table
+    ///   fails the skill with the code @c wrong_unit.
     /// @param p_tolerance Largest error to call a joint reached.
     /// @param p_speed Largest joint speed (rad/s or m/s) to call it reached
     ///   (see @ref JointSet::reached).

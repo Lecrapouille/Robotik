@@ -78,8 +78,8 @@ struct Shape;
 /// world to measure the result. The cell puts these pieces together around
 /// one physics. Use it when a program runs a job, with or without files: a
 /// test or an application builds it from a @ref RoboticCellDescription (or calls
-/// @ref openRoboticCell), and the Package layer builds it from a scenario file.
-/// To move one robot without a job, @ref openRobot is enough.
+/// @ref robotik::StandaloneCell::open), and the Package layer builds it from a scenario file.
+/// To move one robot without a job, @ref robotik::StandaloneRobot::open is enough.
 ///
 /// Each @ref step runs, in this order: the faults, the controller tick (the
 /// behavior tree or the plan requests skills), the scheduler (it admits and
@@ -109,7 +109,7 @@ struct Shape;
 /// arm.model = "robot_6axis.urdf";
 /// robotik::RoboticCellDescription description;
 /// description.world.entities = { arm };
-/// auto opened = robotik::openRoboticCell(std::move(description));
+/// auto opened = robotik::StandaloneCell::open(std::move(description));
 /// robotik::RoboticCell& cell = *opened.value();
 /// auto const raise = cell.skills().add<robotik::MoveJointSkill>(
 ///     { .name = "Raise" }, "joint2", 0.5);
@@ -243,7 +243,7 @@ public:
 
     [[nodiscard]] Seconds time() const
     {
-        return m_robot->robot().getTime();
+        return m_robot->getTime();
     }
 
     // -------------------------------------------------------------------------

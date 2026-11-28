@@ -44,7 +44,7 @@ class RoboticCell;
 /// it cannot say how a robot paints a stroke or what "a lap" is. The scenario logic
 /// brings this code to a generic @ref RoboticCell, so that the core keeps no demo
 /// object. Write one per scenario of a plugin (the table of
-/// @c ScenarioPlugin), or give one to @ref openRoboticCell from a C++ program. A
+/// @c ScenarioPlugin), or give one to @ref robotik::StandaloneCell::open from a C++ program. A
 /// program that runs only the built-in skills needs no scenario logic.
 ///
 /// The cell calls @ref setup once, then for each episode @ref reset, and

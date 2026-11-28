@@ -241,7 +241,7 @@ s = Svg(900, 500, "The four layers of RobotIK",
         "Each layer uses only the layers below it")
 layers = [("Package", "files and plugins", "Simulation (scenario = cell + verdict), RunReport, World / Scenario / Experiment YAML, Assertions, plugin ABI"),
           ("Task", "a job in C++", "RoboticCell (step loop, controllers, truth), ScenarioLogic, SkillScheduler, skills, WorldModel, Planning (PDDL), Grasp, Learning"),
-          ("Robot", "one robot", "Robot, RobotRuntime, openRobot, joints, sensors, actuators, resources, backends (MuJoCo, Pinocchio), asset packs"),
+          ("Robot", "one robot", "Robot, RobotRuntime, StandaloneRobot, joints, sensors, actuators, resources, backends (MuJoCo, Pinocchio), asset packs"),
           ("Common", "small tools", "units and poses (from Compages), Result, Signal, Config, Random")]
 y = 64
 for i, (t, sub, l) in enumerate(layers):

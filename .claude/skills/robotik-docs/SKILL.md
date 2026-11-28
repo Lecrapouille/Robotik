@@ -29,7 +29,7 @@ drops the emoji from the anchor and keeps the space as a dash
 | doc/tutorials/ | tutorial | teaches by doing, in order (`NN-name.md`), ends with `Next:` |
 | doc/guides/ | guide | one task now: goal → steps → code → result |
 | doc/concepts/ | concept | why: the problem, the idea, the choice and what it costs; numbered in reading order (`NN-name.md`) |
-| doc/reference/ | reference | tables of facts, no story: files, plugin, planner, API, glossary |
+| doc/reference/ | reference | tables of facts, no story: files, plugin, planner, API, glossary. The API pages give the classes, how they fit (Mermaid) and the methods used most; every method is in Doxygen (`make doc`) |
 | doc/case-studies/ | case study | one demo plugin from end to end |
 
 A page does one job. When a new text mixes kinds, split it: the steps go in
@@ -48,7 +48,11 @@ update them when a page moves
 
 ## Diagrams
 
-A diagram is an SVG file in `doc/<folder>/images/`, shown with
+A class diagram, a sequence of calls or a decision flow is a Mermaid
+block (` ```mermaid `: `classDiagram`, `sequenceDiagram`, `flowchart`):
+GitHub draws it, and it changes with the text. Show the classes and the
+calls a reader needs, not every method (Doxygen lists them). Any other
+diagram is an SVG file in `doc/<folder>/images/`, shown with
 `![alt text](images/x.svg)`; the alt text says what the diagram shows.
 Never ASCII art (a file tree stays a text block). Draw it with
 `doc/tools/diagrams.py` (style and colours: `doc/tools/README.md`), run

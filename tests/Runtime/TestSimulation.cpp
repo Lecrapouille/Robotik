@@ -7,6 +7,8 @@
 
 #include "main.hpp"
 
+#include "RobotIK/Package/StandaloneSimulation.hpp"
+
 #include "PickPlaceLogic.hpp"
 
 #include "RobotIK/Package/Simulation.hpp"
@@ -159,16 +161,14 @@ TEST(Simulation, AnotherToolBringsItsOwnActuators)
 TEST(Simulation, PickAndPlaceSucceedsAndReplays)
 {
     PickPlaceLogic logic;
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(
         robotik::loadScenario(
             repoFile(
                 "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
             testAssets())
             .take(),
-        nullptr,
-        &logic);
+        &logic));
+    robotik::Simulation& simulation = opened.simulation();
 
     Outcome const first = run(simulation, robotik::Seed{ 11 });
     EXPECT_TRUE(first.passed);
@@ -182,15 +182,13 @@ TEST(Simulation, PickAndPlaceSucceedsAndReplays)
 TEST(Simulation, DetectWaitsUntilCameraIsRestored)
 {
     PickPlaceLogic logic;
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(
         robotik::loadScenario(repoFile("demos/PickAndPlace/scenarios/"
                                        "pick_and_place_faults.scenario.yaml"),
                               testAssets())
             .take(),
-        nullptr,
-        &logic);
+        &logic));
+    robotik::Simulation& simulation = opened.simulation();
     simulation.reset(robotik::Seed{ 7 });
     robotik::SkillId const detect =
         simulation.cell().skills().find("Detect(red_cube)");
@@ -212,15 +210,13 @@ TEST(Simulation, DetectWaitsUntilCameraIsRestored)
 TEST(Simulation, SurvivesACameraFailure)
 {
     PickPlaceLogic logic;
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(
         robotik::loadScenario(repoFile("demos/PickAndPlace/scenarios/"
                                        "pick_and_place_faults.scenario.yaml"),
                               testAssets())
             .take(),
-        nullptr,
-        &logic);
+        &logic));
+    robotik::Simulation& simulation = opened.simulation();
     Outcome const outcome = run(simulation, robotik::Seed{ 7 });
     EXPECT_TRUE(outcome.passed);
     EXPECT_FALSE(
@@ -230,16 +226,14 @@ TEST(Simulation, SurvivesACameraFailure)
 TEST(Simulation, FailedAssertionDoesNotStopTheRun)
 {
     PickPlaceLogic logic;
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(
         robotik::loadScenario(
             repoFile(
                 "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
             testAssets())
             .take(),
-        nullptr,
-        &logic);
+        &logic));
+    robotik::Simulation& simulation = opened.simulation();
     simulation.reset(robotik::Seed{ 11 });
     simulation.step(robotik::Seconds(0.01));
     bool failed = false;
@@ -256,16 +250,14 @@ TEST(Simulation, FailedAssertionDoesNotStopTheRun)
 TEST(Simulation, EmergencyStopPreemptsTheArm)
 {
     PickPlaceLogic logic;
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(
         robotik::loadScenario(
             repoFile(
                 "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
             testAssets())
             .take(),
-        nullptr,
-        &logic);
+        &logic));
+    robotik::Simulation& simulation = opened.simulation();
     robotik::SkillScheduler& skills = simulation.cell().skills();
     robotik::SkillId const stop = skills.find("Stop");
     ASSERT_NE(stop, robotik::NO_SKILL);

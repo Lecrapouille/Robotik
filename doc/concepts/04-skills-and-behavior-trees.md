@@ -54,7 +54,7 @@ There is **no simulator in there**. A skill cannot tell MuJoCo from a real robot
 | `Home` | `HomeSkill` | Added by every simulation that has a `joint_group` actuator. Moves the joints to `home`. One per robot, `left.Home`, when the world has several |
 | `Stop` | `StopSkill` | Added by every simulation. Reserves **all** actuators with the highest priority and holds the joints: an emergency stop. It never ends by itself (always `RUNNING`). One per robot, `left.Stop`, when the world has several |
 | — | `MoveJointSkill(joint, target)` | One joint to an angle |
-| — | `MoveJointsSkill(posture)` | Several joints, `{ "joint1": 0.5, ... }` |
+| — | `MoveJointsSkill(posture)` | Several joints: `JointPosture{ .angles = { { "joint1", 0.5_rad } } }` (angles for the joints that turn, `.lengths` for those that slide) |
 | — | `MoveTCPSkill(frame)` + `goal(pose)` | A frame to a pose (IK once per goal). Useful **inside** your own skills |
 
 Pick-and-place skills (`DetectSkill`, `ApproachSkill`, `GraspSkill`, `ReleaseSkill`) are in `demos/PickAndPlace/src`.

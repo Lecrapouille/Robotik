@@ -10,6 +10,7 @@
 #include "RobotIK/Robot/Backends/MujocoBackend.hpp"
 #include "RobotIK/Robot/Kinematics.hpp"
 #include "RobotIK/Robot/RobotRuntime.hpp"
+#include "RobotIK/Robot/StandaloneRobot.hpp"
 #include "RobotIK/Robot/TeachPendant.hpp"
 
 #include "Compages/World/World.hpp"
@@ -20,6 +21,21 @@
 #include <vector>
 
 using namespace robotik::literals;
+
+/// The 6-axis arm held at a ready posture, with MuJoCo or without physics.
+static robotik::StandaloneRobot readyArm(bool p_physics)
+{
+    robotik::StandaloneRobot::Setup setup;
+    setup.home.angles = { { "joint1", 0.0_rad },  { "joint2", 0.3_rad },
+                          { "joint3", 1.3_rad },  { "joint4", 0.0_rad },
+                          { "joint5", 1.54_rad }, { "joint6", 0.0_rad } };
+    if (!p_physics)
+    {
+        setup.physics = std::nullopt;
+    }
+    return robotik::require(
+        robotik::StandaloneRobot::open("robotik.robots.robot_6axis", setup));
+}
 
 TEST(TeachPendant, QuinticReturnsToTheRecordedJoints)
 {
@@ -48,19 +64,9 @@ TEST(TeachPendant, QuinticReturnsToTheRecordedJoints)
 
 TEST(TeachPendant, ToolJogSolvesInverseKinematics)
 {
-    compages::world::World world;
-    std::filesystem::path const urdf = assetFile("robotik.robots.robot_6axis");
-    robotik::RobotRuntime runtime(world, urdf);
-    robotik::Robot& robot = runtime.robot();
-    auto physics = std::make_unique<robotik::MujocoBackend>();
-    (void)physics->load(urdf);
-    runtime.connect(std::move(physics));
-    runtime.hold({ { "joint1", 0.0 },
-                   { "joint2", 0.3 },
-                   { "joint3", 1.3 },
-                   { "joint4", 0.0 },
-                   { "joint5", 1.54 },
-                   { "joint6", 0.0 } });
+    robotik::StandaloneRobot arm = readyArm(true);
+    robotik::RobotRuntime& runtime = arm.runtime();
+    robotik::Robot& robot = arm.robot();
 
     robotik::Pose const before = robot.requireFramePose(robot.getTool());
     robotik::TeachPendant pendant;
@@ -81,16 +87,8 @@ TEST(TeachPendant, ToolJogSolvesInverseKinematics)
 
 TEST(TeachPendant, AnyLinkCanBeTheMovedFrame)
 {
-    compages::world::World world;
-    robotik::RobotRuntime runtime(world,
-                                  assetFile("robotik.robots.robot_6axis"));
-    robotik::Robot& robot = runtime.robot();
-    runtime.hold({ { "joint1", 0.0 },
-                   { "joint2", 0.3 },
-                   { "joint3", 1.3 },
-                   { "joint4", 0.0 },
-                   { "joint5", 1.54 },
-                   { "joint6", 0.0 } });
+    robotik::StandaloneRobot arm = readyArm(false);
+    robotik::Robot& robot = arm.robot();
     std::vector<std::string> const links = robot.getKinematics().linkFrames();
     ASSERT_NE(std::ranges::find(links, "link3"), links.end());
 
@@ -111,16 +109,8 @@ TEST(TeachPendant, AnyLinkCanBeTheMovedFrame)
 
 TEST(TeachPendant, ImpossibleMoveOfALinkFailsWithoutCrash)
 {
-    compages::world::World world;
-    robotik::RobotRuntime runtime(world,
-                                  assetFile("robotik.robots.robot_6axis"));
-    robotik::Robot& robot = runtime.robot();
-    runtime.hold({ { "joint1", 0.0 },
-                   { "joint2", 0.3 },
-                   { "joint3", 1.3 },
-                   { "joint4", 0.0 },
-                   { "joint5", 1.54 },
-                   { "joint6", 0.0 } });
+    robotik::StandaloneRobot arm = readyArm(false);
+    robotik::Robot& robot = arm.robot();
     robotik::TeachPendant pendant;
     pendant.setFrame("link1");
     // link1 only turns about z: it cannot translate along x.
@@ -138,16 +128,8 @@ TEST(TeachPendant, ImpossibleMoveOfALinkFailsWithoutCrash)
 
 TEST(TeachPendant, AxesFollowTheJointsAboveTheFrame)
 {
-    compages::world::World world;
-    robotik::RobotRuntime runtime(world,
-                                  assetFile("robotik.robots.robot_6axis"));
-    robotik::Robot& robot = runtime.robot();
-    runtime.hold({ { "joint1", 0.0 },
-                   { "joint2", 0.3 },
-                   { "joint3", 1.3 },
-                   { "joint4", 0.0 },
-                   { "joint5", 1.54 },
-                   { "joint6", 0.0 } });
+    robotik::StandaloneRobot arm = readyArm(false);
+    robotik::Robot& robot = arm.robot();
     robotik::Kinematics const& kinematics = robot.getKinematics();
     EXPECT_EQ(kinematics.requireChainDofs("link1"), 1U);
     EXPECT_EQ(kinematics.requireChainDofs("link3"), 3U);
@@ -167,16 +149,8 @@ TEST(TeachPendant, AxesFollowTheJointsAboveTheFrame)
 
 TEST(TeachPendant, ALinkWithFewJointsMovesItsPositionAlone)
 {
-    compages::world::World world;
-    robotik::RobotRuntime runtime(world,
-                                  assetFile("robotik.robots.robot_6axis"));
-    robotik::Robot& robot = runtime.robot();
-    runtime.hold({ { "joint1", 0.0 },
-                   { "joint2", 0.3 },
-                   { "joint3", 1.3 },
-                   { "joint4", 0.0 },
-                   { "joint5", 1.54 },
-                   { "joint6", 0.0 } });
+    robotik::StandaloneRobot arm = readyArm(false);
+    robotik::Robot& robot = arm.robot();
     robotik::TeachPendant pendant;
     pendant.setFrame("link3");
     // joint3 turns about the origin of link3: two joints move it, on a
@@ -205,19 +179,9 @@ TEST(TeachPendant, ALinkWithFewJointsMovesItsPositionAlone)
 // The example of the TeachPendant class comment.
 TEST(TeachPendant, HeaderExampleTeachesAndReplaysTwoPositions)
 {
-    compages::world::World world;
-    std::filesystem::path const urdf = assetFile("robotik.robots.robot_6axis");
-    robotik::RobotRuntime runtime(world, urdf);
-    robotik::Robot& robot = runtime.robot();
-    auto physics = std::make_unique<robotik::MujocoBackend>();
-    (void)physics->load(urdf);
-    runtime.connect(std::move(physics));
-    runtime.hold({ { "joint1", 0.0 },
-                   { "joint2", 0.3 },
-                   { "joint3", 1.3 },
-                   { "joint4", 0.0 },
-                   { "joint5", 1.54 },
-                   { "joint6", 0.0 } });
+    robotik::StandaloneRobot arm = readyArm(true);
+    robotik::RobotRuntime& runtime = arm.runtime();
+    robotik::Robot& robot = arm.robot();
     robotik::Revolute const wrist = robot.getJoints().requireRevolute("joint6");
     robotik::Seconds const dt(0.002);
 

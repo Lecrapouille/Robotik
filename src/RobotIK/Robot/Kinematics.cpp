@@ -67,40 +67,42 @@ static std::vector<double> toVector(Eigen::VectorXd const& p_value)
     return { p_value.data(), p_value.data() + p_value.size() };
 }
 
-/// Pose of tcp in the tool_mount frame. The mount itself is the identity
-/// on the robot flange, so this is also the pose of tcp on the flange.
-static pinocchio::SE3 tcpInMount(std::filesystem::path const& p_tool)
+/// Pose of tcp in the mount frame of the tool. The mount itself is the
+/// identity on the robot flange, so this is also the pose of tcp on the
+/// flange.
+static pinocchio::SE3 tcpInMount(ToolMount const& p_tool)
 {
     pinocchio::Model tool;
-    pinocchio::urdf::buildModel(p_tool.string(), tool);
-    if (!tool.existFrame("tool_mount") || !tool.existFrame("tcp"))
+    pinocchio::urdf::buildModel(p_tool.urdf.string(), tool);
+    if (!tool.existFrame(p_tool.mount) || !tool.existFrame("tcp"))
     {
-        throw std::runtime_error("Tool '" + p_tool.string() +
-                                 "' needs frames tool_mount and tcp");
+        throw std::runtime_error("Tool '" + p_tool.urdf.string() +
+                                 "' needs frames " + p_tool.mount +
+                                 " and tcp");
     }
     pinocchio::Data data(tool);
     Eigen::VectorXd const q = pinocchio::neutral(tool);
     pinocchio::forwardKinematics(tool, data, q);
     pinocchio::updateFramePlacements(tool, data);
-    return data.oMf[tool.getFrameId("tool_mount")].inverse() *
+    return data.oMf[tool.getFrameId(p_tool.mount)].inverse() *
            data.oMf[tool.getFrameId("tcp")];
 }
 
 Kinematics::Kinematics(std::filesystem::path const& p_urdf,
-                                   std::filesystem::path const& p_tool)
+                       ToolMount const& p_tool)
     : m_impl(std::make_unique<Impl>())
 {
     pinocchio::urdf::buildModel(p_urdf.string(), m_impl->model);
-    if (!p_tool.empty())
+    if (hasTool(p_tool))
     {
-        if (!m_impl->model.existFrame("flange"))
+        if (!m_impl->model.existFrame(p_tool.flange))
         {
             throw std::runtime_error("Robot '" + p_urdf.string() +
-                                     "' has no flange frame");
+                                     "' has no frame " + p_tool.flange);
         }
         pinocchio::SE3 const tcp = tcpInMount(p_tool);
         pinocchio::FrameIndex const flange_id =
-            m_impl->model.getFrameId("flange");
+            m_impl->model.getFrameId(p_tool.flange);
         pinocchio::Frame const& flange = m_impl->model.frames[flange_id];
         pinocchio::JointIndex const parent = flange.parentJoint;
         pinocchio::SE3 const placement = flange.placement * tcp;

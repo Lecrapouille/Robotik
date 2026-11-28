@@ -73,10 +73,19 @@ void readyPosture(robotik::RobotRuntime& p_robot,
             throw std::runtime_error("No IK solution toward the ready posture");
         }
         robotik::JointPosture posture;
-        for (robotik::JointId id = 0; id < p_robot.robot().getJoints().size();
-             ++id)
+        robotik::JointSet const& joints = p_robot.robot().getJoints();
+        for (robotik::JointId id = 0; id < joints.size(); ++id)
         {
-            posture[p_robot.robot().getJoints().name(id)] = (*solution)[id];
+            if (joints.type(id) == robotik::JointType::Prismatic)
+            {
+                posture.lengths[joints.name(id)] =
+                    robotik::Length((*solution)[id]);
+            }
+            else
+            {
+                posture.angles[joints.name(id)] =
+                    robotik::Radians((*solution)[id]);
+            }
         }
         p_robot.hold(posture);
     }

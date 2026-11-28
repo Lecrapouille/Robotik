@@ -12,6 +12,8 @@ A robot URDF and a tool URDF stay **separate files**. Nothing is concatenated in
 - `attach(robot, link, tool, "tool_mount")` hangs the tool on the robot `flange` link;
 - `detach` puts the tool back in the world as its own chain.
 
+A `ToolMount` (`urdf`, `flange`, `mount`) names the two links. `flange` and `tool_mount` are its defaults, and the `attach:` block of the world file can give others. The kinematics, the drawn world and MuJoCo (`MujocoBackend::loadRobot`) all read the same `ToolMount`, so they cannot disagree.
+
 A link name or a joint name both work: a joint names the link it moves.
 
 ## 🧭 Frames

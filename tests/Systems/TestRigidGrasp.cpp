@@ -7,6 +7,8 @@
 
 #include "main.hpp"
 
+#include "RobotIK/Package/StandaloneSimulation.hpp"
+
 #include "PickPlaceLogic.hpp"
 
 #include "RobotIK/Package/Simulation.hpp"
@@ -29,8 +31,9 @@ static robotik::Scenario rigidPickAndPlace()
 TEST(RigidGrasp, PickAndPlaceDropsTheCubeIntoTheBox)
 {
     PickPlaceLogic logic(true, false);
-    compages::world::World world;
-    robotik::Simulation simulation(world, rigidPickAndPlace(), nullptr, &logic);
+    auto opened = robotik::require(
+        robotik::StandaloneSimulation::open(rigidPickAndPlace(), &logic));
+    robotik::Simulation& simulation = opened.simulation();
     simulation.reset(robotik::Seed{ 11 });
     bool lifted = false;
     while (!simulation.finished() && simulation.time() < robotik::Seconds(30.0))

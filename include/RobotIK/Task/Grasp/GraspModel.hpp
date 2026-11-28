@@ -7,7 +7,7 @@
 
 /// @file GraspModel.hpp
 /// How the simulation makes a gripper hold an object, per level of physics
-/// fidelity (@ref robotik::Fidelity).
+/// fidelity (@ref robotik::PhysicsFidelity).
 ///
 /// Skills never see the model: they turn the suction of a
 /// @ref robotik::VacuumGripper on or off and read @c holding(). The model

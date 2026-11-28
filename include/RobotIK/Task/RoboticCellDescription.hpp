@@ -22,7 +22,7 @@
 /// - Expects: entity ids are unique in the world; a robot named by a device or
 ///   a skill exists.
 /// - Errors: @c validate and @c mountTool return a @c Result. The YAML
-///   readers and @c openRoboticCell call @c validate, so a wrong description
+///   readers and @c StandaloneCell::open call @c validate, so a wrong description
 ///   is a message, not an abort; building a @ref robotik::RoboticCell from
 ///   it directly throws that message.
 #pragma once
@@ -30,6 +30,8 @@
 #include "RobotIK/Common/Config.hpp"
 #include "RobotIK/Common/Math.hpp"
 #include "RobotIK/Common/Result.hpp"
+#include "RobotIK/Robot/Fidelity.hpp"
+#include "RobotIK/Robot/ToolMount.hpp"
 #include "RobotIK/Robot/Assets/AssetResolver.hpp"
 #include "RobotIK/Robot/Robot.hpp"
 #include "RobotIK/Robot/Sensors/Camera.hpp"
@@ -311,6 +313,18 @@ struct WorldDescription
                                             std::string_view p_robot = {});
 
 // ----------------------------------------------------------------------------
+/// The tool of a robot as the runtime and the physics mount it: its URDF,
+/// and the links of its @c attach: block (@c parent: @c robot.flange,
+/// @c frame: @c tool_mount); a missing link name keeps the default of
+/// @ref ToolMount.
+/// @param p_world World to search.
+/// @param p_robot Robot id; empty for the first robot.
+/// @return The mount, without URDF when the robot has no tool.
+// ----------------------------------------------------------------------------
+[[nodiscard]] ToolMount toolMountOf(WorldDescription const& p_world,
+                                    std::string_view p_robot = {});
+
+// ----------------------------------------------------------------------------
 /// Changes the tool of a robot. The previous tool of that robot goes back to
 /// storage.
 /// @param p_world World to change.
@@ -458,41 +472,6 @@ struct ControllerSpec
     std::optional<PlannerSpec> planner;
 };
 
-// ****************************************************************************
-/// Where the robot's beliefs about an object come from (@c perception:).
-///
-/// Giving the robot the true pose of an object is not cheating when it is
-/// chosen, said and recorded: like a simpler physics, it lets a test focus
-/// on what it checks. A planning test can skip image processing; a car
-/// simulator can hand over the lane marks and the pedestrians instead of
-/// running vision on photo-realistic images.
-///
-/// @code{.yaml}
-/// perception:
-///   fidelity: sensed          # truth | noisy_truth | sensed (default)
-///   overrides: { red_cube: truth }
-///   blind: truth              # when no camera has an image (a headless run)
-///   noise: { sigma: 0.005, dropout: 0.1, range: 2.0 }   # for noisy_truth
-///   max_age: 2.0              # older beliefs are unknown to the planner (s)
-/// @endcode
-// ****************************************************************************
-enum class PerceptionFidelity : std::uint8_t
-{
-    /// The perception pipeline (detectors on camera images) fills the
-    /// beliefs.
-    Sensed,
-    /// The simulator writes the true position, degraded by
-    /// @ref PerceptionSpec::noise (noise, missed observations, range).
-    NoisyTruth,
-    /// The simulator writes the true position (a mock of perception).
-    Truth,
-};
-
-// ----------------------------------------------------------------------------
-/// @param p_fidelity Level to name.
-/// @return "sensed", "noisy_truth" or "truth".
-// ----------------------------------------------------------------------------
-[[nodiscard]] char const* toString(PerceptionFidelity p_fidelity);
 
 // ****************************************************************************
 /// How the true position is degraded at the @c noisy_truth level.
@@ -549,27 +528,6 @@ struct PerceptionSpec
                                             std::string_view p_id,
                                             bool p_blind);
 
-// ****************************************************************************
-/// How finely the physics simulates an interaction (see
-/// doc/reference/scenario-file.md, "Physics fidelity").
-// ****************************************************************************
-enum class Fidelity : std::uint8_t
-{
-    /// A held object follows the tool, a released one is put down where it
-    /// belongs: no contact, no fall. Checks the logic and the plan.
-    Abstract,
-    /// Objects are rigid bodies of the physics engine: a grasp welds the
-    /// object to the tool, a release lets it fall for real.
-    Rigid,
-    /// No weld: the tool holds by force (suction, friction). Not built yet.
-    Contact,
-};
-
-// ----------------------------------------------------------------------------
-/// @param p_fidelity Level to name.
-/// @return "abstract", "rigid" or "contact".
-// ----------------------------------------------------------------------------
-[[nodiscard]] char const* toString(Fidelity p_fidelity);
 
 // ****************************************************************************
 /// Section @c physics: of a scenario.
@@ -584,16 +542,16 @@ enum class Fidelity : std::uint8_t
 struct PhysicsSpec
 {
     /// Level of everything not in @ref overrides.
-    Fidelity fidelity = Fidelity::Abstract;
+    PhysicsFidelity fidelity = PhysicsFidelity::Abstract;
     /// Level per world entity or actuator id.
-    std::map<std::string, Fidelity, std::less<>> overrides;
+    std::map<std::string, PhysicsFidelity, std::less<>> overrides;
 };
 
 // -------------------------------------------------------------------------
 /// @param p_id Entity or actuator id.
 /// @return Its level.
 // -------------------------------------------------------------------------
-[[nodiscard]] inline Fidelity fidelityOf(PhysicsSpec const& p_physics, std::string_view p_id)
+[[nodiscard]] inline PhysicsFidelity fidelityOf(PhysicsSpec const& p_physics, std::string_view p_id)
 {
     auto const found = p_physics.overrides.find(p_id);
     return found == p_physics.overrides.end() ? p_physics.fidelity : found->second;
@@ -604,7 +562,7 @@ struct PhysicsSpec
 /// @param p_b Id of the other side.
 /// @return Level of an interaction: the most detailed of its two sides.
 // -------------------------------------------------------------------------
-[[nodiscard]] inline Fidelity fidelityBetween(PhysicsSpec const& p_physics, std::string_view p_a,
+[[nodiscard]] inline PhysicsFidelity fidelityBetween(PhysicsSpec const& p_physics, std::string_view p_a,
                                    std::string_view p_b)
 {
     return std::max(fidelityOf(p_physics, p_a), fidelityOf(p_physics, p_b));
@@ -642,7 +600,7 @@ struct RoboticCellDescription
     PerceptionSpec perception;
     /// Where the base pose the skills read comes from (every robot).
     LocalizationFidelity localization = LocalizationFidelity::Truth;
-    /// Fidelity of the physics, per entity.
+    /// PhysicsFidelity of the physics, per entity.
     PhysicsSpec physics;
     /// What the actors of the world do (see StoryDescription.hpp).
     StorySpec story;

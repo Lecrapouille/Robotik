@@ -82,7 +82,7 @@ namespace robotik
 /// pendant.play(robot, true);
 /// while (pendant.isPlaying()) {
 ///     pendant.update(robot, dt);   // next targets of the move
-///     robot.step(dt);              // the physics moves the arm
+///     runtime.step(dt);            // the physics moves the arm
 /// }
 /// @endcode
 // ****************************************************************************
@@ -112,7 +112,7 @@ public:
         /// that slides.
         std::vector<double> joints;
         /// Name of each joint of @ref joints, in the same order (the
-        /// @ref RobotModel::joints of the robot that recorded it). A replay
+        /// @ref Robot::Model::joints of the robot that recorded it). A replay
         /// on a robot whose joints differ is refused, even with the same
         /// count of joints.
         std::vector<std::string> joint_names;
@@ -180,7 +180,7 @@ public:
     /// @param p_robot Robot to move.
     /// @param p_loop True to go back to the first waypoint after the last.
     /// @return False when the list is empty, or when one waypoint was saved
-    ///   on a robot with another number of joints.
+    ///   on a robot with other joints (see @ref Waypoint::joint_names).
     // -------------------------------------------------------------------------
     bool play(Robot& p_robot, bool p_loop);
 
@@ -192,7 +192,7 @@ public:
     /// @param p_robot Robot to move.
     /// @param p_index Index of the waypoint.
     /// @return False when there is no such waypoint, or when it was saved on
-    ///   a robot with another number of joints.
+    ///   a robot with other joints (see @ref Waypoint::joint_names).
     // -------------------------------------------------------------------------
     bool goTo(Robot& p_robot, std::size_t p_index);
 

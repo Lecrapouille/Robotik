@@ -9,7 +9,7 @@
 
 #include "main.hpp"
 
-#include "RobotIK/Task/OpenRoboticCell.hpp"
+#include "RobotIK/Task/StandaloneCell.hpp"
 
 TEST(TruthPose, APropTurnedInTheWorldReportsItsRotation)
 {
@@ -25,9 +25,9 @@ TEST(TruthPose, APropTurnedInTheWorldReportsItsRotation)
     robotik::RoboticCellDescription description;
     description.world.entities = { arm, box };
 
-    auto opened = robotik::openRoboticCell(std::move(description));
+    auto opened = robotik::StandaloneCell::open(std::move(description));
     ASSERT_TRUE(opened) << opened.error();
-    robotik::RoboticCell& cell = *opened.value().cell;
+    robotik::RoboticCell& cell = opened.value().cell();
     EXPECT_NEAR(
         robotik::yaw(cell.requirePose("box").rotation).value(), 0.0, 1e-6);
 
@@ -53,12 +53,12 @@ TEST(TruthPose, ATruthBeliefIsTheBodyOfThisStep)
     robotik::RoboticCellDescription description;
     description.world.floor = true;
     description.world.entities = { arm, cube };
-    description.physics.fidelity = robotik::Fidelity::Rigid;
+    description.physics.fidelity = robotik::PhysicsFidelity::Rigid;
     description.perception.fidelity = robotik::PerceptionFidelity::Truth;
 
-    auto opened = robotik::openRoboticCell(std::move(description));
+    auto opened = robotik::StandaloneCell::open(std::move(description));
     ASSERT_TRUE(opened) << opened.error();
-    robotik::RoboticCell& cell = *opened.value().cell;
+    robotik::RoboticCell& cell = opened.value().cell();
     for (int i = 0; i < 20; ++i)
     {
         cell.step(robotik::Seconds(0.01));

@@ -7,6 +7,8 @@
 
 #include "main.hpp"
 
+#include "RobotIK/Package/StandaloneSimulation.hpp"
+
 #include "RobotIK/Common/Config.hpp"
 #include "RobotIK/Package/Simulation.hpp"
 #include "RobotIK/Task/Story/Story.hpp"
@@ -210,8 +212,9 @@ TEST(Story, AnActorWalksToAPlaceTurnsAndSpeaks)
     - { condition: (not (event_started arrive)), at: 0.9 }
     - { condition: (> (actor_speed visitor) 1.0), at: 3.0 }
 )").take();
-    compages::world::World world;
-    robotik::Simulation simulation(world, scenario);
+    auto opened =
+        robotik::require(robotik::StandaloneSimulation::open(scenario));
+    robotik::Simulation& simulation = opened.simulation();
     simulation.reset(robotik::Seed{ 1U });
     runFor(simulation, 20.0);
     EXPECT_TRUE(simulation.passed()) << logOf(simulation);
@@ -258,8 +261,9 @@ TEST(Story, EventsChainRepeatAndCancel)
     - { condition: (= (actor_speed visitor) 0), at: 5.0 }
     - { condition: (= (event_count tick) 3), at: 5.0 }
 )").take();
-    compages::world::World world;
-    robotik::Simulation simulation(world, scenario);
+    auto opened =
+        robotik::require(robotik::StandaloneSimulation::open(scenario));
+    robotik::Simulation& simulation = opened.simulation();
     simulation.reset(robotik::Seed{ 1U });
     runFor(simulation, 6.0);
     EXPECT_TRUE(simulation.passed()) << logOf(simulation);
@@ -291,8 +295,9 @@ TEST(Story, AnActorPlaysOneEventAtATime)
     - { condition: (event_done polite), at: 3.6 }
     - { condition: (and (event_failed rude) (event_done urgent)), at: 2.0 }
 )").take();
-    compages::world::World world;
-    robotik::Simulation simulation(world, scenario);
+    auto opened =
+        robotik::require(robotik::StandaloneSimulation::open(scenario));
+    robotik::Simulation& simulation = opened.simulation();
     simulation.reset(robotik::Seed{ 1U });
     runFor(simulation, 4.0);
     EXPECT_TRUE(simulation.passed()) << logOf(simulation);
@@ -318,8 +323,9 @@ TEST(Story, StopWhenAndTimeoutEndAnEvent)
     - { condition: (< (distance child visitor) 1.3), at: 2.9 }
     - { condition: (event_done follower), at: 3.2 }
 )").take();
-    compages::world::World world;
-    robotik::Simulation simulation(world, scenario);
+    auto opened =
+        robotik::require(robotik::StandaloneSimulation::open(scenario));
+    robotik::Simulation& simulation = opened.simulation();
     simulation.reset(robotik::Seed{ 1U });
     runFor(simulation, 3.5);
     EXPECT_TRUE(simulation.passed()) << logOf(simulation);
@@ -340,8 +346,9 @@ TEST(Story, InstantActionsChangeTheWorldAtOnce)
           - hide: true
           - play: { clip: wave, duration: 1 }
 )").take();
-    compages::world::World world;
-    robotik::Simulation simulation(world, scenario);
+    auto opened =
+        robotik::require(robotik::StandaloneSimulation::open(scenario));
+    robotik::Simulation& simulation = opened.simulation();
     simulation.reset(robotik::Seed{ 1U });
     simulation.step(robotik::Seconds(0.01));
     robotik::RoboticCell const& cell = simulation.cell();
@@ -371,8 +378,9 @@ TEST(Story, TheSameSeedGivesTheSameStory)
 )").take();
     auto runWith = [&](std::uint64_t p_seed)
     {
-        compages::world::World world;
-        robotik::Simulation simulation(world, scenario);
+        auto opened =
+            robotik::require(robotik::StandaloneSimulation::open(scenario));
+        robotik::Simulation& simulation = opened.simulation();
         simulation.reset(robotik::Seed{ p_seed });
         runFor(simulation, 6.0);
         std::string trace = logOf(simulation);

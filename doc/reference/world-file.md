@@ -49,6 +49,8 @@ world:
 | `prop` | A kinematic object: it does not move, unless the robot grasps it. Shape `box` or `container` (open box) | No |
 | `actor` | A person or a vehicle that the [story](story-file.md) of the scenario moves. A glTF `model` with clips, a `box`, both or neither ([Actors](#-actors)) | No |
 
+`home` gives the position held at each reset, joint by joint, in SI units: radians for a joint that turns, metres for a joint that slides. The reader takes the kind of each joint from the URDF of the `model`; a joint that the model does not have is a load error.
+
 Use a `prop` when you want a simple, exact scene. Use a `body` when physics matters: "does the easel slide when the brush pushes it?".
 
 Any entity may also have a `kind`: its type for the PDDL planner (`kind: cube`). Only entities with a `kind` are objects of the planning problem ([The PDDL planner](../concepts/05-pddl-planner.md#-what-goes-where)).
@@ -65,7 +67,7 @@ The URDF describes a *model*. The world describes an *instance*: where it is, an
 
 ## 🔧 Tools
 
-A tool is always mounted by its link `tool_mount` on the robot flange (`robot.flange`). Only one tool is mounted on a robot at a time. Tools declared without `attach` are **in storage**: not built, but the simulator **Teach Pendant** panel can mount one instead. Details in [Tools and frames](../concepts/03-tools-and-frames.md).
+A tool is mounted by one of its links on a link of the robot, as `attach:` says: `{ parent: robot.flange, frame: tool_mount }`. These two names are the defaults; a tool with other links names them (`{ parent: arm.link6, frame: drill_mount }`). A link that the URDF does not have is a load error. Only one tool is mounted on a robot at a time. Tools declared without `attach` are **in storage**: not built, but the simulator **Teach Pendant** panel can mount one instead. Details in [Tools and frames](../concepts/03-tools-and-frames.md).
 
 ```yaml
     - id: vacuum

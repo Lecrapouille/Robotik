@@ -32,7 +32,7 @@ external/                 third-party sources (downloaded)
 | `include/RobotIK/` | Contents |
 |--------------------|----------|
 | `Common/` | `Math.hpp` (units, `Pose`, `Quaternion`, `Vector3`, from Compages), `Result.hpp`, `Signal.hpp`, `Config.hpp` (editable YAML tree), `Random.hpp` (`Seed`), `File.hpp`, `Version.hpp` |
-| `Robot/` | `Robot`, `RobotRuntime`, `RobotModel`, `openRobot`, `JointSet`, `LinkRef`, `Kinematics` (Pinocchio), `SceneView` (rendering hooks), `Devices`, `Resources`, actuators (`Motor`, `JointGroup`, `VacuumGripper`), `TeachPendant` |
+| `Robot/` | `Robot` (and `Robot::Model`), `RobotRuntime`, `StandaloneRobot` (`StandaloneRobot::open`), `JointSet`, `LinkRef`, `Kinematics` (Pinocchio), `SceneView` (rendering hooks), `Devices`, `Resources`, actuators (`Motor`, `JointGroup`, `VacuumGripper`), `TeachPendant` |
 | `Robot/Sensors/` | `Sensor`, `Camera`, `Imu`, `RangeScanner`, `ForceTorqueSensor`, `Measurement`, noise models, `Image` |
 | `Robot/Backends/` | `RobotBackend` (the hardware abstraction layer of one robot), `PhysicsWorld` (rays, contacts, body poses: simulation only), `MujocoBackend` (both) |
 | `Robot/Assets/` | `AssetPack` (a `pack.yaml`), `AssetResolver` (`robotik.tools.vacuum` → file) |
@@ -44,6 +44,6 @@ external/                 third-party sources (downloaded)
 | `Task/Grasp/` | `GraspModel`: how a gripper holds an object, per physics fidelity (`AbstractGrasp`, `RigidGrasp`); container geometry |
 | `Task/Learning/` | RL: `Environment`, `Space`, `SimulationEnvironment`, `EnvironmentPool`, `EpisodeLog` |
 | `Task/Agents/` | `Agent`, `Observation`, `Action`: a brain that maps observations to actions |
-| `Package/` | `Simulation` (scenario = cell + verdict), `RunReport` |
+| `Package/` | `Simulation` (scenario = cell + verdict), `StandaloneSimulation` (a simulation and its world, headless), `RunReport` |
 | `Package/Scenario/` | `World`, `Scenario`, `Experiment`, `Assertions`, `Trajectory`, `PackagePath`, `FileRole` |
 | `Package/Plugin/` | `PluginABI.h` (C border), `PluginAPI.hpp` (C++ helper), `PluginCatalog`, `PluginSession`, `PluginManager`, `PluginHost` |

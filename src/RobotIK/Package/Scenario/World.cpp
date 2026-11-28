@@ -10,6 +10,7 @@
 #include "RobotIK/Task/Planning/Pddl.hpp"
 #include "RobotIK/Common/Config.hpp"
 #include "RobotIK/Package/Scenario/PackagePath.hpp"
+#include "RobotIK/Robot/Joints.hpp"
 
 #include <algorithm>
 #include <numbers>
@@ -490,14 +491,38 @@ static Result<void> readEntity(EntitySpec& p_spec,
     }
 
     ConfigNode const& home = p_node.at("home");
-    for (auto const& [joint, value] : home.entries())
+    if (!home.entries().empty())
     {
-        std::optional<double> const position = value.asNumber();
-        if (!position)
+        // The file gives numbers; the URDF says which are angles (rad) and
+        // which are lengths (m).
+        auto types = readJointTypes(spec.model);
+        if (!types)
         {
-            return fail(where, "home." + joint + " is not a number");
+            return fail(where, "home: " + types.error());
         }
-        spec.home[joint] = *position;
+        for (auto const& [joint, value] : home.entries())
+        {
+            std::optional<double> const position = value.asNumber();
+            if (!position)
+            {
+                return fail(where, "home." + joint + " is not a number");
+            }
+            auto const found = types.value().find(joint);
+            if (found == types.value().end())
+            {
+                return fail(where,
+                            "home." + joint + ": the model has no such "
+                            "moving joint");
+            }
+            if (found->second == JointType::Prismatic)
+            {
+                spec.home.lengths[joint] = Length(*position);
+            }
+            else
+            {
+                spec.home.angles[joint] = Radians(*position);
+            }
+        }
     }
     for (auto const& [name, node] : p_node.at("sensors").entries())
     {

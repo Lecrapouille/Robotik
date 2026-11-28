@@ -9,6 +9,8 @@
 
 #include "main.hpp"
 
+#include "RobotIK/Package/StandaloneSimulation.hpp"
+
 #include "PainterLogic.hpp"
 #include "PickPlaceLogic.hpp"
 
@@ -78,13 +80,9 @@ static robotik::Scenario scenario(char const* p_file)
 TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
 {
     PickPlaceLogic logic(true, true);
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
-        scenario(
-            "demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
-        nullptr,
-        &logic);
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(scenario(
+            "demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"), &logic));
+    robotik::Simulation& simulation = opened.simulation();
     ASSERT_NE(simulation.cell().planner(), nullptr);
     EXPECT_EQ(simulation.cell().planner()->objects().size(), 2U);
 
@@ -115,13 +113,11 @@ TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
 TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
 {
     PickPlaceLogic logic(true, true);
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(
         scenario("demos/PickAndPlace/scenarios/"
                  "pick_and_place_pddl_faults.scenario.yaml"),
-        nullptr,
-        &logic);
+        &logic));
+    robotik::Simulation& simulation = opened.simulation();
 
     PlannedRun const result = run(simulation, robotik::Seed{ 7 }, 60.0);
     EXPECT_EQ(result.outcome,
@@ -152,12 +148,10 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
 TEST(PlannerScenario, PainterLaysTheLayersInOrder)
 {
     PainterLogic logic(true);
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(
         scenario("demos/Painter/scenarios/painter_pddl.scenario.yaml"),
-        nullptr,
-        &logic);
+        &logic));
+    robotik::Simulation& simulation = opened.simulation();
 
     PlannedRun const result = run(simulation, robotik::Seed{ 7 }, 200.0);
     EXPECT_EQ(result.outcome,
@@ -180,13 +174,9 @@ TEST(PlannerScenario, PainterLaysTheLayersInOrder)
 TEST(PlannerScenario, PickAndPlaceGrowsATreeFromTheGoal)
 {
     PickPlaceLogic logic(true, true);
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
-        scenario(
-            "demos/PickAndPlace/scenarios/pick_and_place_pabt.scenario.yaml"),
-        nullptr,
-        &logic);
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(scenario(
+            "demos/PickAndPlace/scenarios/pick_and_place_pabt.scenario.yaml"), &logic));
+    robotik::Simulation& simulation = opened.simulation();
 
     PlannedRun const first = run(simulation, robotik::Seed{ 42 }, 60.0);
     EXPECT_EQ(first.outcome, robotik::Simulation::Outcome::ControllerSucceeded);
@@ -246,13 +236,9 @@ TEST(PlannerScenario, ScenarioRefusesATreeAndAPlanner)
 TEST(PlannerScenario, BeliefAssertionsSeeAWrongLabelWhenItHappens)
 {
     PickPlaceLogic logic(true, true);
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
-        scenario(
-            "demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
-        nullptr,
-        &logic);
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(scenario(
+            "demos/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"), &logic));
+    robotik::Simulation& simulation = opened.simulation();
     robotik::RoboticCell& cell = simulation.cell();
     robotik::Condition const agrees =
         cell.compile("(= (believed (holding red_cube)) "

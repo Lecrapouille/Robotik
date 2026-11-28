@@ -14,10 +14,6 @@
 namespace robotik
 {
 
-/// The robot flange and the tool link that lands on it (see Tools.md).
-static constexpr char const* FLANGE = "flange";
-static constexpr char const* TOOL_MOUNT = "tool_mount";
-
 // ----------------------------------------------------------------------------
 EntitySpec const* findEntity(WorldDescription const& p_world, std::string_view p_id)
 {
@@ -71,6 +67,27 @@ EntitySpec const* mountedTool(WorldDescription const& p_world, std::string_view 
 }
 
 // ----------------------------------------------------------------------------
+ToolMount toolMountOf(WorldDescription const& p_world, std::string_view p_robot)
+{
+    ToolMount mount;
+    EntitySpec const* tool = mountedTool(p_world, p_robot);
+    if (tool == nullptr)
+    {
+        return mount;
+    }
+    mount.urdf = tool->model;
+    if (!tool->attach->parent_frame.empty())
+    {
+        mount.flange = tool->attach->parent_frame;
+    }
+    if (!tool->attach->frame.empty())
+    {
+        mount.mount = tool->attach->frame;
+    }
+    return mount;
+}
+
+// ----------------------------------------------------------------------------
 Result<void> mountTool(WorldDescription& p_world, std::string_view p_id, std::string_view p_robot)
 {
     std::string const robot_id =
@@ -105,27 +122,15 @@ Result<void> mountTool(WorldDescription& p_world, std::string_view p_id, std::st
     }
     if (chosen != nullptr)
     {
-        chosen->attach = Attachment{
-            robot_id, FLANGE, TOOL_MOUNT, Pose{ Vector3::ZERO, Quaternion{} }
-        };
+        ToolMount const defaults;
+        chosen->attach = Attachment{ robot_id,
+                                     defaults.flange,
+                                     defaults.mount,
+                                     Pose{ Vector3::ZERO, Quaternion{} } };
     }
     return success();
 }
 
-// ----------------------------------------------------------------------------
-char const* toString(Fidelity p_fidelity)
-{
-    switch (p_fidelity)
-    {
-        case Fidelity::Abstract:
-            return "abstract";
-        case Fidelity::Rigid:
-            return "rigid";
-        case Fidelity::Contact:
-            return "contact";
-    }
-    return "?";
-}
 
 // ----------------------------------------------------------------------------
 char const* toString(PlannerMethod p_method)
@@ -140,20 +145,6 @@ char const* toString(PlannerMethod p_method)
     return "?";
 }
 
-// ----------------------------------------------------------------------------
-char const* toString(PerceptionFidelity p_fidelity)
-{
-    switch (p_fidelity)
-    {
-        case PerceptionFidelity::Sensed:
-            return "sensed";
-        case PerceptionFidelity::NoisyTruth:
-            return "noisy_truth";
-        case PerceptionFidelity::Truth:
-            return "truth";
-    }
-    return "?";
-}
 
 // ----------------------------------------------------------------------------
 PerceptionFidelity fidelityOf(PerceptionSpec const& p_perception,
@@ -226,7 +217,7 @@ static Result<void> validateEntity(EntitySpec const& p_spec,
     }
     if (p_spec.type != EntitySpec::Type::Robot &&
         p_spec.type != EntitySpec::Type::Tool &&
-        (!p_spec.sensors.empty() || !p_spec.home.empty()))
+        (!p_spec.sensors.empty() || !isEmpty(p_spec.home)))
     {
         return fail(p_where,
                     "only robots and tools carry sensors or a home posture");
@@ -251,13 +242,13 @@ validateAttachment(WorldDescription const& p_world,
     }
     if (p_spec.type == EntitySpec::Type::Tool)
     {
-        if (parent->type != EntitySpec::Type::Robot ||
-            p_spec.attach->parent_frame != FLANGE ||
-            p_spec.attach->frame != TOOL_MOUNT)
+        // The links may have other names (see ToolMount); a link that the
+        // URDF does not have is a load error of the robot.
+        if (parent->type != EntitySpec::Type::Robot)
         {
             return fail(p_entity,
-                        "a tool attaches with { parent: <robot>.flange, "
-                        "frame: tool_mount }");
+                        "a tool attaches to a robot: { parent: "
+                        "<robot>.flange, frame: tool_mount }");
         }
         if (++p_mounted[parent->id] > 1)
         {

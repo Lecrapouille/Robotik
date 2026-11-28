@@ -24,7 +24,7 @@
 /// - Expects: one @ref robotik::RobotRuntime::step per control period.
 /// - Errors: an unknown joint name throws @c std::invalid_argument; a URDF
 ///   that cannot be read throws @c std::runtime_error (use
-///   @ref robotik::openRobot for a @c Result).
+///   @ref robotik::StandaloneRobot::open for a @c Result).
 #pragma once
 
 #include "RobotIK/Robot/Backends/PhysicsWorld.hpp"
@@ -56,7 +56,7 @@ namespace robotik
 /// send commands). Everything that would let it cheat (read the true
 /// position of the robot, write a joint measure, step the physics, change a
 /// sensor) is here, in a class that only the program that runs the robot
-/// holds: a @ref RoboticCell, a test, @ref openRobot.
+/// holds: a @ref RoboticCell, a test, @ref robotik::StandaloneRobot::open.
 ///
 /// How: @ref connect plugs a backend, the part that really moves the
 /// joints (MuJoCo in simulation, a driver on hardware, see
@@ -81,10 +81,10 @@ namespace robotik
 /// physics->load("arm.urdf");
 /// runtime.connect(std::move(physics));
 /// // Start pose: joint2 at 0.3 rad, the others at 0; the arm holds it.
-/// runtime.hold({ { "joint2", 0.3 } });
+/// runtime.hold({ .angles = { { "joint2", 0.3_rad } } });
 /// while (running)
 ///     runtime.step(0.01_s); // 10 ms of physics, then the sensors
-/// skill.run(runtime.robot()); // what a skill gets
+/// robotik::Robot& robot = runtime.robot(); // what a skill gets
 /// @endcode
 // ****************************************************************************
 class RobotRuntime final
@@ -96,14 +96,15 @@ public:
     /// @param p_world ECS world receiving the entities.
     /// @param p_urdf URDF of the robot.
     /// @param p_view Rendering hooks, or null for a headless robot.
-    /// @param p_tool URDF of a tool on the flange, or empty.
+    /// @param p_tool Tool mounted on the robot (URDF, flange and mount
+    ///   links), or none.
     /// @param p_resources Shared with the other robots of the world, or null.
     /// @throws std::runtime_error if the URDF or the tool cannot be loaded.
     // -------------------------------------------------------------------------
     RobotRuntime(compages::world::World& p_world,
                  std::filesystem::path const& p_urdf,
                  SceneView* p_view = nullptr,
-                 std::filesystem::path const& p_tool = {},
+                 ToolMount const& p_tool = {},
                  std::shared_ptr<ResourceManager> p_resources = {});
 
     RobotRuntime(RobotRuntime const&) = delete;
@@ -119,7 +120,9 @@ public:
         return m_robot;
     }
 
+    // -------------------------------------------------------------------------
     /// @copydoc robot()
+    // -------------------------------------------------------------------------
     [[nodiscard]] Robot const& robot() const
     {
         return m_robot;
@@ -184,9 +187,10 @@ public:
     /// Puts the robot in a posture at once and keeps it there: the motors
     /// hold every joint where it is. The posture also becomes the home
     /// position that @ref reset goes back to.
-    /// @param p_posture Joint name to position (rad or m, the unit of each
-    ///   joint); a joint not in the list keeps its position.
-    /// @throws std::invalid_argument for an unknown joint name.
+    /// @param p_posture Angles of the joints that turn, lengths of those
+    ///   that slide; a joint not in the posture keeps its position.
+    /// @throws std::invalid_argument for an unknown joint name, or a joint
+    ///   in the wrong table (an angle for a joint that slides).
     // -------------------------------------------------------------------------
     void hold(JointPosture const& p_posture = {});
 
@@ -349,6 +353,17 @@ public:
     }
 
     // -------------------------------------------------------------------------
+    /// @return Robot clock: the time of the backend after the last step
+    ///   (simulated time, or the stamp of the last hardware reading), zero
+    ///   at @ref reset. A skill reads the same time in
+    ///   @c RobotContext::time, given at each tick.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Seconds getTime() const
+    {
+        return m_time;
+    }
+
+    // -------------------------------------------------------------------------
     /// @return Where the base really is (sensors, rendering, truth queries).
     // -------------------------------------------------------------------------
     [[nodiscard]] BaseState const& getTrueBase() const
@@ -366,7 +381,9 @@ public:
         return m_robot.m_sensors;
     }
 
+    // -------------------------------------------------------------------------
     /// @copydoc getSensors()
+    // -------------------------------------------------------------------------
     [[nodiscard]] SensorSet const& getSensors() const
     {
         return m_robot.m_sensors;
@@ -387,7 +404,7 @@ public:
     // -------------------------------------------------------------------------
     [[nodiscard]] Kinematics& getKinematics()
     {
-        return *m_robot.m_kinematics;
+        return m_robot.m_kinematics;
     }
 
     // -------------------------------------------------------------------------
@@ -417,7 +434,9 @@ public:
         return m_physics;
     }
 
+    // -------------------------------------------------------------------------
     /// @copydoc getPhysics()
+    // -------------------------------------------------------------------------
     [[nodiscard]] PhysicsWorld const* getPhysics() const
     {
         return m_physics;
@@ -470,17 +489,25 @@ public:
 
 private:
 
+    // -------------------------------------------------------------------------
     /// Updates the kinematics, then the drawn entities (joints and base, at
     /// the true base).
+    // -------------------------------------------------------------------------
     void propagate();
 
+    // -------------------------------------------------------------------------
     /// Writes the measured joints to the joint components of the links
     /// (rendering and inspection).
+    // -------------------------------------------------------------------------
     void publishJoints() const;
 
+    // -------------------------------------------------------------------------
     /// Reads the health of the backend: fails the actuator resources when
     /// it is lost, restores them when it is back.
+    // -------------------------------------------------------------------------
     void checkHealth();
+
+private:
 
     /// ECS world holding the entities.
     compages::world::World& m_world;
@@ -507,6 +534,8 @@ private:
     BaseState m_true_base;
     /// Base pose restored by @ref reset.
     Pose m_start;
+    /// Robot clock (see @ref getTime).
+    Seconds m_time{};
     /// Where the estimated base comes from.
     LocalizationFidelity m_localization = LocalizationFidelity::Truth;
 };

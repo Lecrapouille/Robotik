@@ -7,6 +7,8 @@
 
 #include "main.hpp"
 
+#include "RobotIK/Package/StandaloneSimulation.hpp"
+
 #include "PainterLogic.hpp"
 #include "PainterScene.hpp"
 
@@ -30,9 +32,10 @@ static double gap(robotik::Pose const& p_a, robotik::Pose const& p_b)
 
 TEST(Painter, StrokesAreDrawnInTheFrameOfTheEasel)
 {
-    compages::world::World world;
     PainterLogic logic;
-    robotik::Simulation simulation(world, painterScenario(), nullptr, &logic);
+    auto opened = robotik::require(
+        robotik::StandaloneSimulation::open(painterScenario(), &logic));
+    robotik::Simulation& simulation = opened.simulation();
 
     // The easel stands where the world file puts it, its canvas on the mount.
     EXPECT_LT(gap(simulation.cell().requirePose("easel"),
@@ -68,9 +71,10 @@ TEST(Painter, StrokesAreDrawnInTheFrameOfTheEasel)
 
 TEST(Painter, CanvasRestsOnTheEasel)
 {
-    compages::world::World world;
     PainterLogic logic;
-    robotik::Simulation simulation(world, painterScenario(), nullptr, &logic);
+    auto opened = robotik::require(
+        robotik::StandaloneSimulation::open(painterScenario(), &logic));
+    robotik::Simulation& simulation = opened.simulation();
 
     // The mission is suspended: nothing pushes. The canvas may settle 1 mm.
     simulation.cell().suspend(true);
@@ -87,9 +91,10 @@ TEST(Painter, CanvasRestsOnTheEasel)
 
 TEST(Painter, PortraitDipsAndMarks)
 {
-    compages::world::World world;
     PainterLogic logic;
-    robotik::Simulation simulation(world, painterScenario(), nullptr, &logic);
+    auto opened = robotik::require(
+        robotik::StandaloneSimulation::open(painterScenario(), &logic));
+    robotik::Simulation& simulation = opened.simulation();
 
     for (int i = 0; i < 20000 && !simulation.finished(); ++i)
     {

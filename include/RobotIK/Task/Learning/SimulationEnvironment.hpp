@@ -43,11 +43,12 @@
 #include "RobotIK/Task/Learning/Environment.hpp"
 #include "RobotIK/Task/RoboticCellDescription.hpp"
 #include "RobotIK/Task/ScenarioLogic.hpp"
+#include "RobotIK/Task/StandaloneCell.hpp"
 
-#include "Compages/World/World.hpp"
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -323,7 +324,7 @@ public:
     /// @return The simulation, e.g. to render one environment of a pool.
     [[nodiscard]] RoboticCell& simulation()
     {
-        return *m_simulation;
+        return m_cell->cell();
     }
 
     /// @return Why the last episode was aborted, empty otherwise.
@@ -334,8 +335,6 @@ public:
 
 private:
 
-    /// ECS world of the simulation.
-    compages::world::World m_world;
     /// Observation, action, reward and scenario logic.
     Parts m_parts;
     /// Physics step, control period and step budget.
@@ -350,8 +349,9 @@ private:
     EpisodeClock m_clock;
     /// Why the last episode was aborted.
     std::string m_abort;
-    /// Declared last: destroyed before the scenario logic and the world it uses.
-    std::unique_ptr<RoboticCell> m_simulation;
+    /// The cell and its world. Declared last: destroyed before the scenario
+    /// logic it uses. Empty only while the constructor runs.
+    std::optional<StandaloneCell> m_cell;
 };
 
 } // namespace robotik

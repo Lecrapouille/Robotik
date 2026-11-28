@@ -4,13 +4,13 @@
 
 A skill must behave the same in a test, in the simulator and on the real robot. If it could read the true position of the robot, or write the measure of a joint, it would work in simulation and fail on the hardware. RobotIK prevents this with the types: a skill gets a `Robot`, and the program that runs the robot holds a `RobotRuntime`.
 
-## 🧩 Three classes
+## 🧩 Two classes and a model
 
 | Class | Header | What it holds | Who has it |
 |-------|--------|---------------|------------|
-| `Robot` | `Robot/Robot.hpp` | measured joints and their commands, sensors (read only), actuators, kinematics on the measured joints, estimated base, resources (read only), clock, id | a skill, through `RobotContext::robot` |
-| `RobotModel` | `Robot/RobotModel.hpp` | what does not change after the load: name, URDF, work frame (`tool`), joint names in the order of their `JointId` | read with `Robot::getModel()` |
-| `RobotRuntime` | `Robot/RobotRuntime.hpp` | the `Robot`, plus the ECS world and the entities of the links, the backend, the `PhysicsWorld`, the true base, the start pose, the health of the backend | `RoboticCell`, `openRobot`, the backends, the sensors, the grasp models, the tests |
+| `Robot` | `Robot/Robot.hpp` | measured joints and their commands, sensors (read only), actuators, kinematics on the measured joints, estimated base, resources (read only), id | a skill, through `RobotContext::robot` |
+| `Robot::Model` | `Robot/Robot.hpp` | what does not change after the load: name, URDF, work frame (`tool`), joint names in the order of their `JointId` | read with `Robot::getModel()` |
+| `RobotRuntime` | `Robot/RobotRuntime.hpp` | the `Robot`, plus the clock, the ECS world and the entities of the links, the backend, the `PhysicsWorld`, the true base, the start pose, the health of the backend | `RoboticCell`, `StandaloneRobot`, the backends, the sensors, the grasp models, the tests |
 
 The runtime **owns** the `Robot` and lends it with `runtime.robot()`. It does not derive from it. An earlier version did (`RobotSession : public Robot`): the `Robot` then stored the world, the backend and the true base as `protected` members, and the derived class only added the right to reach them. The access was split, the storage was not, and nothing in the types stopped a cast from `Robot&` to the session. Now the `Robot` does not store these things at all, so there is nothing to reach.
 
@@ -23,7 +23,7 @@ robotik::Robot& robot = runtime.robot();          // what a skill gets
 robot.getJoints().moveTo(elbow, 0.5_rad);         // a command
 ```
 
-`RobotModel` follows the model and state split of Pinocchio. A `TeachPendant` waypoint keeps the joint names of the robot that recorded it: a replay on an arm with six joints of other names is refused, even if the count is the same.
+`Robot::Model` follows the model and state split of Pinocchio. A `TeachPendant` waypoint keeps the joint names of the robot that recorded it: a replay on an arm with six joints of other names is refused, even if the count is the same.
 
 ## 👀 What a skill can do
 
@@ -32,7 +32,9 @@ With its `Robot&`, a skill:
 - reads the joints and sends them targets (`getJoints()`);
 - finds the sensors and reads them, and finds the actuators and commands them (`getSensors()`, `getActuators()`);
 - computes the kinematics on the measured joints, read only (`requireFramePose`, `inverseKinematics`, `getKinematics()`);
-- reads the estimated base (`getBase()`, `getWorldPose`), the resources, the clock, the name, the id and the work frame.
+- reads the estimated base (`getBase()`, `getWorldPose`), the resources, the name, the id and the work frame.
+
+The time comes with each tick, in `RobotContext::time` and `dt`: the clock belongs to what runs the robot (`RobotRuntime::getTime`).
 
 `RobotContext::team` gives the other robots of the cell as `Robot const*`: a skill reads what they measure, as a real cell shares it on its network. It cannot command them, so the scheduler sees every command of a skill.
 
@@ -40,7 +42,7 @@ With its `Robot&`, a skill:
 
 | Role | Methods | Why not in a skill |
 |------|---------|--------------------|
-| Make time pass | `connect`, `step`, `prepare`/`advance`/`sense`, `reset`, `hold` | only the program decides when the physics moves |
+| Make time pass | `connect`, `step`, `prepare`/`advance`/`sense`, `reset`, `hold`, the clock `getTime` | only the program decides when the physics moves |
 | Write the measures | `measureJoint`, `placeJoint`, `measureHolding`, `measureBase` | a measure comes from a sensor; a skill could fake it |
 | Read the truth of the simulator | `getTrueBase`, `getTrueWorldPose` | a real robot knows only its estimate |
 | Localization | `estimateBase`, `setLocalization` | a plugin algorithm (or a copy of the truth) writes the estimate |
@@ -74,7 +76,7 @@ The contract of `RobotBackend`, written for a first driver:
 
 ## 🚧 Limits
 
-- A tool is given when the robot is built: there is no tool change while it runs, so the `RobotModel` is the same for the whole life of the robot.
+- A tool is given when the robot is built: there is no tool change while it runs, so the `Robot::Model` is the same for the whole life of the robot.
 - The Pinocchio model is not shared between two robots of the same URDF: each `Robot` owns its own `Kinematics` (model and data).
 - No hardware driver is written yet. The contract above is what the first one must keep.
 
@@ -82,4 +84,4 @@ The contract of `RobotBackend`, written for a first driver:
 
 - [The robot: model, state, backend](02-robot.md)
 - [Resources and arbitration](04-resources.md), for what a failed resource does to a skill
-- [API reference](../../reference/api.md#-robotruntime-what-runs-the-robot)
+- [API reference: the robot](../../reference/api/robot.md), with the three classes side by side

@@ -7,6 +7,8 @@
 
 #include "main.hpp"
 
+#include "RobotIK/Package/StandaloneSimulation.hpp"
+
 #include <algorithm>
 
 #include "RobotIK/Package/Plugin/PluginSession.hpp"
@@ -291,7 +293,8 @@ TEST(PluginSession, LifecycleKeepsTheLibraryAcrossScenarios)
     EXPECT_EQ(manager.state(), robotik::PluginState::Unloaded);
 }
 
-TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
+TEST(StandaloneSimulation,
+     InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
 {
     std::filesystem::path const scenario =
         pluginsRoot() / "HelloWorld" / "scenarios" / "reach.scenario.yaml";
@@ -300,20 +303,13 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
     {
         GTEST_SKIP() << "hello world plugin is not built";
     }
-    robotik::PluginSession session;
-    session.setHeadless(true);
-    session.scan(pluginsRoot());
-    ASSERT_EQ(session.prepare(scenario), robotik::PluginPrepare::Ready)
-        << session.error();
-
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
-        robotik::loadScenario(scenario, session.assets()).take(),
-        nullptr,
-        session.logic());
-    session.attach(&simulation);
-    ASSERT_EQ(session.start(), ROBOTIK_PLUGIN_OK);
+    // The library, its scenario logic and the world belong to the
+    // simulation: one call, closed in the right order at the end.
+    auto opened = robotik::StandaloneSimulation::openPlugin(
+        scenario, { .plugins = pluginsRoot() });
+    ASSERT_TRUE(opened) << opened.error();
+    ASSERT_NE(opened.value().plugin(), nullptr);
+    robotik::Simulation& simulation = opened.value().simulation();
 
     bool saw_failure = false;
     EXPECT_FALSE(simulation.finished());
@@ -328,8 +324,7 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
 
     for (int step = 0; step < 800 && !simulation.finished(); ++step)
     {
-        simulation.step(robotik::Seconds(0.01));
-        session.afterStep(0.01);
+        opened.value().step(robotik::Seconds(0.01)); // the plugin is called too
     }
     EXPECT_TRUE(simulation.finished());
     bool recovered = false;
@@ -341,7 +336,6 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
         }
     }
     EXPECT_TRUE(recovered);
-    session.detach();
 }
 
 /// Runs a scenario of the DualArm plugin to its end; false when not built.
@@ -361,31 +355,34 @@ static bool runDualArm(std::string const& p_scenario,
     {
         return false;
     }
-    robotik::PluginSession session;
-    session.setHeadless(true);
-    session.scan(pluginsRoot());
-    EXPECT_EQ(session.prepare(scenario), robotik::PluginPrepare::Ready)
-        << session.error();
-    robotik::ScenarioSource source =
-        robotik::loadScenarioSource(scenario).take();
-    if (!p_parallel)
+    // The plan runs its independent steps together unless told otherwise:
+    // the override is applied with the asset packs of the plugin package.
+    robotik::StandaloneSimulation::PluginSetup setup;
+    setup.plugins = pluginsRoot();
+    setup.scenario = [&](robotik::AssetResolver const& p_assets)
     {
-        EXPECT_TRUE(robotik::overrideValue(source,
-                                           "scenario.controller.planner.parallel",
-                                           robotik::ConfigNode("false")));
+        robotik::ScenarioSource source =
+            robotik::loadScenarioSource(scenario).take();
+        if (!p_parallel)
+        {
+            EXPECT_TRUE(
+                robotik::overrideValue(source,
+                                       "scenario.controller.planner.parallel",
+                                       robotik::ConfigNode("false")));
+        }
+        return robotik::readScenario(source, p_assets);
+    };
+    auto opened =
+        robotik::StandaloneSimulation::openPlugin(scenario, std::move(setup));
+    EXPECT_TRUE(opened) << opened.error();
+    if (!opened)
+    {
+        return false;
     }
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
-        robotik::readScenario(source, session.assets()).take(),
-        nullptr,
-        session.logic());
-    session.attach(&simulation);
-    EXPECT_EQ(session.start(), ROBOTIK_PLUGIN_OK);
+    robotik::Simulation& simulation = opened.value().simulation();
     for (int step = 0; step < 6000 && !simulation.finished(); ++step)
     {
-        simulation.step(robotik::Seconds(0.01));
-        session.afterStep(0.01);
+        opened.value().step(robotik::Seconds(0.01));
     }
     if (p_parallel)
     {
@@ -400,7 +397,6 @@ static bool runDualArm(std::string const& p_scenario,
     p_time = simulation.time().value();
     p_overlap =
         simulation.cell().requireQuery("dual_arm.overlap").value_or(-1.0);
-    session.detach();
     return true;
 }
 
@@ -430,4 +426,15 @@ TEST(PluginSession, OneArmHoldsTheTrayFromBelowWhileTheOtherDrillsIt)
     }
     // The drilling ran during the carry (required concurrency).
     EXPECT_GT(overlap, 4.0);
+}
+
+// ----------------------------------------------------------------------------
+TEST(StandaloneSimulation, AScenarioOutsideAPackageIsAMessage)
+{
+    auto const opened = robotik::StandaloneSimulation::openPlugin(
+        repo("tests/Plugin/fixtures/no_package.scenario.yaml"));
+    ASSERT_FALSE(opened);
+    EXPECT_NE(opened.error().find("not in a plugin package"),
+              std::string::npos)
+        << opened.error();
 }

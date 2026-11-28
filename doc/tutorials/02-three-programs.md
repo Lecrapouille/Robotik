@@ -35,7 +35,7 @@ The last lines of the output are:
 
 No window opens: the three programs run without a display. Each test reads the joint positions or the state of the world to know what happened.
 
-The code below comes from [TestOpenRobot.cpp](../../tests/Robot/TestOpenRobot.cpp) and [TestLayerExamples.cpp](../../tests/Examples/TestLayerExamples.cpp). Open these files to see the includes. Three names come from the tests and not from RobotIK:
+The code below comes from [TestStandaloneRobot.cpp](../../tests/Robot/TestStandaloneRobot.cpp) and [TestLayerExamples.cpp](../../tests/Examples/TestLayerExamples.cpp). Open these files to see the includes. Three names come from the tests and not from RobotIK:
 
 - `repoFile` makes a path from the root of the repository.
 - `ASSERT_TRUE` stops the test if a file does not load.
@@ -47,22 +47,22 @@ A function that loads a file returns a `Result`. If the load fails, `.error()` t
 
 ![Robot layer: command joint2, step the physics, then read its measured position.](images/robot-joint-loop.svg)
 
-The first program has one robot, no object and no controller. A [URDF](../reference/glossary.md#-robot) file describes the links and the joints of the robot. `openRobot` reads this file and opens a session that steps the physics.
+The first program has one robot, no object and no controller. A [URDF](../reference/glossary.md#-robot) file describes the links and the joints of the robot. `StandaloneRobot::open` reads this file and gives a `StandaloneRobot`: the robot, its world and its physics. `robot()` is the robot as a skill sees it (joints, sensors, commands); `runtime()` is what runs it (`step`, `reset`).
 
 ```cpp
-// Load the robot model and create its simulation session.
-auto arm = robotik::openRobot(repoFile("data/packs/robotik.robots/robot_6axis.urdf").string());
+// Load the robot model, its world and its physics.
+auto arm = robotik::StandaloneRobot::open(repoFile("data/packs/robotik.robots/robot_6axis.urdf").string());
 ASSERT_TRUE(arm) << arm.error();
 
 // Find joint2 and set its target to 0.3 radians.
-robotik::JointSet& joints = arm.value()->joints();
+robotik::JointSet& joints = arm.value().robot().getJoints();
 robotik::Revolute const joint = joints.requireRevolute("joint2");
 joints.moveTo(joint, robotik::Radians(0.3));
 
 // Simulate four seconds, then check the measured angle.
 for (int i = 0; i < 400; ++i)
 {
-    arm.value()->step(robotik::Seconds(0.01));
+    arm.value().runtime().step(robotik::Seconds(0.01));
 }
 EXPECT_NEAR(joints.position(joint).value(), 0.3, 0.02);
 ```
@@ -103,16 +103,16 @@ Then the program opens the cell, adds a skill and runs it:
 
 ```cpp
 // Build the cell from its description.
-auto opened = robotik::openRoboticCell(std::move(description));
+auto opened = robotik::StandaloneCell::open(std::move(description));
 ASSERT_TRUE(opened) << opened.error();
-robotik::RoboticCell& cell = *opened.value();
+robotik::RoboticCell& cell = opened.value().cell();
 
 // Register Raise and run it with a ten-second limit.
 auto const raise = cell.skills().add<robotik::MoveJointSkill>({ .name = "Raise" }, "joint2", 0.5);
 EXPECT_EQ(cell.run(raise, robotik::Seconds(10.0)), robotik::SkillState::Succeeded);
 ```
 
-`openRoboticCell` builds the world and its physics, without a window. The cell belongs to `opened`: keep `opened` alive while you use `cell`.
+`StandaloneCell::open` builds the world and its physics, without a window. The cell belongs to `opened`: keep `opened` alive while you use `cell`.
 
 `add<MoveJointSkill>` registers a skill named `Raise` that moves `joint2` to 0.5 radians. The skill does not start yet. `run` asks the scheduler to start it, then steps the cell until the skill ends. The skill succeeds when the measured position of the joint reaches its target.
 
@@ -150,8 +150,9 @@ auto scenario = robotik::loadScenario(
 ASSERT_TRUE(scenario) << scenario.error();
 
 HelloLogic logic;
-compages::world::World world;
-robotik::Simulation simulation(world, scenario.take(), nullptr, &logic);
+auto opened = robotik::StandaloneSimulation::open(scenario.take(), &logic);
+ASSERT_TRUE(opened) << opened.error();
+robotik::Simulation& simulation = opened.value().simulation();
 while (!simulation.finished())
 {
     simulation.step(robotik::Seconds(0.01));
@@ -161,7 +162,7 @@ EXPECT_TRUE(simulation.passed());
 EXPECT_EQ(simulation.outcome(), robotik::Simulation::Outcome::ControllerSucceeded);
 ```
 
-`testAssets()` tells where the robot models are. `scenario.take()` moves the description of the cell into the simulation. `nullptr` is the scene view: there is none, so nothing is drawn. Keep `world` and `logic` alive as long as `simulation`.
+`testAssets()` tells where the robot models are. `scenario.take()` moves the description of the cell into the simulation. `StandaloneSimulation::open` builds the simulation and its world, without a window: nothing is drawn. A world that cannot be built, or an assertion that does not compile, is a message in `opened.error()`. Keep `opened` and `logic` alive as long as you use `simulation`. With a file path instead of a `Scenario`, `open` loads the file itself.
 
 Each `step` steps the cell and evaluates the assertions. `outcome()` tells why the run ended. `passed()` tells if all the assertions hold. The two are different: a controller can succeed and an assertion can still fail.
 

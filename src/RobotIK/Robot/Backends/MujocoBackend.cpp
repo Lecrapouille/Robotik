@@ -477,6 +477,21 @@ static void addFreeBox(mjSpec* p_host, FreeBox const& p_box)
     mjs_setName(geom->element, (p_box.name + "_geom").c_str());
 }
 
+std::string MujocoBackend::loadRobot(std::filesystem::path const& p_urdf,
+                                     ToolMount const& p_tool,
+                                     ChainOptions const& p_options)
+{
+    std::string const robot = load(p_urdf, p_options);
+    if (hasTool(p_tool))
+    {
+        ChainOptions mount;
+        mount.prefix = p_options.prefix;
+        std::string const tool = load(p_tool.urdf, mount);
+        attach(robot, p_tool.flange, tool, p_tool.mount);
+    }
+    return robot;
+}
+
 std::string MujocoBackend::load(std::filesystem::path const& p_urdf,
                                 ChainOptions const& p_options)
 {

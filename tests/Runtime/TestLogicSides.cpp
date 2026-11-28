@@ -10,7 +10,7 @@
 
 #include "main.hpp"
 
-#include "RobotIK/Task/OpenRoboticCell.hpp"
+#include "RobotIK/Task/StandaloneCell.hpp"
 
 #include <string>
 #include <type_traits>
@@ -81,9 +81,9 @@ TEST(LogicSides, ActThenSimulateThenObserveAtTheSameTime)
     description.world.entities = { arm };
 
     SidesLogic logic;
-    auto opened = robotik::openRoboticCell(std::move(description), &logic);
+    auto opened = robotik::StandaloneCell::open(std::move(description), &logic);
     ASSERT_TRUE(opened) << opened.error();
-    robotik::RoboticCell& cell = *opened.value();
+    robotik::RoboticCell& cell = opened.value().cell();
 
     EXPECT_EQ(cell.run(robotik::Seconds(1.0)), robotik::Status::SUCCESS);
     EXPECT_EQ(logic.calls, "asoasoaso")

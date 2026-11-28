@@ -58,7 +58,10 @@ enum class PluginPrepare : std::uint8_t
 ///
 /// The simulator and Headless load plugins the same way: find the package of
 /// a scenario, open its library, check its ids and its API version, create
-/// the scenario logic, then call the plugin around each step. This class holds that
+/// the scenario logic, then call the plugin around each step. A headless
+/// program does not use it directly: @ref StandaloneSimulation::openPlugin
+/// owns one and runs this sequence in the right order; the simulator keeps
+/// its own, because its world is shared with the rendering. This class holds that
 /// sequence once, so both hosts behave alike and a test can drive a plugin
 /// without a host. The order matters: the simulation is destroyed before
 /// @ref release, because the scenario logic it points to is freed there. An error

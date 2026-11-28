@@ -17,7 +17,7 @@ Read only what the task needs. Load a skill instead of reading the docs:
 | Change the simulator interface (panels, layouts, scenario editor) | `robotik-simulator` | doc/tutorials/01-getting-started.md |
 | Edit the documentation | `robotik-docs` | doc/README.md |
 | Write an app in C++ without YAML (Robot or Task layer) | — | doc/tutorials/02-three-programs.md |
-| Find a class or method | — | doc/reference/api.md |
+| Find a class or method | — | doc/reference/api/README.md |
 | A word you do not know | — | doc/reference/glossary.md |
 | Change the core | — | doc/concepts/architecture/README.md |
 
@@ -34,17 +34,18 @@ doc/reference/glossary.md.
 include/RobotIK/<Layer>/...  public headers; src/RobotIK/<Layer>/... implementation
   Common/   Math (units, Pose, from Compages), Result (+ROBOTIK_TRY), Signal,
             Config (editable YAML tree), Random (Seed), File, Version
-  Robot/    one robot: Robot, RobotRuntime, openRobot, JointSet (SoA), LinkRef,
+  Robot/    one robot: Robot, RobotRuntime, StandaloneRobot (StandaloneRobot::open), JointSet (SoA), LinkRef,
             Devices, Resources, Actuators, TeachPendant, Sensors/, Backends/
             (MuJoCo, Pinocchio, SceneView), Assets/ (packs, resolver),
             Components/ (ECS data on entities)
   Task/     a job in C++: RoboticCellDescription (data), RoboticCell (step loop, truth,
-            controllers, perception fidelity), ScenarioLogic, SkillScheduler,
+            controllers, perception fidelity), StandaloneCell (StandaloneCell::open), ScenarioLogic, SkillScheduler,
             RobotContext, Faults, Metrics, Skills/, Perception/ (WorldModel),
             Planning/ (Pddl, PlanningDomain, PlanExecutor, PlanGraph,
             Kairos/), Grasp/, Learning/ (RL environments), Agents/,
             Story/ (actors moved by the story: events, actions, queries)
   Package/  files and plugins: Simulation (scenario = cell + verdict),
+            StandaloneSimulation (StandaloneSimulation::open, headless),
             RunReport, Scenario/ (World, Scenario, Experiment, Assertions,
             Trajectory, PackagePath, FileRole), Plugin/ (PluginABI.h,
             PluginAPI.hpp, catalog, session)

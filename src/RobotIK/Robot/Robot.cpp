@@ -21,9 +21,9 @@ static std::uint64_t nextSerial()
 }
 
 Robot::Robot(std::filesystem::path const& p_urdf,
-             std::filesystem::path const& p_tool,
+             ToolMount const& p_tool,
              std::shared_ptr<ResourceManager> p_resources)
-    : m_kinematics(std::make_unique<Kinematics>(p_urdf, p_tool)),
+    : m_kinematics(p_urdf, p_tool),
       m_resources(p_resources ? std::move(p_resources)
                               : std::make_shared<ResourceManager>()),
       m_sensors(*this, *m_resources),
@@ -36,7 +36,7 @@ Robot::~Robot() = default;
 
 Pose Robot::requireFramePose(std::string const& p_frame) const
 {
-    return m_kinematics->requireFramePose(p_frame);
+    return m_kinematics.requireFramePose(p_frame);
 }
 
 Pose Robot::requireWorldPose(std::string const& p_frame) const
@@ -51,11 +51,11 @@ LinkRef Robot::requireLink(std::string const& p_name) const
     {
         return LinkRef{ m_serial, LinkRef::BASE };
     }
-    if (!m_kinematics->hasFrame(p_name))
+    if (!m_kinematics.hasFrame(p_name))
     {
         throw std::invalid_argument("Unknown Pinocchio frame: " + p_name);
     }
-    return LinkRef{ m_serial, m_kinematics->frameId(p_name) };
+    return LinkRef{ m_serial, m_kinematics.frameId(p_name) };
 }
 
 Pose Robot::getWorldPose(LinkRef const& p_link) const
@@ -74,7 +74,7 @@ Pose Robot::poseFrom(BaseState const& p_base, LinkRef const& p_link) const
     }
     return p_link.m_frame == LinkRef::BASE
                ? p_base.pose
-               : p_base.pose * m_kinematics->framePose(p_link.m_frame);
+               : p_base.pose * m_kinematics.framePose(p_link.m_frame);
 }
 
 std::optional<std::vector<double>>
@@ -82,8 +82,8 @@ Robot::inverseKinematics(std::string const& p_frame,
                          Pose const& p_target,
                          IkGoal p_goal) const
 {
-    auto solution = m_kinematics->solveIK(
-        p_frame, p_target, m_kinematics->configuration(), p_goal);
+    auto solution = m_kinematics.solveIK(
+        p_frame, p_target, m_kinematics.configuration(), p_goal);
     if (!solution)
     {
         return std::nullopt;
@@ -91,7 +91,7 @@ Robot::inverseKinematics(std::string const& p_frame,
     std::vector<double> targets(m_joints.size());
     for (JointId id = 0; id < m_joints.size(); ++id)
     {
-        int const index = m_model->q_indices[id];
+        int const index = m_model.q_indices[id];
         targets[id] = index >= 0 ? (*solution)[static_cast<std::size_t>(index)]
                                  : m_joints.position(id);
     }
@@ -100,20 +100,20 @@ Robot::inverseKinematics(std::string const& p_frame,
 
 void Robot::updateKinematics()
 {
-    std::span<double> q = m_kinematics->configuration();
-    std::span<double> v = m_kinematics->velocity();
+    std::span<double> q = m_kinematics.configuration();
+    std::span<double> v = m_kinematics.velocity();
     for (JointId id = 0; id < m_joints.size(); ++id)
     {
-        if (int const index = m_model->q_indices[id]; index >= 0)
+        if (int const index = m_model.q_indices[id]; index >= 0)
         {
             q[static_cast<std::size_t>(index)] = m_joints.position(id);
         }
-        if (int const index = m_model->v_indices[id]; index >= 0)
+        if (int const index = m_model.v_indices[id]; index >= 0)
         {
             v[static_cast<std::size_t>(index)] = m_joints.velocity(id);
         }
     }
-    m_kinematics->updateKinematics();
+    m_kinematics.updateKinematics();
 }
 
 } // namespace robotik

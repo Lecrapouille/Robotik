@@ -290,4 +290,4 @@ On PickAndPlace (`pick_and_place_pddl` and `pick_and_place_pabt`) both ways end 
 ## 🔗 Next
 
 - [Case studies](../case-studies/README.md): the PDDL scenarios of PickAndPlace, Painter and DualArm.
-- [API reference](../reference/api.md): the other classes a scenario logic uses.
+- [API reference](../reference/api/README.md): the other classes a scenario logic uses.

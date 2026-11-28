@@ -179,12 +179,11 @@ RoboticCell::RoboticCell(compages::world::World& p_world,
               std::vector<std::unique_ptr<RobotRuntime>> robots;
               for (EntitySpec const* spec : robotsOf(world))
               {
-                  EntitySpec const* tool = mountedTool(world, spec->id);
                   robots.push_back(std::make_unique<RobotRuntime>(
                       p_world,
                       spec->model,
                       p_view,
-                      tool != nullptr ? tool->model : std::filesystem::path{},
+                      toolMountOf(world, spec->id),
                       m_resources));
                   robots.back()->setId(spec->id);
                   robots.back()->setLocalization(m_description.localization);
@@ -649,14 +648,8 @@ void RoboticCell::connectBackend()
         ChainOptions chain;
         chain.pose = robot_spec->pose;
         chain.prefix = prefix;
-        std::string const arm = physics->load(robot_spec->model, chain);
-        if (EntitySpec const* tool = mountedTool(world, robot_spec->id))
-        {
-            ChainOptions mount;
-            mount.prefix = prefix;
-            std::string const mounted = physics->load(tool->model, mount);
-            physics->attach(arm, "flange", mounted, "tool_mount");
-        }
+        (void)physics->loadRobot(
+            robot_spec->model, toolMountOf(world, robot_spec->id), chain);
     }
     for (Record const& record : m_records)
     {
@@ -699,7 +692,7 @@ bool RoboticCell::rigidProp(EntitySpec const& p_prop) const
     {
         return false;
     }
-    if (fidelityOf(physics, p_prop.id) == Fidelity::Rigid)
+    if (fidelityOf(physics, p_prop.id) == PhysicsFidelity::Rigid)
     {
         return true;
     }
@@ -713,12 +706,12 @@ bool RoboticCell::rigidProp(EntitySpec const& p_prop) const
             rigid_gripper =
                 rigid_gripper ||
                 (actuator.type == ActuatorSpec::Type::Vacuum &&
-                 fidelityOf(physics, actuator.name) == Fidelity::Rigid);
+                 fidelityOf(physics, actuator.name) == PhysicsFidelity::Rigid);
         }
         rigid_box = rigid_box ||
                     (entity.type == EntitySpec::Type::Prop && entity.shape &&
                      entity.shape->type == ShapeSpec::Type::Box &&
-                     fidelityOf(physics, entity.id) == Fidelity::Rigid);
+                     fidelityOf(physics, entity.id) == PhysicsFidelity::Rigid);
     }
     // A box a rigid gripper may take; a container a rigid object may fall in.
     return box ? rigid_gripper : (rigid_gripper || rigid_box);
@@ -993,7 +986,7 @@ TreeClock RoboticCell::simulatedClock() const
     return [this]
     {
         std::chrono::duration<double> const elapsed(
-            m_robot->robot().getTime().value());
+            m_robot->getTime().value());
         return std::chrono::steady_clock::time_point(
             std::chrono::duration_cast<std::chrono::steady_clock::duration>(
                 elapsed));
@@ -1167,7 +1160,7 @@ void RoboticCell::observe()
         {
             m_world_model.place(record.spec->id,
                                 to_base * positionOf(record.entity),
-                                m_robot->robot().getTime());
+                                m_robot->getTime());
         }
     }
 }
@@ -1204,7 +1197,7 @@ void RoboticCell::perceiveTruth()
         {
             m_world_model.place(record.spec->id,
                                 to_base * truth,
-                                m_robot->robot().getTime(),
+                                m_robot->getTime(),
                                 BeliefSource::Truth);
             continue;
         }
@@ -1224,7 +1217,7 @@ void RoboticCell::perceiveTruth()
         truth.z = m_perception_random.normal(truth.z, noise.sigma);
         m_world_model.place(record.spec->id,
                             to_base * truth,
-                            m_robot->robot().getTime(),
+                            m_robot->getTime(),
                             BeliefSource::NoisyTruth);
     }
 }
@@ -1326,7 +1319,7 @@ void RoboticCell::step(Seconds p_dt)
     // The clock comes from the robot (its backend). The decision side gets
     // the time measured since its last tick: the asked dt in a simulation,
     // the true one on hardware. A clock that did not move skips the tick.
-    Seconds const before = m_robot->robot().getTime();
+    Seconds const before = m_robot->getTime();
     Seconds const elapsed = m_ticked ? before - m_last_tick : p_dt;
     bool const stalled = !(elapsed.value() > 0.0);
     if (stalled)
@@ -1341,10 +1334,11 @@ void RoboticCell::step(Seconds p_dt)
     if (!m_suspended && !stalled)
     {
         m_faults.update(*m_resources, before, elapsed);
-        for (RobotContext& context : m_contexts)
+        // One context per robot, in the same order (see the constructor).
+        for (std::size_t i = 0; i < m_contexts.size(); ++i)
         {
-            context.time = context.robot.getTime();
-            context.dt = elapsed;
+            m_contexts[i].time = m_robots[i]->getTime();
+            m_contexts[i].dt = elapsed;
         }
         if (m_executor && !m_controller_stopped)
         {
@@ -1406,10 +1400,10 @@ void RoboticCell::step(Seconds p_dt)
     {
         // The robot side sees the time after the physics step, like status,
         // and the duration of that step as the clock measured it.
-        for (RobotContext& context : m_contexts)
+        for (std::size_t i = 0; i < m_contexts.size(); ++i)
         {
-            context.time = context.robot.getTime();
-            context.dt = m_robot->robot().getTime() - before;
+            m_contexts[i].time = m_robots[i]->getTime();
+            m_contexts[i].dt = m_robot->getTime() - before;
         }
         m_logic->act(m_contexts.front(), p_dt);
         m_logic->simulate(*this, p_dt);

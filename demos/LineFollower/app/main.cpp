@@ -16,10 +16,9 @@
 #include "Floor.hpp"
 #include "LineFollowerLogic.hpp"
 
-#include "RobotIK/Package/Simulation.hpp"
+#include "RobotIK/Package/StandaloneSimulation.hpp"
 #include "RobotIK/Task/Skills/SkillNodes.hpp"
 
-#include "Compages/World/World.hpp"
 
 #include <opencv2/imgproc.hpp>
 
@@ -137,14 +136,13 @@ int main(int argc, char** argv)
     try
     {
         LineFollowerLogic logic(options.laps);
-        robotik::Result<robotik::Scenario> loaded =
-            robotik::loadScenario(options.scenario, robotik::AssetResolver::standard());
-        if (!loaded)
+        auto opened =
+            robotik::StandaloneSimulation::open(options.scenario, &logic);
+        if (!opened)
         {
-            throw std::runtime_error(loaded.error());
+            throw std::runtime_error(opened.error());
         }
-        compages::world::World world;
-        robotik::Simulation simulation(world, loaded.take(), nullptr, &logic);
+        robotik::Simulation& simulation = opened.value().simulation();
         simulation.reset(robotik::Seed{ options.seed });
 
         robotik::Seconds const dt(DEMO_DT_S);

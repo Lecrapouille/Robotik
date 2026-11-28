@@ -7,9 +7,9 @@
 
 #include "main.hpp"
 
+#include "RobotIK/Robot/Backends/RobotBackend.hpp"
 #include "RobotIK/Robot/Joints.hpp"
 #include "RobotIK/Robot/RobotRuntime.hpp"
-#include "RobotIK/Robot/Backends/RobotBackend.hpp"
 
 #include <limits>
 
@@ -98,7 +98,7 @@ TEST(Clock, ComesFromTheBackend)
     robot.connect(std::make_unique<OwnClock>(2.0));
     robot.step(robotik::Seconds(0.01));
     robot.step(robotik::Seconds(0.01));
-    EXPECT_NEAR(robot.robot().getTime().value(), 0.04, 1e-12);
+    EXPECT_NEAR(robot.getTime().value(), 0.04, 1e-12);
 }
 
 TEST(Clock, CountsTheStepsWithoutABackendClock)
@@ -108,5 +108,36 @@ TEST(Clock, CountsTheStepsWithoutABackendClock)
         world, assetFile("robotik.robots.simple_revolute_robot"));
     robot.step(robotik::Seconds(0.01));
     robot.step(robotik::Seconds(0.01));
-    EXPECT_NEAR(robot.robot().getTime().value(), 0.02, 1e-12);
+    EXPECT_NEAR(robot.getTime().value(), 0.02, 1e-12);
+}
+
+// ----------------------------------------------------------------------------
+TEST(JointPosture, AnAngleOnAJointThatSlidesIsRefused)
+{
+    using namespace robotik::literals;
+    compages::world::World world;
+    robotik::RobotRuntime runtime(
+        world, assetFile("robotik.robots.scara.scara_robot"));
+    // joint1 turns, end_effector slides: each one in its table.
+    runtime.hold({ .angles = { { "joint1", 0.4_rad } },
+                   .lengths = { { "end_effector", 0.05_m } } });
+    robotik::JointSet const& joints = runtime.robot().getJoints();
+    EXPECT_NEAR(joints.position(joints.require("joint1")), 0.4, 1e-12);
+    EXPECT_NEAR(joints.position(joints.require("end_effector")), 0.05, 1e-12);
+
+    EXPECT_THROW(runtime.hold({ .angles = { { "end_effector", 0.1_rad } } }),
+                 std::invalid_argument);
+    EXPECT_THROW(runtime.hold({ .lengths = { { "joint1", 0.1_m } } }),
+                 std::invalid_argument);
+}
+
+// ----------------------------------------------------------------------------
+TEST(JointPosture, TheUrdfSaysWhichJointsTurnAndWhichSlide)
+{
+    auto const types =
+        robotik::readJointTypes(assetFile("robotik.robots.scara.scara_robot"));
+    ASSERT_TRUE(types) << types.error();
+    EXPECT_EQ(types.value().at("joint1"), robotik::JointType::Revolute);
+    EXPECT_EQ(types.value().at("end_effector"), robotik::JointType::Prismatic);
+    EXPECT_FALSE(robotik::readJointTypes("no_such.urdf"));
 }

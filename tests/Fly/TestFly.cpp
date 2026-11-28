@@ -7,6 +7,8 @@
 
 #include "main.hpp"
 
+#include "RobotIK/Package/StandaloneSimulation.hpp"
+
 #include "FlyBrain.hpp"
 #include "FlyEnvironment.hpp"
 #include "FlyTrace.hpp"
@@ -152,9 +154,10 @@ TEST(FlyLogic, ReachesTheFoodAsARegularPlugin)
         repoFile(
             "demos/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"),
         testAssets()).take();
-    compages::world::World world;
     FlyLogic logic;
-    robotik::Simulation simulation(world, scenario, nullptr, &logic);
+    auto opened =
+        robotik::require(robotik::StandaloneSimulation::open(scenario, &logic));
+    robotik::Simulation& simulation = opened.simulation();
 
     // The fly starts where the world file puts it.
     EXPECT_NEAR(simulation.cell().requirePose("fly").position.x, 0.5, 1e-6);

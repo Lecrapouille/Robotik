@@ -37,7 +37,7 @@ text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
 <rect x="32" y="276" width="836" height="90" rx="10" class="box"/>
 <text x="52" y="308">Robot</text>
 <text x="150" y="308" class="note">one robot</text>
-<text x="52" y="334" class="small">Robot, RobotRuntime, openRobot, joints, sensors, actuators, resources, backends (MuJoCo,</text>
+<text x="52" y="334" class="small">Robot, RobotRuntime, StandaloneRobot, joints, sensors, actuators, resources, backends (MuJoCo,</text>
 <text x="52" y="352" class="small">Pinocchio), asset packs</text>
 <path d="M450 366 L450 380" class="arrow"/>
 <rect x="32" y="382" width="836" height="90" rx="10" class="box"/>

@@ -49,14 +49,13 @@ SimulationEnvironment::SimulationEnvironment(
     m_observation_space = m_parts.observation->space();
     m_action_space = m_parts.action->space();
 
-    m_simulation =
-        std::make_unique<RoboticCell>(m_world,
-                                      forLearning(std::move(p_description)),
-                                      nullptr,
-                                      m_parts.logic.get());
-    m_parts.observation->setup(*m_simulation);
-    m_parts.action->setup(*m_simulation);
-    m_parts.reward->setup(*m_simulation);
+    // A description that cannot be built is a mistake of the program that
+    // makes the environment: it throws, with the message of the Result.
+    m_cell.emplace(robotik::require(StandaloneCell::open(
+        forLearning(std::move(p_description)), m_parts.logic.get())));
+    m_parts.observation->setup(m_cell->cell());
+    m_parts.action->setup(m_cell->cell());
+    m_parts.reward->setup(m_cell->cell());
 }
 
 SimulationEnvironment::~SimulationEnvironment() = default;
@@ -65,11 +64,11 @@ void SimulationEnvironment::reset(Seed p_seed, std::span<float> p_observation)
 {
     m_abort.clear();
     m_clock.steps = 0;
-    m_simulation->reset(p_seed);
-    m_parts.action->reset(*m_simulation);
-    m_parts.reward->reset(*m_simulation);
-    m_parts.observation->reset(*m_simulation);
-    m_parts.observation->observe(*m_simulation, m_clock, p_observation);
+    m_cell->cell().reset(p_seed);
+    m_parts.action->reset(m_cell->cell());
+    m_parts.reward->reset(m_cell->cell());
+    m_parts.observation->reset(m_cell->cell());
+    m_parts.observation->observe(m_cell->cell(), m_clock, p_observation);
 }
 
 StepResult SimulationEnvironment::step(std::span<float const> p_action,
@@ -78,18 +77,18 @@ StepResult SimulationEnvironment::step(std::span<float const> p_action,
     StepResult result;
     try
     {
-        m_parts.action->apply(p_action, *m_simulation);
+        m_parts.action->apply(p_action, m_cell->cell());
         for (std::uint32_t i = 0; i < m_substeps; ++i)
         {
-            m_simulation->step(m_timing.physics_step);
+            m_cell->cell().step(m_timing.physics_step);
         }
         ++m_clock.steps;
-        result = m_parts.reward->evaluate(*m_simulation);
+        result = m_parts.reward->evaluate(m_cell->cell());
         if (!done(result) && m_clock.steps >= m_timing.max_steps)
         {
             result.end = EpisodeEnd::TimeLimit;
         }
-        m_parts.observation->observe(*m_simulation, m_clock, p_observation);
+        m_parts.observation->observe(m_cell->cell(), m_clock, p_observation);
     }
     catch (std::exception const& error)
     {

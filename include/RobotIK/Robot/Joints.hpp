@@ -38,13 +38,16 @@
 
 #include "Compages/World/Kinematics/Joint.hpp"
 #include "RobotIK/Common/Math.hpp"
+#include "RobotIK/Common/Result.hpp"
 #include "RobotIK/Robot/Resources.hpp"
 
 #include <cstdint>
+#include <filesystem>
 #include <limits>
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace robotik
@@ -222,6 +225,55 @@ struct JointGains
 /// Largest speed (rad/s or m/s) at which a joint counts as arrived, by default
 /// (see @ref JointSet::reached).
 inline constexpr double SETTLED_SPEED = 0.05;
+
+// ****************************************************************************
+/// A position of the robot, joint by joint: a home, the targets of a move.
+///
+/// Why two tables: the unit of a joint depends on its kind, an angle for a
+/// joint that turns, a length for a joint that slides. One table of
+/// @c double would let a length be given to a joint that turns. Here a
+/// value of @ref angles is always @c Radians and a value of @ref lengths
+/// always @c Length: the type of a value cannot change afterwards.
+///
+/// What the type cannot check, because a name says nothing of the kind of
+/// its joint: that a name of @ref angles is a joint that turns. This is
+/// checked when the robot is known: @ref RobotRuntime::hold throws, the
+/// world file reader classes each number by the kind of its joint in the
+/// URDF (@ref readJointTypes), and @c MoveJointsSkill fails.
+///
+/// @code
+/// using namespace robotik::literals;
+/// robotik::JointPosture home;
+/// home.angles["joint2"] = 0.3_rad;     // a joint that turns
+/// home.lengths["finger"] = 0.02_m;     // a joint that slides
+/// runtime.hold(home);
+/// @endcode
+// ****************************************************************************
+struct JointPosture
+{
+    /// Joints that turn (revolute, continuous): name to angle.
+    std::unordered_map<std::string, Radians> angles;
+    /// Joints that slide (prismatic): name to length.
+    std::unordered_map<std::string, Length> lengths;
+};
+
+// ----------------------------------------------------------------------------
+/// @return True when the posture names no joint.
+// ----------------------------------------------------------------------------
+[[nodiscard]] inline bool isEmpty(JointPosture const& p_posture)
+{
+    return p_posture.angles.empty() && p_posture.lengths.empty();
+}
+
+// ----------------------------------------------------------------------------
+/// Reads the moving joints of a URDF file and their kind, without loading
+/// the robot. For a file reader that must class the numbers of a posture
+/// (angle or length) before the robot exists (see @ref JointPosture).
+/// @param p_urdf URDF file.
+/// @return Joint name to kind, or why the file cannot be read.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<std::unordered_map<std::string, JointType>>
+readJointTypes(std::filesystem::path const& p_urdf);
 
 // ****************************************************************************
 /// All joints of a robot.
@@ -596,9 +648,8 @@ private:
     };
 
     /// Appends a joint to every array; throws if the name is taken.
-    JointId append(std::string p_name,
-                   JointType p_type,
-                   Bounds const& p_bounds);
+    JointId
+    append(std::string p_name, JointType p_type, Bounds const& p_bounds);
 
 private:
 

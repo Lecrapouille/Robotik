@@ -7,6 +7,8 @@
 
 #include "main.hpp"
 
+#include "RobotIK/Package/StandaloneSimulation.hpp"
+
 #include "PickPlaceLogic.hpp"
 
 #include "RobotIK/Package/RunReport.hpp"
@@ -58,16 +60,14 @@ TEST(PerceptionFidelity, LegacyOracleKeyStillWorks)
 TEST(PerceptionFidelity, EachObjectSaysWhereItsBeliefComesFrom)
 {
     PickPlaceLogic logic;
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(
         pickAndPlace(
             "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml",
             { { "scenario.perception.blind", "sensed" },
               { "scenario.perception.fidelity", "truth" },
               { "scenario.perception.overrides.box", "sensed" } }),
-        nullptr,
-        &logic);
+        &logic));
+    robotik::Simulation& simulation = opened.simulation();
     EXPECT_EQ(simulation.cell().perceptionOf("red_cube"), robotik::PerceptionFidelity::Truth);
     EXPECT_EQ(simulation.cell().perceptionOf("box"), robotik::PerceptionFidelity::Sensed);
     simulation.step(robotik::Seconds(0.01));
@@ -88,16 +88,14 @@ TEST(PerceptionFidelity, EachObjectSaysWhereItsBeliefComesFrom)
 TEST(PerceptionFidelity, NoisyTruthCanMissAnObject)
 {
     PickPlaceLogic logic;
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(
         pickAndPlace(
             "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml",
             { { "scenario.perception.blind", "sensed" },
               { "scenario.perception.fidelity", "noisy_truth" },
               { "scenario.perception.noise.dropout", "1.0" } }),
-        nullptr,
-        &logic);
+        &logic));
+    robotik::Simulation& simulation = opened.simulation();
     for (int i = 0; i < 50; ++i)
     {
         simulation.step(robotik::Seconds(0.01));

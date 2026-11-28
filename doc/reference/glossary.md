@@ -66,7 +66,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **Detector**: an algorithm that finds objects in an image (color blobs, AprilTags, a neural network).
 - **ECS (entity, component, system)**: a way to store data. An *entity* is an id, a *component* is plain data put on it, a *system* is a loop over the entities that have some components. Fast, because data of one kind sits side by side. Compages stores the world this way.
 - **Fault**: a failure, scripted or random, of a resource (a camera that stops, a gripper that drops).
-- **Fidelity**: how real a part of the simulation is. *Physics*: `abstract` (an object follows the tool), `rigid`, `contact`. *Perception*: `truth`, `noisy_truth`, `sensed` (see *perception fidelity*).
+- **Fidelity**: how real a part of the simulation is, on three axes (`Robot/Fidelity.hpp`). *Physics* (`PhysicsFidelity`): `abstract` (an object follows the tool), `rigid`, `contact`. *Perception* (`PerceptionFidelity`): `truth`, `noisy_truth`, `sensed` (see *perception fidelity*). *Localization* (`LocalizationFidelity`): `truth`, `plugin`.
 - **Ground truth**: the real state of the simulated world. Metrics, assertions and RL rewards may read it. Skills, observers and scenario logics read beliefs instead, unless the scenario asks for a truth fidelity.
 - **Grasp model**: how the simulation makes a gripper hold an object, for a given physics fidelity.
 - **Scenario logic** (`ScenarioLogic`): the C++ part of a scenario: its skills, its metrics, what it does at each step.

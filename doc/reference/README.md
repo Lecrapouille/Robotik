@@ -15,5 +15,5 @@ Files:
 
 Code and words:
 
-- [API reference](api.md): the classes a plugin uses, grouped by task.
+- [API reference](api/README.md): the classes a plugin uses, one page per group (robot, runtime, standalone robot, joints, teach pendant, cell, skills…).
 - [Glossary](glossary.md): the words of RobotIK, each one defined once.

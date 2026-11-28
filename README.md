@@ -31,7 +31,7 @@ RobotIK itself has three layers. Each works without the layers above it, so a pr
 
 | Layer | You have… | You get |
 |-------|-----------|---------|
-| 🦾 **Robot** | a URDF | one robot, its joints, sensors and physics, in three lines (`robotik::openRobot`) |
+| 🦾 **Robot** | a URDF | one robot, its joints, sensors and physics, in three lines (`robotik::StandaloneRobot::open`) |
 | 🧩 **Task** | robots, objects, a job | a robot cell written in C++: skills, behavior tree or PDDL plan, beliefs (`robotik::RoboticCell`) |
 | 📦 **Package** | YAML files, a plugin | scenarios, experiments, assertions, reports, the simulator (`robotik::Simulation`) |
 

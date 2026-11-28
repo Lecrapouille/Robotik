@@ -257,7 +257,7 @@ static void entityRow(App& p_app,
             ImGui::TableSetColumnIndex(3);
             bool const rigid =
                 fidelityOf(p_app.simulation->scenario().physics,
-                           actuator.name) != robotik::Fidelity::Abstract;
+                           actuator.name) != robotik::PhysicsFidelity::Abstract;
             physicsCell(p_app, actuator.name, rigid ? "welds" : "carries");
         }
     }

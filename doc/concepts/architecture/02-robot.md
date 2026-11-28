@@ -6,7 +6,7 @@ Three separate notions:
 
 | Notion | What | Where |
 |--------|------|-------|
-| **Model** | The structure: links, joints, limits. From a URDF | `RobotModel`, `Kinematics` |
+| **Model** | The structure: links, joints, limits. From a URDF | `Robot::Model`, `Kinematics` |
 | **State** | What happens now: positions, velocities, efforts | `JointSet` |
 | **Backend** | How to read and change the state | `RobotBackend` → `MujocoBackend` (→ a hardware driver later) |
 

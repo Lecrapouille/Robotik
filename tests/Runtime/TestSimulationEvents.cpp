@@ -7,6 +7,8 @@
 
 #include "main.hpp"
 
+#include "RobotIK/Package/StandaloneSimulation.hpp"
+
 #include "PickPlaceLogic.hpp"
 
 #include "RobotIK/Package/Simulation.hpp"
@@ -20,16 +22,14 @@
 TEST(SimulationEvents, ToldWhenSkillsEndAndAssertionsChange)
 {
     PickPlaceLogic logic;
-    compages::world::World world;
-    robotik::Simulation simulation(
-        world,
+    auto opened = robotik::require(robotik::StandaloneSimulation::open(
         robotik::loadScenario(
             repoFile(
                 "demos/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
             testAssets())
             .take(),
-        nullptr,
-        &logic);
+        &logic));
+    robotik::Simulation& simulation = opened.simulation();
 
     std::map<std::string, robotik::SkillState, std::less<>> skills;
     simulation.cell().skills().changed.connect(

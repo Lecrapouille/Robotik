@@ -50,7 +50,7 @@ TEST(RobotRuntime, GripperJointsJoinTheArm)
     robotik::RobotRuntime robot(world,
                                 assetFile("robotik.robots.robot_6axis"),
                                 nullptr,
-                                assetFile("robotik.tools.gripper"));
+                                { .urdf = assetFile("robotik.tools.gripper") });
     EXPECT_EQ(robot.robot().getJoints().size(), 8U);
     EXPECT_NE(robot.robot().getJoints().find("gripper_finger_left_joint"),
               robotik::NO_JOINT);
@@ -104,7 +104,7 @@ TEST(RobotRuntime, GripperJointsJoinTheArmInTheScene)
     robotik::RobotRuntime robot(world,
                                 assetFile("robotik.robots.robot_6axis"),
                                 &view,
-                                assetFile("robotik.tools.gripper"));
+                                { .urdf = assetFile("robotik.tools.gripper") });
     EXPECT_EQ(robot.robot().getJoints().size(), 8U);
     EXPECT_TRUE(robot.robot().getJoints().isPrismatic(
         robot.robot().getJoints().find("gripper_finger_left_joint")));
@@ -159,7 +159,7 @@ TEST(RobotRuntime, MoveJointReachesTheCommand)
     robotik::Seconds const step(TEST_SIM_STEP_S);
     for (int i = 0; i < 1500 && status == robotik::Status::RUNNING; ++i)
     {
-        context.time = robot.robot().getTime();
+        context.time = robot.getTime();
         context.dt = step;
         status = skill.tick(context, step);
         robot.step(step);

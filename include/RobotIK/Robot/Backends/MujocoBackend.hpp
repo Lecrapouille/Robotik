@@ -22,6 +22,7 @@
 
 #include "RobotIK/Robot/Backends/PhysicsWorld.hpp"
 #include "RobotIK/Robot/Backends/RobotBackend.hpp"
+#include "RobotIK/Robot/ToolMount.hpp"
 #include "RobotIK/Common/Math.hpp"
 
 #include <filesystem>
@@ -223,6 +224,22 @@ public:
     // -------------------------------------------------------------------------
     [[nodiscard]] std::string load(std::filesystem::path const& p_urdf,
                                    ChainOptions const& p_options = {});
+
+    // -------------------------------------------------------------------------
+    /// Loads a robot and the tool mounted on it, the tool with the same
+    /// name prefix, its mount link on the flange link of the robot. The one
+    /// way RobotIK puts a robot in MuJoCo: @c StandaloneRobot::open and
+    /// @c RoboticCell both call it, with the same @ref ToolMount as the
+    /// @ref RobotRuntime of the robot.
+    /// @param p_urdf URDF file of the robot.
+    /// @param p_tool Tool mounted on it, or none.
+    /// @param p_options Placement, friction and name prefix of the robot.
+    /// @return The chain name of the robot.
+    /// @throws std::runtime_error if a file or a link is missing.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::string loadRobot(std::filesystem::path const& p_urdf,
+                                        ToolMount const& p_tool,
+                                        ChainOptions const& p_options = {});
 
     // -------------------------------------------------------------------------
     /// Maps the joints of a robot to MuJoCo @b qpos, @b DOF and actuator

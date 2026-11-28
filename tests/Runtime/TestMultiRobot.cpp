@@ -7,6 +7,8 @@
 
 #include "main.hpp"
 
+#include "RobotIK/Package/StandaloneSimulation.hpp"
+
 #include "RobotIK/Package/Simulation.hpp"
 #include "RobotIK/Common/Config.hpp"
 
@@ -121,8 +123,9 @@ TEST(Simulation, TwoCopiesOfAModelBodyShareThePhysics)
 
 TEST(Simulation, TwoRobotsShareOnePhysics)
 {
-    compages::world::World world;
-    robotik::Simulation simulation(world, twoArms());
+    auto opened =
+        robotik::require(robotik::StandaloneSimulation::open(twoArms()));
+    robotik::Simulation& simulation = opened.simulation();
     ASSERT_EQ(simulation.cell().robots().size(), 2U);
     robotik::RobotRuntime* left = simulation.cell().runtime("left");
     robotik::RobotRuntime* right = simulation.cell().runtime("right");
@@ -154,8 +157,8 @@ TEST(Simulation, TwoRobotsShareOnePhysics)
     }
     EXPECT_NEAR(right->robot().getJoints().position(joint), 0.5, 0.02);
     EXPECT_NEAR(left->robot().getJoints().position(joint), left_before, 1e-3);
-    EXPECT_NEAR(left->robot().getTime().value(),
-                right->robot().getTime().value(),
+    EXPECT_NEAR(left->getTime().value(),
+                right->getTime().value(),
                 1e-12);
     EXPECT_DOUBLE_EQ(
         simulation.cell().requireQuery("(collision_count left)").value(), 0.0);

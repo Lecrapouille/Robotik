@@ -18,7 +18,7 @@ failure; a demo or test shows it; the docs give its dependencies and limits;
 
 - [ ] Rename the accessors of the public headers to `get`/`set`/`is`/`has`/`count`
   (AGENTS.md, Style), first `include/`, then the plugins and the docs
-  (doc/reference/api.md). Done: `TeachPendant`, `Robot`, `RobotRuntime`. This leaves the bare names
+  (doc/reference/api/README.md). Done: `TeachPendant`, `Robot`, `RobotRuntime`. This leaves the bare names
   of Compages on purpose. In the same pass, replace the bare `double` of a
   physical quantity in a public API by its SI type (AGENTS.md); done:
   `TeachPendant`, `RobotRuntime::measureJoint/placeJoint`.
@@ -439,16 +439,24 @@ Simulation and run reports. Reduce their transitive includes separately.
 
 ### 19. Compact entry points and actual code removal — P1
 
-- [ ] Add `openSimulation(path, options)` using existing package and plugin
-      services. Own the world, mission and plugin library in destruction order.
+- [x] Add `openSimulation(path, options)` using existing package and plugin
+      services. Done 2026-11-28: `StandaloneSimulation::open(scenario or
+      file, logic)` and `openPlugin(file, setup)`, which owns the world, the
+      simulation and the plugin library in destruction order, and `step`
+      calls the plugin. Used by the headless host (one library load per
+      run), the LineFollower app and the tests. Own the world, mission and plugin library in destruction order.
       Keep plugin updates, events, custom clock handling and reports consistent
       with the two existing hosts. Decide its exact return type during design.
 - [ ] Expose step, run, reset, time, completion and report operations for the
       common case. Keep rendering, planner inspection and extension registration
       in optional headers. Return `Result` for loading failures.
-- [ ] Keep `openRobot` and `openRoboticCell`; hide their worlds behind safe
+- [x] Keep `openRobot` and `openRoboticCell`; hide their worlds behind safe
       ownership. Public unique_ptr members currently let callers break lifetime
       invariants. Review move assignment as well as destruction order.
+      Done 2026-11-28: `StandaloneRobot` and `StandaloneCell` keep the
+      world and the robot (cell) private, move without assignment;
+      `RobotOptions` became `StandaloneRobot::Setup { tool, home,
+      std::optional<MujocoOptions> physics }`.
 - [ ] Add small free functions to construct robot/box specifications. Reuse
       RoboticCellDescription rather than introducing a second builder model.
 - [ ] Reduce RobotIK.hpp dependencies. It currently includes MuJoCo, RL and
@@ -459,8 +467,13 @@ Simulation and run reports. Reduce their transitive includes separately.
       unknown-key checks.
 - [ ] Reuse the SExpression reader for PDDL domain syntax. Keep PDDL case rules
       and semantic validation; remove the redundant Reader/Sexpr implementation.
-- [ ] Share physical model assembly between openRobot and RoboticCell. Replace
+- [x] Share physical model assembly between StandaloneRobot::open and RoboticCell. Replace
       hardcoded flange/tool_mount assumptions with declared attachment data.
+      Done 2026-11-28: `ToolMount { urdf, flange, mount }` read by the
+      kinematics, the runtime and `MujocoBackend::loadRobot`; the cell fills
+      it from `attach:` (`toolMountOf`). Also: `SimulationEnvironment` holds a
+      `StandaloneCell`, `TestTeachPendant` builds its arm with
+      `StandaloneRobot::open`.
 - [ ] Remove Painter-specific openCanvas/ink operations from SceneView once a
       generic dynamic-texture extension serves their consumers. Remove vacuum
       assumptions only when a generic gripper contract has a second use.
@@ -561,6 +574,16 @@ Acceptance: `make check`, `make check-layers`; compile-time tests (as
 `RobotContext&` cannot call `Camera::seed`, write a joint of a team robot,
 nor reach an entity.
 
+- [x] 20.10 Follow-up of the review of `Robot.hpp` (2026-11-28): the three
+      fidelities in one header `Robot/Fidelity.hpp` (`Fidelity` renamed
+      `PhysicsFidelity`); `JointPosture` is two tables, `angles` in
+      `Radians` and `lengths` in `Length` (the world reader classes the
+      numbers of `home:` by the joint kinds of the URDF, `readJointTypes`);
+      the robot clock is `RobotRuntime::getTime` (a skill reads
+      `RobotContext::time`); `Robot::m_kinematics` and `m_model` are values; `RobotModel` is nested as `Robot::Model` (`sameJoints` removed, no caller; `readJointTypes` in `Joints.hpp`).
+      Kept: `LinkRef` (4.7 times faster steps), `m_serial` in `Robot` (it
+      names an instance, not a model), the private constructor of `Robot`.
+
 ### 21. Names and ownership in the other layers — P2
 
 - [ ] 21.1 `struct Scenario : RoboticCellDescription`: inheritance of data.
@@ -575,7 +598,7 @@ nor reach an entity.
       `connectBackend`, `addRigidProps`, URDF links). A cell builder makes
       the parts from the `RoboticCellDescription`; the cell keeps their
       lifetime and the step order. Same work as "share physical model
-      assembly between openRobot and RoboticCell" (task 19): do them
+      assembly between openRobot and RoboticCell", now StandaloneRobot::open (task 19): do them
       together.
 - [ ] 21.4 Plugin classes: `PluginManager` loads one library (a
       `PluginLibrary`); `PluginSession` is one more "session"; the plugin

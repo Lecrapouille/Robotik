@@ -195,16 +195,16 @@ Result<void> overrideValue(ScenarioSource& p_source, std::string_view p_path, Co
 }
 
 /// Maps the words abstract and rigid onto the fidelity enum.
-static Result<Fidelity> readFidelity(std::string const& p_text,
+static Result<PhysicsFidelity> readFidelity(std::string const& p_text,
                                      std::string const& p_where)
 {
     if (p_text == "abstract")
     {
-        return Fidelity::Abstract;
+        return PhysicsFidelity::Abstract;
     }
     if (p_text == "rigid")
     {
-        return Fidelity::Rigid;
+        return PhysicsFidelity::Rigid;
     }
     if (p_text == "contact")
     {
@@ -231,7 +231,7 @@ static Result<void> readPhysics(Scenario& p_scenario, ConfigNode const& p_node)
         {
             return failure("physics.overrides." + id + " must be a level");
         }
-        Fidelity fidelity = Fidelity::Abstract;
+        PhysicsFidelity fidelity = PhysicsFidelity::Abstract;
         ROBOTIK_TRY_ASSIGN(
             fidelity, readFidelity(level.scalar(), "physics.overrides." + id));
         p_scenario.physics.overrides.emplace(id, fidelity);

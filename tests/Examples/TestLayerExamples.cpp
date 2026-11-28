@@ -7,14 +7,16 @@
 
 // The smallest program of each layer, kept here so that it always builds and
 // runs. The Robot layer one is OpenRobot.MovesAJointInAFewLines
-// (tests/Robot/TestOpenRobot.cpp). doc/tutorials/02-three-programs.md shows them.
+// (tests/Robot/TestStandaloneRobot.cpp). doc/tutorials/02-three-programs.md shows them.
 
 #include "main.hpp"
+
+#include "RobotIK/Package/StandaloneSimulation.hpp"
 
 #include "PickPlaceLogic.hpp"
 
 #include "RobotIK/Package/Simulation.hpp"
-#include "RobotIK/Task/OpenRoboticCell.hpp"
+#include "RobotIK/Task/StandaloneCell.hpp"
 #include "RobotIK/Task/Skills/MotionSkills.hpp"
 
 #include "Compages/World/World.hpp"
@@ -34,9 +36,9 @@ TEST(LayerExamples, TaskRunsOneSkill)
     robotik::RoboticCellDescription description;
     description.world.entities = { arm, cube };
 
-    auto opened = robotik::openRoboticCell(std::move(description));
+    auto opened = robotik::StandaloneCell::open(std::move(description));
     ASSERT_TRUE(opened) << opened.error();
-    robotik::RoboticCell& cell = *opened.value();
+    robotik::RoboticCell& cell = opened.value().cell();
     auto const raise = cell.skills().add<robotik::MoveJointSkill>(
         { .name = "Raise" }, "joint2", 0.5);
     EXPECT_EQ(cell.run(raise, robotik::Seconds(10.0)),
@@ -51,7 +53,7 @@ TEST(LayerExamples, TaskRunsOneSkill)
 
 /// The pick-and-place world without its controller, and its scenario logic: the
 /// skills and the observers of the planner (PickPlacePlanning.cpp).
-static robotik::Result<robotik::OpenedRoboticCell>
+static robotik::Result<robotik::StandaloneCell>
 pickAndPlace(PickPlaceLogic& p_logic)
 {
     auto scenario = robotik::loadScenario(
@@ -64,7 +66,7 @@ pickAndPlace(PickPlaceLogic& p_logic)
     }
     robotik::RoboticCellDescription description = scenario.take();
     description.controller = {};
-    return robotik::openRoboticCell(std::move(description), &p_logic);
+    return robotik::StandaloneCell::open(std::move(description), &p_logic);
 }
 
 /// The goal of the pick and place, in the domain of the package.
@@ -84,7 +86,7 @@ TEST(LayerExamples, TaskAchievesAGoal)
     PickPlaceLogic logic(true, true);
     auto opened = pickAndPlace(logic);
     ASSERT_TRUE(opened) << opened.error();
-    robotik::RoboticCell& cell = *opened.value();
+    robotik::RoboticCell& cell = opened.value().cell();
 
     cell.achieve(cubeInBox("(in red_cube box)"));
     EXPECT_EQ(cell.run(robotik::Seconds(60.0)), robotik::Status::SUCCESS);
@@ -97,7 +99,7 @@ TEST(LayerExamples, AchieveRefusesAGoalTheDomainDoesNotKnow)
     PickPlaceLogic logic(true, true);
     auto opened = pickAndPlace(logic);
     ASSERT_TRUE(opened) << opened.error();
-    EXPECT_THROW(opened.value()->achieve(cubeInBox("(flying red_cube)")),
+    EXPECT_THROW(opened.value().cell().achieve(cubeInBox("(flying red_cube)")),
                  std::runtime_error);
 }
 
@@ -147,8 +149,9 @@ TEST(LayerExamples, PackageScenarioFile)
     ASSERT_TRUE(scenario) << scenario.error();
 
     HelloLogic logic;
-    compages::world::World world;
-    robotik::Simulation simulation(world, scenario.take(), nullptr, &logic);
+    auto opened = robotik::StandaloneSimulation::open(scenario.take(), &logic);
+    ASSERT_TRUE(opened) << opened.error();
+    robotik::Simulation& simulation = opened.value().simulation();
     while (!simulation.finished())
     {
         simulation.step(robotik::Seconds(0.01));

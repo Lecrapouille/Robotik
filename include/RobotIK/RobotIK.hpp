@@ -11,7 +11,7 @@
 /// RobotIK has three layers; each one works without the ones above it
 /// (see doc/reference/glossary.md):
 /// @li Robot: one robot, its joints, sensors, actuators and physics
-///     (@ref robotik::openRobot, @ref robotik::Robot);
+///     (@ref robotik::StandaloneRobot::open, @ref robotik::Robot);
 /// @li Task: robots and objects doing a job, with a controller (behavior
 ///     tree, PDDL planner or scenario logic) and beliefs
 ///     (@ref robotik::RoboticCell, @ref robotik::SkillScheduler);

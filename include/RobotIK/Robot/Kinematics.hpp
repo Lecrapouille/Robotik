@@ -24,6 +24,7 @@
 #pragma once
 
 #include "RobotIK/Common/Math.hpp"
+#include "RobotIK/Robot/ToolMount.hpp"
 
 #include <array>
 #include <cstdint>
@@ -100,11 +101,12 @@ public:
     // -------------------------------------------------------------------------
     /// Builds the Pinocchio model from URDF.
     /// @param p_urdf Path to URDF file.
-    /// @param p_tool Tool URDF attached at the @c flange frame, or empty.
+    /// @param p_tool Tool mounted on the robot, or none: adds the frame
+    ///   @c tcp of the tool on the flange.
     /// @throws std::runtime_error if Pinocchio cannot parse the file.
     // -------------------------------------------------------------------------
     explicit Kinematics(std::filesystem::path const& p_urdf,
-                              std::filesystem::path const& p_tool = {});
+                        ToolMount const& p_tool = {});
 
     // -------------------------------------------------------------------------
     /// Releases model and data.

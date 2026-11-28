@@ -743,7 +743,7 @@ std::vector<ConditionQuery> RoboticCell::builtinQueries() const
               Record const& record = require(p_args[0]);
               WorldObject const* belief = m_world_model.find(p_args[0]);
               if (belief == nullptr || !observed(*belief) ||
-                  m_robot->robot().getTime() - belief->seen >
+                  m_robot->getTime() - belief->seen >
                       m_description.perception.max_age)
               {
                   return std::nullopt;
